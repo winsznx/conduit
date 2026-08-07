@@ -1,0 +1,23 @@
+{
+  "name": "@conduit-protocol/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Protocol state machine, message codecs, and pure settlement types.",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist"
+  }
+}

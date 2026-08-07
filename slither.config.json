@@ -1,0 +1,11 @@
+{
+  "filter_paths": "contracts/lib/|out/|cache/|node_modules/",
+  "exclude_dependencies": true,
+  "exclude_informational": false,
+  "exclude_low": false,
+  "exclude_medium": false,
+  "exclude_high": false,
+  "fail_on": "low",
+  "solc_disable_warnings": false,
+  "foundry_compile_all": true
+}

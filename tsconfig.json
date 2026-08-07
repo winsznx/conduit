@@ -1,0 +1,47 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./apps/worker"
+    },
+    {
+      "path": "./apps/indexer"
+    },
+    {
+      "path": "./packages/domain"
+    },
+    {
+      "path": "./packages/sdk"
+    },
+    {
+      "path": "./packages/cleanverse"
+    },
+    {
+      "path": "./packages/wormhole"
+    },
+    {
+      "path": "./packages/verifier"
+    },
+    {
+      "path": "./packages/db"
+    },
+    {
+      "path": "./packages/config"
+    },
+    {
+      "path": "./packages/observability"
+    },
+    {
+      "path": "./packages/ui"
+    },
+    {
+      "path": "./tsconfig.tests.json"
+    }
+  ]
+}

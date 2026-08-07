@@ -1,0 +1,87 @@
+{
+  "manifestVersion": 1,
+  "phase": "00",
+  "prd": "CONDUIT_PRD_v1.0.md",
+  "policy": {
+    "floatingVersionsAllowed": false,
+    "rationale": "PRD 11.1 requires exact pins for every npm dependency, Solidity compiler, Docker tag, GitHub Action, and Terraform provider. This manifest is the single source of truth; scripts/verify-toolchain.mjs and tests/toolchain.test.ts fail the build when a file drifts from it."
+  },
+  "runtime": {
+    "node": "24.14.1",
+    "pnpm": "10.33.0"
+  },
+  "solidity": {
+    "solc": "0.8.36",
+    "evmVersion": "cancun",
+    "pragma": "=0.8.36",
+    "knownBugsAtPin": [],
+    "bugListSource": "https://raw.githubusercontent.com/ethereum/solidity/develop/docs/bugs_by_version.json",
+    "bugListCheckedAt": "2026-08-07",
+    "selectionRationale": "0.8.36 (released 2026-07-09) is the newest release with an empty entry in the upstream bugs_by_version.json list. 0.8.30 through 0.8.35 all carry at least one open advisory."
+  },
+  "foundry": {
+    "version": "1.7.1",
+    "commit": "4072e48705af9d93e3c0f6e29e93b5e9a40caed8"
+  },
+  "solidityLibraries": {
+    "forge-std": {
+      "repo": "foundry-rs/forge-std",
+      "tag": "v1.16.2",
+      "commit": "bf647bd6046f2f7da30d0c2bf435e5c76a780c1b"
+    }
+  },
+  "staticAnalysis": {
+    "slither": "0.11.5",
+    "gitleaks": "8.30.1",
+    "trivy": "0.73.0",
+    "checkov": "3.3.9"
+  },
+  "containerImages": {
+    "postgres": {
+      "reference": "postgres:18.2-alpine3.22",
+      "digest": "sha256:cf70b3d7aeb0f399ba29e94ce081380ccade1f4c38e203309068a30f49548417"
+    },
+    "otelCollector": {
+      "reference": "otel/opentelemetry-collector-contrib:0.144.0",
+      "digest": "sha256:213886eb6407af91b87fa47551c3632be1a6419ff3a5114ef1e6fc364628496f"
+    },
+    "trivy": {
+      "reference": "aquasec/trivy:0.73.0",
+      "digest": "sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c"
+    },
+    "checkov": {
+      "reference": "bridgecrew/checkov:3.3.9",
+      "digest": "sha256:12a62da01af22654883aee3b9da18ba4297f123f5122663bf65235db37934144"
+    }
+  },
+  "terraform": {
+    "cli": "1.15.8",
+    "providers": {}
+  },
+  "githubActions": {
+    "actions/checkout": {
+      "tag": "v7.0.1",
+      "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    },
+    "actions/setup-node": {
+      "tag": "v7.0.0",
+      "sha": "820762786026740c76f36085b0efc47a31fe5020"
+    },
+    "actions/setup-python": {
+      "tag": "v7.0.0",
+      "sha": "5fda3b95a4ea91299a34e894583c3862153e4b97"
+    },
+    "actions/upload-artifact": {
+      "tag": "v7.0.1",
+      "sha": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+    },
+    "foundry-rs/foundry-toolchain": {
+      "tag": "v1.9.1",
+      "sha": "908c540300062bd5a7e473851cdb4282204cee09"
+    },
+    "pnpm/action-setup": {
+      "tag": "v6.0.10",
+      "sha": "0977fd99725f1db4007ccb2928dbb4e90d06cc86"
+    }
+  }
+}

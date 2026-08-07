@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.sol      text eol=lf
+*.ts       text eol=lf
+*.mjs      text eol=lf
+*.json     text eol=lf
+*.md       text eol=lf
+*.yaml     text eol=lf
+*.yml      text eol=lf
+
+pnpm-lock.yaml   -diff linguist-generated=true
+foundry.lock     -diff linguist-generated=true
+.gas-snapshot    -diff linguist-generated=true

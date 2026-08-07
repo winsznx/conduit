@@ -1,0 +1,23 @@
+{
+  "name": "@conduit-protocol/wormhole",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pinned Wormhole registry snapshot, VAA retrieval, and payload codec.",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist"
+  }
+}

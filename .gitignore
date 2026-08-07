@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+out/
+cache/
+cache_forge/
+broadcast/*/dry-run/
+*.tsbuildinfo
+.tsbuild/
+
+# test output
+coverage/
+lcov.info
+playwright-report/
+test-results/
+.vitest/
+
+# runtime secrets — never commit
+.env
+.env.*
+!.env.example
+
+# local tooling
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# terraform local state
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.local
+
+# generated evidence artifacts are content-addressed and published, not committed raw
+docs/evidence/artifacts/

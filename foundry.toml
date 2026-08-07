@@ -1,0 +1,60 @@
+[profile.default]
+src = "contracts/src"
+test = "contracts/test"
+script = "contracts/script"
+libs = ["contracts/lib"]
+out = "out"
+cache_path = "cache"
+
+# PRD 11.1: no floating Solidity compiler. `auto_detect_solc = false` stops
+# Foundry from silently resolving a different compiler when a pragma widens.
+solc = "0.8.36"
+auto_detect_solc = false
+
+# Foundry 1.7.1 defaults to `osaka`. Conduit deploys to Monad Testnet and
+# Arbitrum Sepolia, whose supported EVM version is an open assumption
+# (docs/assumptions.md ASM-013) resolved by live probes in phase 02. Until then
+# the pin is the most conservative version that still provides transient
+# storage, and it is deliberately lower than the toolchain default.
+evm_version = "cancun"
+
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+# Reproducible bytecode. PRD 17.3 hashes deployed bytecode into the deployment
+# manifest and PRD FR-014 requires the public verifier to recompute those
+# hashes from source, which is impossible while metadata carries a build path.
+bytecode_hash = "none"
+cbor_metadata = false
+
+# Untrusted-input safety for the build itself.
+ffi = false
+fs_permissions = [{ access = "read", path = "./out" }]
+
+gas_reports = ["*"]
+
+[profile.ci]
+verbosity = 3
+fuzz = { runs = 1024 }
+invariant = { runs = 512, depth = 64, fail_on_revert = false }
+
+[fuzz]
+runs = 256
+max_test_rejects = 65536
+
+[invariant]
+runs = 64
+depth = 32
+fail_on_revert = false
+shrink_run_limit = 5000
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+quote_style = "double"
+number_underscore = "thousands"
+multiline_func_header = "attributes_first"
+sort_imports = true

@@ -1,0 +1,13 @@
+/**
+ * @conduit-protocol/verifier
+ *
+ * Database-independent settlement verifier.
+ *
+ * Phase 00 delivers this workspace as structure only. PRD FR-014 defines the
+ * behaviour, which lands in phase 08. Nothing here may encode product
+ * logic, protocol constants, or external-capability assumptions.
+ */
+
+export const PACKAGE_ID = '@conduit-protocol/verifier';
+
+export const IMPLEMENTATION_PHASE = '08';

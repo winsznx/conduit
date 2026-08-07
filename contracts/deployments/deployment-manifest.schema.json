@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://conduit.protocol/schemas/deployment-manifest-1.json",
+  "title": "Conduit deployment manifest",
+  "description": "Shape defined by CONDUIT_PRD_v1.0.md section 17.3. Every deployment writes one manifest here; PRD FR-014 requires the public verifier to consume it without trusting the application database.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "deploymentId",
+    "protocolVersion",
+    "gitCommit",
+    "solcVersion",
+    "chainConfigs",
+    "contracts",
+    "bytecodeHashes",
+    "wormhole",
+    "cleanverseAssetSnapshotHash",
+    "validatorRuleHashes",
+    "timestamp"
+  ],
+  "properties": {
+    "deploymentId": {
+      "description": "Domain separator bound into every intent and every cross-chain message header.",
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "protocolVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "solcVersion": {
+      "description": "Exact compiler, never a range. Must equal toolchain.json solidity.solc.",
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "chainConfigs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nativeChainId", "wormholeChainId", "rpcUrlEnvVar", "finalityBlocks"],
+        "properties": {
+          "nativeChainId": { "type": "integer", "minimum": 1 },
+          "wormholeChainId": { "type": "integer", "minimum": 1 },
+          "rpcUrlEnvVar": { "type": "string", "minLength": 1 },
+          "finalityBlocks": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["chain", "address"],
+        "properties": {
+          "chain": { "type": "string", "minLength": 1 },
+          "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" }
+        }
+      }
+    },
+    "bytecodeHashes": {
+      "description": "keccak256 of deployed runtime bytecode, recomputable from source because foundry.toml sets bytecode_hash=none and cbor_metadata=false.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
+    },
+    "wormhole": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["coreAddress", "wormholeChainId", "consistencyLevel"],
+        "properties": {
+          "coreAddress": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
+          "wormholeChainId": { "type": "integer", "minimum": 1 },
+          "consistencyLevel": { "type": "integer", "minimum": 0, "maximum": 255 }
+        }
+      }
+    },
+    "cleanverseAssetSnapshotHash": {
+      "description": "Hash of the signed query_deposit_atoken_list snapshot. PRD 2.4 forbids hardcoded A-Token addresses.",
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "validatorRuleHashes": {
+      "description": "Hash of the normalized Cleanverse validator/rules response per registered pool. PRD 9.6 forbids reinterpreting the rules locally.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
+    },
+    "timestamp": {
+      "description": "UTC, per the CLAUDE.md repository rules.",
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

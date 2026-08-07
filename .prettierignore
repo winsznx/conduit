@@ -1,0 +1,23 @@
+# Source-of-truth documents are preserved byte-for-byte. Reformatting them
+# would silently mutate a higher-ranked source than this repository's code.
+CONDUIT_PRD_v1.0.md
+CONDUIT_PRD_v1.1_OVERRIDE.md
+CLAUDE.md
+CLAUDE_ONESHOT_CONDUIT.md
+design.md
+
+# generated / vendored
+pnpm-lock.yaml
+foundry.lock
+.gas-snapshot
+contracts/lib/
+out/
+cache/
+coverage/
+dist/
+node_modules/
+playwright-report/
+test-results/
+
+# Solidity is formatted by `forge fmt`, not Prettier.
+*.sol

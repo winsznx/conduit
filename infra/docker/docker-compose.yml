@@ -1,0 +1,51 @@
+name: conduit-local
+
+# Local development dependencies only. PRD 17.1 keeps `local` separate from
+# `test`, `staging`, and `production`; nothing here is a deployment target.
+#
+# Images are pinned by digest, not tag, so `docker compose pull` on two machines
+# six months apart fetches identical bytes. Digests are recorded in
+# toolchain.json and asserted by tests/toolchain.test.ts.
+
+services:
+  postgres:
+    image: postgres@sha256:cf70b3d7aeb0f399ba29e94ce081380ccade1f4c38e203309068a30f49548417
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: conduit
+      POSTGRES_USER: conduit
+      # Local-only credential. Staging and production read from the secrets
+      # manager provisioned by infra/terraform (PRD 17.4).
+      POSTGRES_PASSWORD: conduit_local_only
+      POSTGRES_INITDB_ARGS: --data-checksums
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U conduit -d conduit']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib@sha256:213886eb6407af91b87fa47551c3632be1a6419ff3a5114ef1e6fc364628496f
+    restart: unless-stopped
+    command: ['--config=/etc/otel/config.yaml']
+    volumes:
+      - ./otel-collector.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - '127.0.0.1:4317:4317'
+      - '127.0.0.1:4318:4318'
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres-data:

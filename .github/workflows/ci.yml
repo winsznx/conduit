@@ -1,0 +1,185 @@
+name: ci
+
+# Every job runs `node scripts/verify.mjs --only=<steps>`. The step definitions
+# live in that one script, so a green local `pnpm verify` and a green pipeline
+# mean the same thing (ADR-0003). CI selects from the list; it never restates it.
+#
+# Actions are pinned to commit SHAs. Tools that are not actions are pinned by
+# exact version or image digest, both recorded in toolchain.json and asserted by
+# tests/toolchain.test.ts.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  quality:
+    name: quality (toolchain, format, lint, typecheck, unit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: 1.7.1
+
+      - run: pnpm install --frozen-lockfile
+
+      # Ordered deliberately: the workspace suite imports each package by its
+      # published name, which requires tsc --build to have emitted dist.
+      - run: node scripts/verify.mjs --only=toolchain,format,lint,typecheck,unit,manifests
+
+  contracts:
+    name: contracts (build, test, gas, storage layout)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: 1.7.1
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: node scripts/verify.mjs --only=contracts-build,contracts-test,contracts-gas,contracts-layout
+        env:
+          FOUNDRY_PROFILE: ci
+
+  static-analysis:
+    name: static analysis (slither)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: 1.7.1
+
+      # Pinned by exact version so the analyser matches toolchain.json rather
+      # than whatever a wrapper action happens to ship.
+      - run: pip install slither-analyzer==0.11.5
+
+      - run: node scripts/verify.mjs --only=slither
+
+  supply-chain:
+    name: supply chain (secrets, dependency advisories)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # gitleaks scans history as well as the worktree, so a shallow clone
+          # would silently narrow the scan.
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: install gitleaks 8.30.1
+        run: |
+          set -euo pipefail
+          version=8.30.1
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            --output /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: node scripts/verify.mjs --only=secrets,deps-audit
+
+  infrastructure:
+    name: infrastructure (container config, IaC)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      # Trivy and Checkov run from digest-pinned images, which is stricter than
+      # a tag-pinned wrapper action and identical to what runs locally.
+      - run: node scripts/verify.mjs --only=container-scan,iac-scan
+
+  e2e:
+    name: end-to-end harness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: node scripts/verify.mjs --only=e2e
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  gate:
+    name: phase gate
+    runs-on: ubuntu-24.04
+    needs: [quality, contracts, static-analysis, supply-chain, infrastructure, e2e]
+    steps:
+      - name: all gate steps green
+        run: echo "every scripts/verify.mjs step passed"

@@ -1,0 +1,23 @@
+{
+  "name": "@conduit-protocol/app-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Settlement console, public proof pages, and operator UI.",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist"
+  }
+}

@@ -1,0 +1,40 @@
+# Local collector. PRD 16.1 traces one request from the browser through the
+# API, Cleanverse, the database, the outbox, the worker, RPC, VAA retrieval and
+# submission, to evidence generation. Phase 00 wires the receiver so the first
+# instrumented service has somewhere to send spans; exporters to a hosted
+# backend arrive with infra/terraform in phase 09.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  # PRD 16.4 forbids private keys, API keys, raw PII, bank details, and
+  # decrypted Cleanverse payloads in logs. The redaction processor is
+  # configured against real attribute names in phase 06, when services first
+  # emit them; leaving it empty now would be a silent gap, so it is listed here
+  # and asserted by the phase 06 gate rather than assumed.
+
+exporters:
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
