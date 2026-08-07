@@ -1,0 +1,39 @@
+{
+  "capturedAt": "2026-08-07T21:55:40.913Z",
+  "complianceSigner": "0xEC16Ead9832292fEfc95Bc94C3D536Eed98ED26c",
+  "owner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "signerIsSeparateFromDeployer": true,
+  "contracts": [
+    {
+      "label": "SettlementCoordinator",
+      "chain": "monadTestnet",
+      "address": "0xe1792F67472b5CA51F6B1133A995001eeA9f9FdD",
+      "signerRegistered": true,
+      "signerCount": 1,
+      "quorum": 1,
+      "maxAttestationValiditySeconds": 900,
+      "attestationDomainSeparator": "0x667580fd5b6a34659fc9c5048f79cda252bded63dd5f483ac44d42205a019360"
+    },
+    {
+      "label": "CashEscrow",
+      "chain": "monadTestnet",
+      "address": "0x742bEe50781562C2aCb6049D02C4BAF43a4eCadf",
+      "signerRegistered": true,
+      "signerCount": 1,
+      "quorum": 1,
+      "maxAttestationValiditySeconds": 900,
+      "attestationDomainSeparator": "0x58727715ab0ea0840ec61d4560ad0932012eec57f6fd5daad7c40f8d4a850682"
+    },
+    {
+      "label": "RWACVASettlementAdapter",
+      "chain": "baseSepolia",
+      "address": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
+      "signerRegistered": true,
+      "signerCount": 1,
+      "quorum": 1,
+      "maxAttestationValiditySeconds": 900,
+      "attestationDomainSeparator": "0x2a03d4e07f1bafe87df5a409cee7c18ebaf9fe8e998d9f1e701fad354580da75"
+    }
+  ],
+  "limitation": "One signer, so the quorum is 1-of-1 on testnet. Quorum is genuinely enforced and duplicate attestations from one signer are rejected, but a 1-of-1 threshold is a testnet property and is not a threshold guarantee. ASM-036."
+}

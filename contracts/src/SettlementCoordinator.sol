@@ -5,7 +5,9 @@ import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
+import {ComplianceAuthority} from "./ComplianceAuthority.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
+import {ComplianceAttestationLib} from "./libraries/ComplianceAttestationLib.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
 import {SettlementIntentLib} from "./libraries/SettlementIntentLib.sol";
 
@@ -19,7 +21,7 @@ import {SettlementIntentLib} from "./libraries/SettlementIntentLib.sol";
 /// Invariant I3 is the whole contract in one line: a settlement receives at most
 /// one COMMIT or one ABORT. Everything else here exists to make that true under
 /// an adversarial relayer, a stale VAA, and a party who signed something else.
-contract SettlementCoordinator is WormholeTransport, Ownable2Step {
+contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownable2Step {
     using SettlementIntentLib for SettlementIntentLib.SettlementIntent;
 
     /// @dev PRD 7.1. Monotonic: every transition below moves right, never left.
@@ -40,6 +42,23 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
         NONE,
         COMMIT,
         ABORT
+    }
+
+    /// @dev PRD FR-008's permitted grounds, as one choice rather than three
+    ///      independent booleans.
+    ///
+    ///      Three booleans allow combinations that mean nothing — "the deadline
+    ///      passed and it was bilateral" — and they let a caller assert a ground
+    ///      it cannot support. Each ground below now carries its own proof:
+    ///      DEADLINE is checked against the chain's clock, COMPLIANCE against a
+    ///      signed refusal from the quorum, BILATERAL against both parties'
+    ///      signatures. Before this, anyone could abort any live settlement by
+    ///      passing `complianceFailed: true`, which is a griefing vector against
+    ///      a counterparty who wants the trade to complete.
+    enum AbortGround {
+        DEADLINE,
+        COMPLIANCE,
+        BILATERAL
     }
 
     /// @dev What a leg actually did.
@@ -70,6 +89,23 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
 
     bytes32 public immutable domainSeparator;
 
+    /// @dev A bilateral cancellation is its own signed statement. Signing to
+    ///      enter a trade is not signing to abandon it, so the intent signature
+    ///      cannot stand in for this one.
+    bytes32 public constant CANCELLATION_TYPEHASH =
+        keccak256("SettlementCancellation(bytes32 settlementId,bytes32 intentHash)");
+
+    /// @notice Whatever the claimed abort ground needs to prove itself.
+    ///
+    /// @dev One parameter so `issueAbort` fits the stack, and so a caller cannot
+    ///      supply a compliance proof while claiming a bilateral ground and have
+    ///      the unused half quietly ignored.
+    struct Cancellation {
+        ComplianceProof compliance;
+        bytes buyer;
+        bytes seller;
+    }
+
     mapping(bytes32 settlementId => Settlement) private _settlements;
 
     event CashLegPrepared(bytes32 indexed settlementId);
@@ -88,7 +124,6 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     error PrepareDeadlinePassed(uint64 deadline, uint256 nowTimestamp);
     error InvalidBuyerSignature();
     error InvalidSellerSignature();
-    error ComplianceNotFresh();
     error WrongChainForCashLeg(uint256 expected, uint256 actual);
     error AbortAfterCommitForbidden(bytes32 settlementId);
     error SettlementUnknown(bytes32 settlementId);
@@ -96,6 +131,8 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     error LegAlreadyResolved(bytes32 settlementId, bool cash);
     error ReleaseRequiresCommit(bytes32 settlementId);
     error ReturnRequiresAbort(bytes32 settlementId);
+    error AbortGroundNotProven(AbortGround ground);
+    error InvalidCancellationSignature(address party);
     error OutcomeDoesNotMatchMessage(LegOutcome outcome, MessageCodec.MessageType messageType);
 
     constructor(
@@ -106,6 +143,7 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
         bytes32 remoteEmitter_,
         FinalityLevel settlementFinality_,
         FinalityLevel observationFinality_,
+        uint64 maxAttestationValidity_,
         address owner_,
         string memory domainName,
         string memory domainVersion
@@ -119,6 +157,7 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
             settlementFinality_,
             observationFinality_
         )
+        ComplianceAuthority(maxAttestationValidity_, domainName, domainVersion)
         Ownable(owner_)
     {
         domainSeparator = SettlementIntentLib.domainSeparator(
@@ -128,6 +167,24 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
 
     function settlementOf(bytes32 settlementId) external view returns (Settlement memory) {
         return _settlements[settlementId];
+    }
+
+    // ── Compliance authority ─────────────────────────────────────────────────
+    //
+    // Owner-gated, and deliberately not renounceable-by-accident: the signer set
+    // is the only thing standing between a caller and a COMMIT. These are the
+    // three calls PRD 17.4's key-rotation runbook drives.
+
+    function addComplianceSigner(address signer) external onlyOwner {
+        _addComplianceSigner(signer);
+    }
+
+    function removeComplianceSigner(address signer) external onlyOwner {
+        _removeComplianceSigner(signer);
+    }
+
+    function setComplianceQuorum(uint256 quorum) external onlyOwner {
+        _setComplianceQuorum(quorum);
     }
 
     // ── Preparation ──────────────────────────────────────────────────────────
@@ -180,15 +237,18 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     /// prepared state, not from the caller, so restricting it would add a
     /// liveness dependency without adding safety.
     ///
-    /// `complianceFresh` stands in for the commit-time attestation quorum that
-    /// phase 05 delivers. It is a parameter rather than an assumed `true` so the
-    /// blocked-commit path is reachable and tested from the start.
+    /// Compliance arrives as signed attestations rather than as a caller
+    /// boolean. Both parties to the value transfer must be attested eligible by
+    /// a quorum of authorized signers, for this settlement and this intent, and
+    /// within a window the contract bounds rather than the signer. A boolean
+    /// carried no evidence of who decided it, when, or about whom, so any caller
+    /// could assert eligibility and the contract had no way to disagree.
     function issueCommit(
         SettlementIntentLib.SettlementIntent calldata intent,
         bytes32 settlementId,
         bytes calldata buyerSignature,
         bytes calldata sellerSignature,
-        bool complianceFresh,
+        ComplianceProof calldata compliance,
         uint8 consistencyLevel
     ) external payable returns (uint64 sequence) {
         Settlement storage settlement = _settlements[settlementId];
@@ -217,7 +277,14 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
 
         // PRD FR-006: commit-time compliance, evaluated with no application
         // cache. A stale attestation is threat T-07.
-        if (!complianceFresh) revert ComplianceNotFresh();
+        //
+        // Both sides, separately. Attesting only the receiver would let an
+        // ineligible payer fund a settlement, and attesting only the payer would
+        // let value reach someone the authority refused. The asset-side parties
+        // are attested on the asset chain by the adapter, against the same
+        // intent hash.
+        _requireEligible(settlementId, settlement.intentHash, intent.cashPayer, compliance);
+        _requireEligible(settlementId, settlement.intentHash, intent.cashReceiver, compliance);
 
         settlement.decision = Decision.COMMIT;
         settlement.state = SettlementState.COMMIT_ISSUED;
@@ -245,9 +312,8 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     function issueAbort(
         SettlementIntentLib.SettlementIntent calldata intent,
         bytes32 settlementId,
-        bool deadlineMissed,
-        bool complianceFailed,
-        bool bilateralCancellation,
+        AbortGround ground,
+        Cancellation calldata cancellation,
         uint8 consistencyLevel
     ) external payable returns (uint64 sequence) {
         Settlement storage settlement = _settlements[settlementId];
@@ -262,26 +328,15 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
 
         _validateIntent(intent, settlementId, settlement);
 
-        // PRD FR-008 lists the permitted grounds. A timeout claimed by a caller
-        // is checked against the chain's own clock rather than believed.
-        // Same reasoning as issueCommit. The point here is that the caller's
-        // claim is checked against the chain's clock rather than believed: a
-        // relayer asserting "the deadline passed" proves nothing on its own.
-        // forge-lint: disable-next-line(block-timestamp)
-        bool deadlineActuallyMissed = block.timestamp > intent.commitDeadline;
-        if (deadlineMissed && !deadlineActuallyMissed) {
-            revert DeadlinePassed(intent.commitDeadline, block.timestamp);
-        }
-        if (!deadlineActuallyMissed && !complianceFailed && !bilateralCancellation) {
-            revert NotReady(settlementId, settlement.state);
-        }
+        _requireAbortGround(intent, settlementId, settlement.intentHash, ground, cancellation);
 
         settlement.decision = Decision.ABORT;
         settlement.state = SettlementState.ABORT_ISSUED;
         settlement.stateVersion += 1;
 
-        string memory reason =
-            deadlineActuallyMissed ? "deadline" : (complianceFailed ? "compliance" : "bilateral");
+        string memory reason = ground == AbortGround.DEADLINE
+            ? "deadline"
+            : (ground == AbortGround.COMPLIANCE ? "compliance" : "bilateral");
 
         sequence = _publish(
             _header(
@@ -295,6 +350,68 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
         );
 
         emit AbortIssued(settlementId, sequence, reason);
+    }
+
+    /// @notice Proves the claimed ground rather than believing it.
+    ///
+    /// @dev Split out because `issueAbort` otherwise exceeds the stack, and
+    ///      because the three grounds are genuinely three different proofs.
+    function _requireAbortGround(
+        SettlementIntentLib.SettlementIntent calldata intent,
+        bytes32 settlementId,
+        bytes32 intentHash,
+        AbortGround ground,
+        Cancellation calldata cancellation
+    ) private view {
+        if (ground == AbortGround.DEADLINE) {
+            // A relayer asserting "the deadline passed" proves nothing on its
+            // own; the chain's clock does.
+            // forge-lint: disable-next-line(block-timestamp)
+            if (block.timestamp <= intent.commitDeadline) {
+                revert AbortGroundNotProven(AbortGround.DEADLINE);
+            }
+            return;
+        }
+
+        if (ground == AbortGround.COMPLIANCE) {
+            // A signed refusal, not an assertion. Either party being refused is
+            // sufficient grounds, and the quorum must have said so explicitly.
+            if (
+                !_isRefused(settlementId, intentHash, intent.cashPayer, cancellation.compliance)
+                    && !_isRefused(
+                        settlementId, intentHash, intent.cashReceiver, cancellation.compliance
+                    )
+            ) {
+                revert AbortGroundNotProven(AbortGround.COMPLIANCE);
+            }
+            return;
+        }
+
+        // BILATERAL. Both parties sign a cancellation bound to this settlement
+        // and these terms. Reusing their intent signatures would not do: signing
+        // to enter a trade is not signing to abandon it.
+        bytes32 digest = _cancellationDigest(settlementId, intentHash);
+        if (!SignatureChecker.isValidSignatureNow(intent.cashPayer, digest, cancellation.buyer)) {
+            revert InvalidCancellationSignature(intent.cashPayer);
+        }
+        if (!SignatureChecker.isValidSignatureNow(intent.assetSeller, digest, cancellation.seller))
+        {
+            revert InvalidCancellationSignature(intent.assetSeller);
+        }
+    }
+
+    function _cancellationDigest(bytes32 settlementId, bytes32 intentHash)
+        private
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                domainSeparator,
+                keccak256(abi.encode(CANCELLATION_TYPEHASH, settlementId, intentHash))
+            )
+        );
     }
 
     // ── Completion ───────────────────────────────────────────────────────────

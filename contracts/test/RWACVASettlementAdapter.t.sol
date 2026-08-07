@@ -3,11 +3,14 @@ pragma solidity =0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 
+import {ComplianceAuthority} from "../src/ComplianceAuthority.sol";
 import {ConduitRWACVA} from "../src/ConduitRWACVA.sol";
 import {RWACVASettlementAdapter} from "../src/RWACVASettlementAdapter.sol";
 import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
+import {ComplianceAttestationLib} from "../src/libraries/ComplianceAttestationLib.sol";
 import {MessageCodec} from "../src/libraries/MessageCodec.sol";
+import {ComplianceFixture} from "./helpers/ComplianceFixture.sol";
 import {MockATokenPolicy} from "./mocks/MockATokenPolicy.sol";
 import {MockWormhole} from "./mocks/MockWormhole.sol";
 
@@ -17,7 +20,7 @@ import {MockWormhole} from "./mocks/MockWormhole.sol";
 /// and CCP policy while the adapter enforces that a release is backed by a
 /// canonical COMMIT. Neither should be able to do the other's job, and the tests
 /// below try to make each of them do exactly that.
-contract RWACVASettlementAdapterTest is Test {
+contract RWACVASettlementAdapterTest is ComplianceFixture {
     ConduitRWACVA private token;
     MockATokenPolicy private policy;
     RWACVASettlementAdapter private adapter;
@@ -52,14 +55,40 @@ contract RWACVASettlementAdapterTest is Test {
             REMOTE_EMITTER,
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            15 minutes,
             ADMIN
         );
 
         vm.startPrank(ADMIN);
+        adapter.addComplianceSigner(_signerA());
+        adapter.setComplianceQuorum(1);
         token.grantRole(token.MINTER_ROLE(), ADMIN);
         token.grantRole(token.SETTLEMENT_ROLE(), address(adapter));
         token.mint(SELLER, SUPPLY);
         vm.stopPrank();
+    }
+
+    /// @dev The domain is recomputed rather than read off the adapter: a read is
+    ///      an external call and would consume a pending `vm.expectRevert`.
+    function _proofFor(address subject, bool eligible)
+        private
+        view
+        returns (ComplianceAuthority.ComplianceProof memory)
+    {
+        (
+            ComplianceAttestationLib.ComplianceAttestation[] memory attestations,
+            bytes[] memory signatures
+        ) = _attestAll(
+            ComplianceAttestationLib.domainSeparator(
+                "Conduit", "1", block.chainid, address(adapter)
+            ),
+            _keys(SIGNER_A_KEY),
+            SETTLEMENT_ID,
+            INTENT_HASH,
+            _subjects(subject),
+            eligible
+        );
+        return ComplianceAuthority.ComplianceProof(attestations, signatures);
     }
 
     function _reserveAndPrepare() private {
@@ -155,7 +184,9 @@ contract RWACVASettlementAdapterTest is Test {
         _reserveAndPrepare();
 
         vm.prank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), true);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, true)
+        );
 
         assertEq(token.balanceOf(BUYER), RESERVED);
         assertEq(token.balanceOf(SELLER), SUPPLY - RESERVED);
@@ -166,7 +197,9 @@ contract RWACVASettlementAdapterTest is Test {
         _reserveAndPrepare();
 
         vm.prank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), false);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, false)
+        );
 
         assertEq(token.balanceOf(BUYER), 0);
         assertEq(token.reservedBalanceOf(SELLER), RESERVED, "units stay reserved, not lost");
@@ -185,7 +218,9 @@ contract RWACVASettlementAdapterTest is Test {
         policy.setDenied(BUYER, true);
 
         vm.prank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), true);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, true)
+        );
 
         assertEq(token.balanceOf(BUYER), 0);
         assertEq(token.reservedBalanceOf(SELLER), RESERVED);
@@ -199,7 +234,9 @@ contract RWACVASettlementAdapterTest is Test {
                 RWACVASettlementAdapter.ReceiverNotRegistered.selector, SETTLEMENT_ID
             )
         );
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), true);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, true)
+        );
     }
 
     function test_ReleaseRequiresTheBoundIntentHash() public {
@@ -209,7 +246,8 @@ contract RWACVASettlementAdapterTest is Test {
         vm.prank(RELAYER);
         vm.expectRevert();
         adapter.releaseAsset(
-            _vaa(MessageCodec.MessageType.COMMIT, keccak256("other-intent"), "wrong-intent"), true
+            _vaa(MessageCodec.MessageType.COMMIT, keccak256("other-intent"), "wrong-intent"),
+            _proofFor(BUYER, true)
         );
     }
 
@@ -218,9 +256,9 @@ contract RWACVASettlementAdapterTest is Test {
         bytes memory commitVaa = _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit");
 
         vm.startPrank(RELAYER);
-        adapter.releaseAsset(commitVaa, true);
+        adapter.releaseAsset(commitVaa, _proofFor(BUYER, true));
         vm.expectRevert();
-        adapter.releaseAsset(commitVaa, true);
+        adapter.releaseAsset(commitVaa, _proofFor(BUYER, true));
         vm.stopPrank();
 
         assertEq(token.balanceOf(BUYER), RESERVED, "delivered exactly once");
@@ -244,7 +282,9 @@ contract RWACVASettlementAdapterTest is Test {
         _reserveAndPrepare();
 
         vm.startPrank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), false);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, false)
+        );
 
         vm.expectRevert();
         adapter.returnAsset(_vaa(MessageCodec.MessageType.ABORT, INTENT_HASH, "late-abort"));
@@ -281,7 +321,9 @@ contract RWACVASettlementAdapterTest is Test {
         _reserveAndPrepare();
 
         vm.prank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), true);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, true)
+        );
 
         uint256 before = wormhole.publishedCount();
         adapter.reportResolution(SETTLEMENT_ID, true, 10_143, 1);
@@ -296,7 +338,9 @@ contract RWACVASettlementAdapterTest is Test {
         _reserveAndPrepare();
 
         vm.prank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), false);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, false)
+        );
 
         uint256 before = wormhole.publishedCount();
         adapter.reportResolution(SETTLEMENT_ID, false, 10_143, 1);
@@ -318,7 +362,9 @@ contract RWACVASettlementAdapterTest is Test {
         vm.stopPrank();
 
         vm.prank(RELAYER);
-        adapter.releaseAsset(_vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), eligible);
+        adapter.releaseAsset(
+            _vaa(MessageCodec.MessageType.COMMIT, INTENT_HASH, "commit"), _proofFor(BUYER, eligible)
+        );
 
         // Invariant I2: released plus still-held equals what was locked.
         assertEq(token.totalSupply(), before, "settlement never mints or burns");

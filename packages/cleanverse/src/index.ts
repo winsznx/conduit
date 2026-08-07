@@ -127,3 +127,14 @@ export {
   registerATokenDataSchema,
   type ApplyStatusValue,
 } from './schemas.js';
+
+export {
+  attestEligibility,
+  evidenceHashOf,
+  isComplianceDecision,
+  type AttestationClock,
+  type AttestationRequest,
+  type AttestationSigner,
+  type AttestationSubject,
+  type SignedAttestation,
+} from './compliance.js';

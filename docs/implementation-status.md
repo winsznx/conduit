@@ -19,7 +19,7 @@ structure below is unchanged; what each phase must deliver is amended.
 | Phase 02 | Wormhole transport proof                 | IN PROGRESS | Monad Testnet message verifies on Base Sepolia and the reverse, with replay rejected               |
 | Phase 03 | restricted RWA fixture                   | IN PROGRESS | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
 | Phase 04 | settlement contracts and reference model | PASS        | reference model and contracts produce identical outcomes for generated traces                      |
-| Phase 05 | Cleanverse Validator integration         | NOT STARTED | real Cleanverse eligibility result changes commit outcome on-chain                                 |
+| Phase 05 | Cleanverse Validator integration         | IN PROGRESS | real Cleanverse eligibility result changes commit outcome on-chain                                 |
 | Phase 06 | full happy-path DvP                      | NOT STARTED | CVA cash and restricted RWA settle under one intent, both chains publicly verifiable               |
 | Phase 07 | Disposition Kernel                       | NOT STARTED | every generated held case reaches an allowed terminal state or stays safely contested              |
 | Phase 08 | evidence and verifier                    | NOT STARTED | new machine with only a settlement ID independently verifies the complete proof                    |
@@ -408,8 +408,13 @@ Live on Base Sepolia (84532), manifest `contracts/deployments/base-sepolia-0x930
 
 ```text
 ConduitRWACVA            0x6B70a81E010d8CEFE7c44701e490337661785644
-RWACVASettlementAdapter  0xC0A9Eb5F9D1fd0D4264564B1C7A1ed69946E3170
+RWACVASettlementAdapter  0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5
 ```
+
+The token's address is deliberately unchanged across redeployments. It is the
+subject of the Cleanverse owner signature, and replacing it invalidates a
+signature a human has already produced — which happened once, in ADR-0011.
+`DeployAssetAdapter` exists so the adapter can be replaced without touching it.
 
 `ConduitRWACVA` calls the live CCP policy on every transfer. It holds no eligibility opinion of
 its own: `policy.canTransfer` decides, and a refusal is a refusal. The adapter holds
@@ -480,8 +485,9 @@ gate PASSED: 17/17 steps green
 Live on Monad Testnet (10143), manifest `contracts/deployments/monad-testnet-0x9303f240.json`:
 
 ```text
-SettlementCoordinator  0x1491A25Fc93778ECcb69BCec96495c6f12c686d1
-CashEscrow             0x1645BA0873118A997Bd39718A82dd268E46D3B48
+SettlementCoordinator  0xe1792F67472b5CA51F6B1133A995001eeA9f9FdD
+CashEscrow             0x742bEe50781562C2aCb6049D02C4BAF43a4eCadf
+ConduitVaultRegistrar  0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5
 ```
 
 Both peers are locked in both directions. `setRemotePeer` is settable once and then permanently
@@ -491,5 +497,71 @@ either side accepts a message from an address nobody chose.
 ### Known limitations
 
 The contracts are deployed and unit-proven. No settlement has run end to end across both chains
-yet: that is the phase 06 gate, and it needs the registered CVA from phase 03 and the compliance
-attestation from phase 05.
+yet: that is the phase 06 gate, and it needs the registered CVA from phase 03 and real aUSDC,
+which ASM-035 currently blocks.
+
+---
+
+## Phase 05 — Cleanverse Validator integration
+
+**State:** IN PROGRESS — compliance is attested rather than asserted; the live eligibility flip
+still needs a funded settlement
+
+### The booleans are gone
+
+Four caller-supplied booleans used to decide whether value moved
+([ADR-0014](./adr/0014-compliance-is-attested-not-asserted.md)). They were explicit parameters
+rather than assumed `true`, which made the blocked paths reachable and testable, and that was the
+right call for the state machine and the wrong thing to ship. A boolean records that a decision
+exists and says nothing about who made it, when, about whom, or on what evidence.
+
+`complianceFailed` was the worst of them: anyone could abort a healthy, in-window settlement that
+both parties wanted to complete. Griefing rather than theft, which is the class that survives
+review because nobody's balance changes.
+
+Each is now a signed statement:
+
+| Was                                                                                | Is                                                                                                                    |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `issueCommit(..., bool complianceFresh, ...)`                                      | a quorum attests both cash parties, bound to this settlement and these terms                                          |
+| `issueAbort(..., bool deadlineMissed, bool complianceFailed, bool bilateral, ...)` | one `AbortGround`, each proving itself: the chain's clock, a signed refusal, or both parties' cancellation signatures |
+| `releaseCash(vaa, bool eligible)`                                                  | the quorum's answer for the receiver, held rather than reverted on a shortfall                                        |
+| `releaseAsset(vaa, bool receiverEligible)`                                         | the same, alongside the CCP policy check the token performs independently                                             |
+
+Two properties are worth stating because both were bugs before they were features:
+
+- **An unconfigured authority refuses everything.** The quorum starts at zero and
+  `attesting >= 0` holds for an empty array, so the first version accepted any commit with no
+  evidence at all — worse than no check, because the check appears to be there.
+- **Refusal and silence are different states.** `_isEligible` and `_isRefused` are not negations.
+  "The authority said no" is grounds for an abort; "the authority has not answered" is not.
+
+### Cross-implementation evidence
+
+The digest is implemented twice, independently, and pinned by a fixed vector:
+
+```text
+packages/domain/src/attestation.test.ts     0x4a31393a4953e7e12fa930c32075640385d3d73a7e1753962432db4c7ed32063
+contracts/test/ComplianceAttestation.t.sol  0x4a31393a4953e7e12fa930c32075640385d3d73a7e1753962432db4c7ed32063
+```
+
+A 256-run fuzz asserts every field changes the digest, because a field left out of the preimage
+is a field an attacker chooses freely.
+
+Live on chain, all three contracts:
+
+```text
+signers 1   quorum 1   maxAttestationValidity 900s
+compliance signer 0xEC16Ead9832292fEfc95Bc94C3D536Eed98ED26c, separate from the deployer
+```
+
+### Known limitations
+
+1. **The quorum is 1-of-1** (ASM-036). Quorum is genuinely enforced and a signer attesting twice
+   is rejected, but a one-signer threshold is a testnet property and is not a threshold
+   guarantee.
+2. **The gate is not met.** "Real Cleanverse eligibility result changes commit outcome on-chain"
+   needs a settlement to run, and that needs aUSDC (ASM-035). The service calls
+   `validator/verify` for real and signs what it answers; what is missing is a settlement to
+   attach it to.
+3. **The escrow pool rule is still the placeholder** (ASM-034).

@@ -14,6 +14,18 @@ export const PACKAGE_ID = '@conduit-protocol/domain';
 export const IMPLEMENTATION_PHASE = '04';
 
 export {
+  AttestationProblem,
+  checkAttestation,
+  COMPLIANCE_ATTESTATION_TYPE,
+  domainOf as attestationDomainOf,
+  hashComplianceAttestation,
+  type AttestationBinding,
+  type AttestationDomain,
+  type AttestationProblemValue,
+  type ComplianceAttestation,
+} from './attestation.js';
+
+export {
   createSettlementIntent,
   domainOf,
   hashSettlementIntent,

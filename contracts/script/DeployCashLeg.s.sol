@@ -35,6 +35,12 @@ contract DeployCashLeg is Script {
         WormholeTransport.FinalityLevel observationFinality =
             WormholeTransport.FinalityLevel(vm.envOr("OBSERVATION_FINALITY", uint256(0)));
 
+        // How long a compliance attestation may be valid for, capped in the
+        // bytecode so a signer cannot widen its own window. PRD FR-006 wants
+        // commit-time compliance; fifteen minutes is short enough to mean
+        // "now" and long enough to survive a slow finalized VAA.
+        uint64 maxAttestationValidity = uint64(vm.envOr("MAX_ATTESTATION_VALIDITY", uint256(900)));
+
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
@@ -51,6 +57,7 @@ contract DeployCashLeg is Script {
             remoteEmitter,
             settlementFinality,
             observationFinality,
+            maxAttestationValidity,
             deployer,
             "Conduit",
             "1"
@@ -65,6 +72,7 @@ contract DeployCashLeg is Script {
             remoteEmitter,
             settlementFinality,
             observationFinality,
+            maxAttestationValidity,
             deployer
         );
 
@@ -76,6 +84,7 @@ contract DeployCashLeg is Script {
         console2.log("SettlementCoordinator  ", address(coordinator));
         console2.log("CashEscrow             ", address(escrow));
         console2.log("remote emitter (Base)  ", remoteAdapter);
+        console2.log("maxAttestationValidity ", maxAttestationValidity);
         console2.log("domainSeparator        ");
         console2.logBytes32(coordinator.domainSeparator());
     }

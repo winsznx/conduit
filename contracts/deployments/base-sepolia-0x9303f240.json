@@ -1,7 +1,7 @@
 {
   "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
   "protocolVersion": 1,
-  "gitCommit": "3bedba379bb76f1d46392d4bc89334ae83a36f00",
+  "gitCommit": "4b0144788e46cebc7cae2b7fea2d3573504b093e",
   "solcVersion": "0.8.36",
   "chainConfigs": {
     "baseSepolia": {
@@ -18,12 +18,12 @@
     },
     "RWACVASettlementAdapter": {
       "chain": "baseSepolia",
-      "address": "0xC0A9Eb5F9D1fd0D4264564B1C7A1ed69946E3170"
+      "address": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5"
     }
   },
   "bytecodeHashes": {
     "ConduitRWACVA": "0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a",
-    "RWACVASettlementAdapter": "0x7e5dd814f5e40a9c0860d31e25a453fe757ccdd3a8e86e12aeb176bcbf5d1502"
+    "RWACVASettlementAdapter": "0xc125f37c139ba79a54f4636c666c4e8eb4d495ade1bb7a6731f5fe81de4d46fa"
   },
   "wormhole": {
     "baseSepolia": {
@@ -37,7 +37,14 @@
     "observation": "INSTANT",
     "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
   },
+  "complianceProfile": {
+    "maxAttestationValiditySeconds": 900,
+    "signerCount": 1,
+    "quorum": 1,
+    "snapshotIsLiveState": true,
+    "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
+  },
   "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
   "validatorRuleHashes": {},
-  "timestamp": "2026-08-07T21:11:57.265Z"
+  "timestamp": "2026-08-07T21:57:43.029Z"
 }

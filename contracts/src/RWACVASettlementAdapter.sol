@@ -4,6 +4,7 @@ pragma solidity =0.8.36;
 import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import {ComplianceAuthority} from "./ComplianceAuthority.sol";
 import {ConduitRWACVA} from "./ConduitRWACVA.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
@@ -24,7 +25,12 @@ import {MessageCodec} from "./libraries/MessageCodec.sol";
 ///
 /// The adapter holds `SETTLEMENT_ROLE` on the token and nothing else. It cannot
 /// mint, cannot manage rules, and cannot move an unreserved balance.
-contract RWACVASettlementAdapter is WormholeTransport, Ownable2Step, ReentrancyGuard {
+contract RWACVASettlementAdapter is
+    WormholeTransport,
+    ComplianceAuthority,
+    Ownable2Step,
+    ReentrancyGuard
+{
     ConduitRWACVA public immutable asset;
 
     /// @dev Recorded so a release cannot be pointed at an address the intent
@@ -57,6 +63,7 @@ contract RWACVASettlementAdapter is WormholeTransport, Ownable2Step, ReentrancyG
         bytes32 remoteEmitter_,
         FinalityLevel settlementFinality_,
         FinalityLevel observationFinality_,
+        uint64 maxAttestationValidity_,
         address owner_
     )
         WormholeTransport(
@@ -68,12 +75,27 @@ contract RWACVASettlementAdapter is WormholeTransport, Ownable2Step, ReentrancyG
             settlementFinality_,
             observationFinality_
         )
+        ComplianceAuthority(maxAttestationValidity_, "Conduit", "1")
         Ownable(owner_)
     {
         if (asset_ == address(0) || wormhole_ == address(0)) {
             revert ZeroAddress();
         }
         asset = ConduitRWACVA(asset_);
+    }
+
+    // ── Compliance authority ─────────────────────────────────────────────────
+
+    function addComplianceSigner(address signer) external onlyOwner {
+        _addComplianceSigner(signer);
+    }
+
+    function removeComplianceSigner(address signer) external onlyOwner {
+        _removeComplianceSigner(signer);
+    }
+
+    function setComplianceQuorum(uint256 quorum) external onlyOwner {
+        _setComplianceQuorum(quorum);
     }
 
     /// @notice Registers an already-created reservation and publishes ASSET_PREPARED.
@@ -123,9 +145,16 @@ contract RWACVASettlementAdapter is WormholeTransport, Ownable2Step, ReentrancyG
     /// rather than letting the whole transaction fail — a reverted transaction
     /// would leave the VAA unconsumed and the settlement stuck.
     ///
-    /// `receiverEligible` reflects the commit-time compliance decision. Phase 05
-    /// replaces it with a verified attestation.
-    function releaseAsset(bytes calldata commitVaa, bool receiverEligible) external nonReentrant {
+    /// Eligibility comes from a signed quorum bound to this settlement and this
+    /// intent, not from the caller. Two independent gates now stand between a
+    /// COMMIT and a delivery, and they answer different questions: the quorum is
+    /// Conduit's commit-time decision, and `policy.canTransfer` is Cleanverse's
+    /// decision at the moment of transfer. Either can refuse, and a refusal from
+    /// either holds the leg rather than reverting.
+    function releaseAsset(bytes calldata commitVaa, ComplianceProof calldata compliance)
+        external
+        nonReentrant
+    {
         MessageCodec.Header memory header = _consume(commitVaa, MessageCodec.MessageType.COMMIT);
 
         address receiver = intendedReceiver[header.settlementId];
@@ -138,7 +167,7 @@ contract RWACVASettlementAdapter is WormholeTransport, Ownable2Step, ReentrancyG
         // cancelled, whatever happens to the release below.
         asset.markCommitted(header.settlementId);
 
-        if (!receiverEligible) {
+        if (!_isEligible(header.settlementId, header.intentHash, receiver, compliance)) {
             emit AssetHeld(header.settlementId, receiver, "receiver ineligible at commit time");
             return;
         }

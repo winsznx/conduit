@@ -17,7 +17,8 @@
     "cleanverseAssetSnapshotHash",
     "validatorRuleHashes",
     "timestamp",
-    "finalityProfile"
+    "finalityProfile",
+    "complianceProfile"
   ],
   "properties": {
     "deploymentId": {
@@ -144,6 +145,32 @@
         "observation": {
           "description": "Required for messages that inform rather than authorize.",
           "enum": ["INSTANT", "SAFE", "FINALIZED"]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "complianceProfile": {
+      "description": "Commit-time compliance authority. `maxAttestationValiditySeconds` is a constructor immutable and is therefore covered by the bytecodeHashes above; the signer set and quorum are live contract state and are recorded here as a snapshot a verifier should re-read rather than trust. A quorum of zero means the contract refuses every commit and holds every release, which is the safe direction to fail and is not a configured deployment. ADR-0014.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxAttestationValiditySeconds", "signerCount", "quorum", "snapshotIsLiveState"],
+      "properties": {
+        "maxAttestationValiditySeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "signerCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quorum": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "snapshotIsLiveState": {
+          "const": true
         },
         "note": {
           "type": "string"

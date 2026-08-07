@@ -4,9 +4,12 @@ pragma solidity =0.8.36;
 import {Test} from "forge-std/Test.sol";
 
 import {CashEscrow} from "../src/CashEscrow.sol";
+import {ComplianceAuthority} from "../src/ComplianceAuthority.sol";
 import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
+import {ComplianceAttestationLib} from "../src/libraries/ComplianceAttestationLib.sol";
 import {MessageCodec} from "../src/libraries/MessageCodec.sol";
+import {ComplianceFixture} from "./helpers/ComplianceFixture.sol";
 import {MockWormhole} from "./mocks/MockWormhole.sol";
 import {MockAToken} from "./mocks/TestTokens.sol";
 
@@ -27,7 +30,7 @@ import {MockAToken} from "./mocks/TestTokens.sol";
 /// arrived in 2.6 seconds during the phase 02 seam test, while the documented
 /// finalized path is roughly eighteen minutes. Those are not two speeds of the
 /// same guarantee.
-contract FinalityTest is Test {
+contract FinalityTest is ComplianceFixture {
     MockWormhole private wormhole;
     MockAToken private aToken;
 
@@ -56,6 +59,34 @@ contract FinalityTest is Test {
         aToken.mint(PAYER, AMOUNT * 10);
     }
 
+    /// @dev An eligible proof for `subject`, so these tests fail on finality
+    ///      rather than on compliance. A shortfall would divert the release to
+    ///      the held path and stop exercising the check under test.
+    function _eligible(CashEscrow escrow, address subject)
+        private
+        view
+        returns (ComplianceAuthority.ComplianceProof memory)
+    {
+        (
+            ComplianceAttestationLib.ComplianceAttestation[] memory attestations,
+            bytes[] memory signatures
+        ) = _attestAll(
+            // Computed rather than read off the escrow. Reading it would be an
+            // external call, and `vm.expectRevert` applies to the next external
+            // call — the expectation would land here instead of on the release
+            // under test. Recomputing also cross-checks the contract's domain.
+            ComplianceAttestationLib.domainSeparator(
+                "Conduit", "1", block.chainid, address(escrow)
+            ),
+            _keys(SIGNER_A_KEY),
+            SETTLEMENT_ID,
+            INTENT_HASH,
+            _subjects(subject),
+            true
+        );
+        return ComplianceAuthority.ComplianceProof(attestations, signatures);
+    }
+
     function _escrow(
         WormholeTransport.FinalityLevel settlement,
         WormholeTransport.FinalityLevel observation
@@ -69,8 +100,15 @@ contract FinalityTest is Test {
             REMOTE_EMITTER,
             settlement,
             observation,
+            15 minutes,
             OWNER
         );
+
+        vm.startPrank(OWNER);
+        escrow.addComplianceSigner(_signerA());
+        escrow.setComplianceQuorum(1);
+        vm.stopPrank();
+
         vm.prank(PAYER);
         aToken.approve(address(escrow), type(uint256).max);
         return escrow;
@@ -150,7 +188,7 @@ contract FinalityTest is Test {
                 WormholeTransport.FinalityLevel.FINALIZED
             )
         );
-        escrow.releaseCash(_vaa(INSTANT, "instant"), true);
+        escrow.releaseCash(_vaa(INSTANT, "instant"), _eligible(escrow, RECEIVER));
 
         assertEq(aToken.balanceOf(RECEIVER), 0, "no value moved on a fast VAA");
     }
@@ -170,7 +208,7 @@ contract FinalityTest is Test {
                 WormholeTransport.FinalityLevel.FINALIZED
             )
         );
-        escrow.releaseCash(_vaa(SAFE, "safe"), true);
+        escrow.releaseCash(_vaa(SAFE, "safe"), _eligible(escrow, RECEIVER));
     }
 
     function test_FinalizedVaaIsAccepted() public {
@@ -180,7 +218,7 @@ contract FinalityTest is Test {
         _prepare(escrow);
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(FINALIZED, "finalized"), true);
+        escrow.releaseCash(_vaa(FINALIZED, "finalized"), _eligible(escrow, RECEIVER));
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
     }
@@ -204,14 +242,14 @@ contract FinalityTest is Test {
 
         vm.prank(RELAYER);
         vm.expectRevert();
-        escrow.releaseCash(fast, true);
+        escrow.releaseCash(fast, _eligible(escrow, RECEIVER));
 
         // And the fast VAA is not consumed, so the settlement is not stranded:
         // the same message re-published at finality still works.
         assertFalse(escrow.consumedVaa(keccak256("substituted")));
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(FINALIZED, "proper"), true);
+        escrow.releaseCash(_vaa(FINALIZED, "proper"), _eligible(escrow, RECEIVER));
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
     }
 
@@ -293,7 +331,7 @@ contract FinalityTest is Test {
         _prepare(relaxed);
 
         vm.prank(RELAYER);
-        relaxed.releaseCash(_vaa(INSTANT, "relaxed"), true);
+        relaxed.releaseCash(_vaa(INSTANT, "relaxed"), _eligible(relaxed, RECEIVER));
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
     }
@@ -308,11 +346,11 @@ contract FinalityTest is Test {
 
         vm.prank(RELAYER);
         if (shouldSucceed) {
-            escrow.releaseCash(_vaa(consistencyLevel, "fuzz"), true);
+            escrow.releaseCash(_vaa(consistencyLevel, "fuzz"), _eligible(escrow, RECEIVER));
             assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
         } else {
             vm.expectRevert();
-            escrow.releaseCash(_vaa(consistencyLevel, "fuzz"), true);
+            escrow.releaseCash(_vaa(consistencyLevel, "fuzz"), _eligible(escrow, RECEIVER));
             assertEq(aToken.balanceOf(RECEIVER), 0);
         }
     }

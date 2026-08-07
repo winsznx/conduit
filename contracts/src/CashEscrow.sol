@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import {ComplianceAuthority} from "./ComplianceAuthority.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
 
@@ -27,7 +28,7 @@ import {MessageCodec} from "./libraries/MessageCodec.sol";
 ///   - a refund is impossible after COMMIT, and the check is on canonical
 ///     coordinator state rather than a local timeout (PRD FR-008, invariant I4);
 ///   - value moves only after `_consume` has verified and burned the VAA.
-contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
+contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The Cleanverse A-Token, discovered at deploy time and never hardcoded.
@@ -89,6 +90,7 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
         bytes32 remoteEmitter_,
         FinalityLevel settlementFinality_,
         FinalityLevel observationFinality_,
+        uint64 maxAttestationValidity_,
         address owner_
     )
         WormholeTransport(
@@ -100,6 +102,7 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
             settlementFinality_,
             observationFinality_
         )
+        ComplianceAuthority(maxAttestationValidity_, "Conduit", "1")
         Ownable(owner_)
     {
         if (cashAsset_ == address(0) || wormhole_ == address(0)) {
@@ -110,6 +113,25 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
 
     function legOf(bytes32 settlementId) external view returns (CashLeg memory) {
         return _legs[settlementId];
+    }
+
+    // ── Compliance authority ─────────────────────────────────────────────────
+    //
+    // A separate signer set from the coordinator's by construction: they are
+    // different contracts on different chains, and the EIP-712 domain binds each
+    // attestation to one of them. An attestation minted for the coordinator is
+    // not a valid attestation here even with the same signer and subject.
+
+    function addComplianceSigner(address signer) external onlyOwner {
+        _addComplianceSigner(signer);
+    }
+
+    function removeComplianceSigner(address signer) external onlyOwner {
+        _removeComplianceSigner(signer);
+    }
+
+    function setComplianceQuorum(uint256 quorum) external onlyOwner {
+        _setComplianceQuorum(quorum);
     }
 
     // ── Preparation ──────────────────────────────────────────────────────────
@@ -171,12 +193,16 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
     /// earns nothing by withholding and cannot forge, so the safe design is to
     /// let everyone try.
     ///
-    /// `eligible` is supplied by the caller and represents the final,
-    /// commit-time Cleanverse decision for the receiver. Phase 05 replaces it
-    /// with a verified compliance attestation; until then it is an explicit
-    /// parameter rather than an assumed `true`, so the held path is reachable
-    /// and tested from the start.
-    function releaseCash(bytes calldata commitVaa, bool eligible) external nonReentrant {
+    /// Release-time eligibility comes from a signed quorum, not from the caller.
+    /// The check is non-reverting on a shortfall and reverting on malformed
+    /// input, which is the distinction that matters after COMMIT: no refund
+    /// path reopens, so a release that cannot proceed must reach the held state
+    /// rather than revert and strand the cash. A forged or misbound attestation
+    /// is a different thing and still reverts.
+    function releaseCash(bytes calldata commitVaa, ComplianceProof calldata compliance)
+        external
+        nonReentrant
+    {
         MessageCodec.Header memory header = _consume(commitVaa, MessageCodec.MessageType.COMMIT);
 
         CashLeg storage leg = _legs[header.settlementId];
@@ -192,7 +218,7 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
 
         // PRD FR-010: if the receiver is no longer permitted, the leg is held.
         // No refund path reopens, because a COMMIT exists (invariant I4).
-        if (!eligible) {
+        if (!_isEligible(header.settlementId, header.intentHash, leg.receiver, compliance)) {
             leg.state = LegState.HELD;
             emit CashHeld(header.settlementId, leg.receiver, amount);
             return;
@@ -211,7 +237,10 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
     /// The source of truth is canonical coordinator state carried by the VAA,
     /// never a local timeout. PRD FR-008 is explicit: a timeout alone cannot
     /// authorize a refund when a remote release may already have happened.
-    function returnCash(bytes calldata abortVaa, bool payerEligible) external nonReentrant {
+    function returnCash(bytes calldata abortVaa, ComplianceProof calldata compliance)
+        external
+        nonReentrant
+    {
         MessageCodec.Header memory header = _consume(abortVaa, MessageCodec.MessageType.ABORT);
 
         CashLeg storage leg = _legs[header.settlementId];
@@ -227,7 +256,7 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
 
         // PRD 5.2 step 7: a return recipient who is currently ineligible leaves
         // the leg in escrow and opens a disposition case.
-        if (!payerEligible) {
+        if (!_isEligible(header.settlementId, header.intentHash, leg.payer, compliance)) {
             leg.state = LegState.HELD;
             emit CashHeld(header.settlementId, leg.payer, amount);
             return;

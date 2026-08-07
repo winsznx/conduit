@@ -3,11 +3,14 @@ pragma solidity =0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 
+import {ComplianceAuthority} from "../src/ComplianceAuthority.sol";
 import {SettlementCoordinator} from "../src/SettlementCoordinator.sol";
 import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
+import {ComplianceAttestationLib} from "../src/libraries/ComplianceAttestationLib.sol";
 import {MessageCodec} from "../src/libraries/MessageCodec.sol";
 import {SettlementIntentLib} from "../src/libraries/SettlementIntentLib.sol";
+import {ComplianceFixture} from "./helpers/ComplianceFixture.sol";
 import {MockWormhole} from "./mocks/MockWormhole.sol";
 
 /// @notice The phase 04 gate: the reference model and the contracts must produce
@@ -27,7 +30,7 @@ import {MockWormhole} from "./mocks/MockWormhole.sol";
 /// replayed. And the generator fails if fewer than four distinct terminal states
 /// are reached, so a corpus that has quietly stopped exercising anything cannot
 /// pass by being narrow.
-contract DifferentialTest is Test {
+contract DifferentialTest is ComplianceFixture {
     SettlementCoordinator private coordinator;
     MockWormhole private wormhole;
 
@@ -57,6 +60,8 @@ contract DifferentialTest is Test {
     string private fixture;
     uint256 private traceCount;
 
+    uint64 private constant MAX_ATTESTATION_VALIDITY = 15 minutes;
+
     function setUp() public {
         buyer = vm.addr(BUYER_KEY);
         seller = vm.addr(SELLER_KEY);
@@ -70,10 +75,17 @@ contract DifferentialTest is Test {
             REMOTE_EMITTER,
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             address(0x0E7E4),
             "Conduit",
             "1"
         );
+
+        vm.startPrank(address(0x0E7E4));
+        coordinator.addComplianceSigner(_signerA());
+        coordinator.addComplianceSigner(_signerB());
+        coordinator.setComplianceQuorum(2);
+        vm.stopPrank();
 
         fixture = vm.readFile("contracts/test/fixtures/settlement-traces.json");
         traceCount = vm.parseJsonUint(fixture, "$.count");
@@ -173,12 +185,28 @@ contract DifferentialTest is Test {
             }
         }
         if (code == ISSUE_COMMIT) {
+            // The corpus explores state-machine orderings, not compliance, so
+            // every trace supplies a fully eligible quorum. Compliance refusal
+            // has its own tests; mixing the two would leave a failing trace
+            // ambiguous between the two subsystems.
+            (
+                ComplianceAttestationLib.ComplianceAttestation[] memory attestations,
+                bytes[] memory attestationSignatures
+            ) = _attestAll(
+                coordinator.attestationDomainSeparator(),
+                _keys(SIGNER_A_KEY, SIGNER_B_KEY),
+                settlementId,
+                settlementId,
+                _subjects(intent.cashPayer, intent.cashReceiver),
+                true
+            );
+
             try coordinator.issueCommit(
                 intent,
                 settlementId,
                 _sign(BUYER_KEY, settlementId),
                 _sign(SELLER_KEY, settlementId),
-                true,
+                ComplianceAuthority.ComplianceProof(attestations, attestationSignatures),
                 1
             ) {
                 return true;
@@ -187,7 +215,30 @@ contract DifferentialTest is Test {
             }
         }
         if (code == ISSUE_ABORT) {
-            try coordinator.issueAbort(intent, settlementId, false, true, false, 1) {
+            // The corpus explores orderings, so aborts use the deadline ground with
+            // the clock warped past it — a ground the chain proves rather than one
+            // the trace asserts.
+            (
+                ComplianceAttestationLib.ComplianceAttestation[] memory refusals,
+                bytes[] memory refusalSignatures
+            ) = _attestAll(
+                coordinator.attestationDomainSeparator(),
+                _keys(SIGNER_A_KEY, SIGNER_B_KEY),
+                settlementId,
+                settlementId,
+                _subjects(intent.cashPayer),
+                false
+            );
+
+            try coordinator.issueAbort(
+                intent,
+                settlementId,
+                SettlementCoordinator.AbortGround.COMPLIANCE,
+                SettlementCoordinator.Cancellation(
+                    ComplianceAuthority.ComplianceProof(refusals, refusalSignatures), "", ""
+                ),
+                1
+            ) {
                 return true;
             } catch {
                 return false;

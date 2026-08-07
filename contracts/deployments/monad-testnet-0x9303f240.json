@@ -1,7 +1,7 @@
 {
   "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
   "protocolVersion": 1,
-  "gitCommit": "3bedba379bb76f1d46392d4bc89334ae83a36f00",
+  "gitCommit": "4b0144788e46cebc7cae2b7fea2d3573504b093e",
   "solcVersion": "0.8.36",
   "chainConfigs": {
     "monadTestnet": {
@@ -14,11 +14,11 @@
   "contracts": {
     "SettlementCoordinator": {
       "chain": "monadTestnet",
-      "address": "0x1491A25Fc93778ECcb69BCec96495c6f12c686d1"
+      "address": "0xe1792F67472b5CA51F6B1133A995001eeA9f9FdD"
     },
     "CashEscrow": {
       "chain": "monadTestnet",
-      "address": "0x1645BA0873118A997Bd39718A82dd268E46D3B48"
+      "address": "0x742bEe50781562C2aCb6049D02C4BAF43a4eCadf"
     },
     "ConduitVaultRegistrar": {
       "chain": "monadTestnet",
@@ -26,8 +26,8 @@
     }
   },
   "bytecodeHashes": {
-    "SettlementCoordinator": "0x030a50d4ad5db62367df01cc2851651e0bd2f461b0a8466382e3c2ce618f6f85",
-    "CashEscrow": "0xf3334abefcfadb9c7a7df2315fcdfa580dc3aeef82e6c99e1447ecf9e052af5b",
+    "SettlementCoordinator": "0x0f49ccc3ef4c2b8784554ae334e9738b774688a3912407e762d9865b1e73fe28",
+    "CashEscrow": "0xfb51bea2179e7e8f4ff1af2e4bec63e67cc9a977e381c1c6c5ee9986e52b0218",
     "ConduitVaultRegistrar": "0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f"
   },
   "wormhole": {
@@ -42,7 +42,14 @@
     "observation": "INSTANT",
     "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
   },
+  "complianceProfile": {
+    "maxAttestationValiditySeconds": 900,
+    "signerCount": 1,
+    "quorum": 1,
+    "snapshotIsLiveState": true,
+    "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
+  },
   "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
   "validatorRuleHashes": {},
-  "timestamp": "2026-08-07T21:11:54.867Z"
+  "timestamp": "2026-08-07T21:57:39.566Z"
 }

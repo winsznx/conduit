@@ -4,9 +4,12 @@ pragma solidity =0.8.36;
 import {Test} from "forge-std/Test.sol";
 
 import {CashEscrow} from "../src/CashEscrow.sol";
+import {ComplianceAuthority} from "../src/ComplianceAuthority.sol";
 import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
+import {ComplianceAttestationLib} from "../src/libraries/ComplianceAttestationLib.sol";
 import {MessageCodec} from "../src/libraries/MessageCodec.sol";
+import {ComplianceFixture} from "./helpers/ComplianceFixture.sol";
 import {MockWormhole} from "./mocks/MockWormhole.sol";
 import {FeeOnTransferToken, MockAToken, RebasingToken} from "./mocks/TestTokens.sol";
 
@@ -17,7 +20,7 @@ import {FeeOnTransferToken, MockAToken, RebasingToken} from "./mocks/TestTokens.
 /// below corresponds to a threat in the register rather than to a line of code,
 /// because the question that matters is not "is this branch covered" but "can
 /// this attack succeed".
-contract CashEscrowTest is Test {
+contract CashEscrowTest is ComplianceFixture {
     CashEscrow private escrow;
     MockWormhole private wormhole;
     MockAToken private aToken;
@@ -35,6 +38,11 @@ contract CashEscrowTest is Test {
     bytes32 private constant INTENT_HASH = keccak256("intent-1");
 
     uint256 private constant AMOUNT = 1000e6;
+    uint64 private constant MAX_ATTESTATION_VALIDITY = 15 minutes;
+
+    /// @dev Cached so a helper cannot consume a pending `vm.expectRevert` by
+    ///      reading it off the escrow.
+    bytes32 private attestationDomain;
 
     function setUp() public {
         wormhole = new MockWormhole(LOCAL_WH_CHAIN);
@@ -48,12 +56,80 @@ contract CashEscrowTest is Test {
             REMOTE_EMITTER,
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
+
+        attestationDomain = escrow.attestationDomainSeparator();
+
+        vm.startPrank(OWNER);
+        escrow.addComplianceSigner(_signerA());
+        escrow.addComplianceSigner(_signerB());
+        escrow.setComplianceQuorum(2);
+        vm.stopPrank();
 
         aToken.mint(PAYER, AMOUNT * 10);
         vm.prank(PAYER);
         aToken.approve(address(escrow), type(uint256).max);
+    }
+
+    /// @dev The quorum's answer about one subject for this settlement. A
+    ///      shortfall is what drives the held path; a forged proof still reverts.
+    function _proofFor(address subject, bool eligible)
+        private
+        view
+        returns (ComplianceAuthority.ComplianceProof memory)
+    {
+        (
+            ComplianceAttestationLib.ComplianceAttestation[] memory attestations,
+            bytes[] memory signatures
+        ) = _attestAll(
+            attestationDomain,
+            _keys(SIGNER_A_KEY, SIGNER_B_KEY),
+            SETTLEMENT_ID,
+            INTENT_HASH,
+            _subjects(subject),
+            eligible
+        );
+        return ComplianceAuthority.ComplianceProof(attestations, signatures);
+    }
+
+    function test_AnUnconfiguredAuthorityHoldsRatherThanReleases() public {
+        // Fails closed, and closed here means held rather than reverted: after a
+        // COMMIT there is no refund, so a revert would strand the cash instead of
+        // sending it down the disposition path.
+        CashEscrow fresh = new CashEscrow(
+            address(aToken),
+            address(wormhole),
+            DEPLOYMENT_ID,
+            LOCAL_WH_CHAIN,
+            REMOTE_WH_CHAIN,
+            REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
+            OWNER
+        );
+        assertEq(fresh.complianceQuorum(), 0);
+
+        vm.startPrank(PAYER);
+        aToken.approve(address(fresh), type(uint256).max);
+        fresh.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
+        vm.stopPrank();
+
+        (
+            ComplianceAttestationLib.ComplianceAttestation[] memory none,
+            bytes[] memory noSignatures
+        ) = _noAttestations();
+
+        vm.prank(RELAYER);
+        fresh.releaseCash(
+            _vaa(MessageCodec.MessageType.COMMIT),
+            ComplianceAuthority.ComplianceProof(none, noSignatures)
+        );
+
+        assertEq(aToken.balanceOf(RECEIVER), 0);
+        assertEq(uint8(fresh.legOf(SETTLEMENT_ID).state), uint8(CashEscrow.LegState.HELD));
     }
 
     function _prepare() private {
@@ -165,6 +241,7 @@ contract CashEscrowTest is Test {
             REMOTE_EMITTER,
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
 
@@ -192,6 +269,7 @@ contract CashEscrowTest is Test {
             REMOTE_EMITTER,
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
 
@@ -237,7 +315,7 @@ contract CashEscrowTest is Test {
         escrow.setPreparationsPaused(true);
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
     }
@@ -250,7 +328,7 @@ contract CashEscrowTest is Test {
         // PRD FR-009. The relayer is untrusted for correctness, so restricting
         // who may submit would add a liveness dependency for no safety gain.
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
         assertEq(escrow.totalEscrowed(), 0);
@@ -263,7 +341,7 @@ contract CashEscrowTest is Test {
         _prepare();
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), false);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, false));
 
         assertEq(aToken.balanceOf(RECEIVER), 0);
         assertEq(aToken.balanceOf(address(escrow)), AMOUNT, "value is conserved, not lost");
@@ -276,7 +354,7 @@ contract CashEscrowTest is Test {
         _prepare();
 
         vm.startPrank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -295,7 +373,7 @@ contract CashEscrowTest is Test {
                 block.chainid,
                 "abort-after-commit"
             ),
-            true
+            _proofFor(PAYER, true)
         );
         vm.stopPrank();
     }
@@ -304,7 +382,7 @@ contract CashEscrowTest is Test {
         _prepare();
 
         vm.startPrank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), false);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, false));
 
         vm.expectRevert();
         escrow.returnCash(
@@ -316,7 +394,7 @@ contract CashEscrowTest is Test {
                 block.chainid,
                 "abort-after-held"
             ),
-            true
+            _proofFor(PAYER, true)
         );
         vm.stopPrank();
     }
@@ -328,7 +406,7 @@ contract CashEscrowTest is Test {
         uint256 before = aToken.balanceOf(PAYER);
 
         vm.prank(RELAYER);
-        escrow.returnCash(_vaa(MessageCodec.MessageType.ABORT), true);
+        escrow.returnCash(_vaa(MessageCodec.MessageType.ABORT), _proofFor(PAYER, true));
 
         assertEq(aToken.balanceOf(PAYER) - before, AMOUNT);
         assertEq(escrow.totalEscrowed(), 0);
@@ -340,7 +418,7 @@ contract CashEscrowTest is Test {
         _prepare();
 
         vm.prank(RELAYER);
-        escrow.returnCash(_vaa(MessageCodec.MessageType.ABORT), false);
+        escrow.returnCash(_vaa(MessageCodec.MessageType.ABORT), _proofFor(PAYER, false));
 
         assertEq(escrow.totalEscrowed(), AMOUNT);
         assertEq(uint8(escrow.legOf(SETTLEMENT_ID).state), uint8(CashEscrow.LegState.HELD));
@@ -354,14 +432,14 @@ contract CashEscrowTest is Test {
         bytes memory vaa = _vaa(MessageCodec.MessageType.COMMIT);
 
         vm.startPrank(RELAYER);
-        escrow.releaseCash(vaa, true);
+        escrow.releaseCash(vaa, _proofFor(RECEIVER, true));
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 WormholeTransport.VaaAlreadyConsumed.selector, keccak256(abi.encodePacked("v1"))
             )
         );
-        escrow.releaseCash(vaa, true);
+        escrow.releaseCash(vaa, _proofFor(RECEIVER, true));
         vm.stopPrank();
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT, "value moved exactly once");
@@ -387,7 +465,7 @@ contract CashEscrowTest is Test {
                 block.chainid,
                 "wrong-emitter"
             ),
-            true
+            _proofFor(RECEIVER, true)
         );
     }
 
@@ -411,7 +489,7 @@ contract CashEscrowTest is Test {
                 block.chainid,
                 "wrong-chain"
             ),
-            true
+            _proofFor(RECEIVER, true)
         );
     }
 
@@ -435,7 +513,7 @@ contract CashEscrowTest is Test {
                 block.chainid,
                 "wrong-deployment"
             ),
-            true
+            _proofFor(RECEIVER, true)
         );
     }
 
@@ -457,7 +535,7 @@ contract CashEscrowTest is Test {
                 999,
                 "wrong-destination"
             ),
-            true
+            _proofFor(RECEIVER, true)
         );
     }
 
@@ -473,7 +551,7 @@ contract CashEscrowTest is Test {
                 MessageCodec.MessageType.COMMIT
             )
         );
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.ABORT), true);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.ABORT), _proofFor(RECEIVER, true));
     }
 
     function test_RejectsVaaTheCoreContractDeclaresInvalid() public {
@@ -484,7 +562,7 @@ contract CashEscrowTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(WormholeTransport.VaaInvalid.selector, "guardian quorum not met")
         );
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
     }
 
     function test_RejectsIntentHashMismatch() public {
@@ -508,13 +586,13 @@ contract CashEscrowTest is Test {
 
         vm.prank(RELAYER);
         vm.expectRevert();
-        escrow.releaseCash(vaa, true);
+        escrow.releaseCash(vaa, _proofFor(RECEIVER, true));
     }
 
     function test_RejectsUnknownSettlement() public {
         vm.prank(RELAYER);
         vm.expectRevert(abi.encodeWithSelector(CashEscrow.LegUnknown.selector, SETTLEMENT_ID));
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
     }
 
     // ── Peer wiring ──────────────────────────────────────────────────────────
@@ -532,6 +610,7 @@ contract CashEscrowTest is Test {
             bytes32(0),
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
 
@@ -539,7 +618,7 @@ contract CashEscrowTest is Test {
 
         vm.prank(RELAYER);
         vm.expectRevert(WormholeTransport.RemotePeerNotSet.selector);
-        unwired.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+        unwired.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
     }
 
     function test_PeerMayBeSetOnceAndNeverAgain() public {
@@ -552,6 +631,7 @@ contract CashEscrowTest is Test {
             bytes32(0),
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
 
@@ -576,6 +656,7 @@ contract CashEscrowTest is Test {
             bytes32(0),
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
 
@@ -594,6 +675,7 @@ contract CashEscrowTest is Test {
             bytes32(0),
             WormholeTransport.FinalityLevel.FINALIZED,
             WormholeTransport.FinalityLevel.INSTANT,
+            MAX_ATTESTATION_VALIDITY,
             OWNER
         );
 
@@ -645,7 +727,7 @@ contract CashEscrowTest is Test {
         assertGe(aToken.balanceOf(address(escrow)), escrow.totalEscrowed());
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), eligible);
+        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, eligible));
 
         // Invariant I1: whether released or held, the token balance never falls
         // below what the contract says it is accounting for.
