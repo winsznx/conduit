@@ -435,7 +435,7 @@ contract SettlementCoordinatorTest is Test {
         bytes32 settlementId = _becomeReady();
         _commit(settlementId, true);
 
-        coordinator.recordLocalCashResolved(settlementId, true);
+        coordinator.recordLocalCashResolved(settlementId, SettlementCoordinator.LegOutcome.RELEASED);
         assertEq(
             uint8(coordinator.settlementOf(settlementId).state),
             uint8(SettlementCoordinator.SettlementState.COMMIT_ISSUED),
@@ -444,7 +444,11 @@ contract SettlementCoordinatorTest is Test {
 
         bytes memory releasedVaa =
             _legVaa(settlementId, MessageCodec.MessageType.ASSET_RELEASED, "asset-released");
-        coordinator.recordLegResolved(releasedVaa, MessageCodec.MessageType.ASSET_RELEASED);
+        coordinator.recordLegResolved(
+            releasedVaa,
+            MessageCodec.MessageType.ASSET_RELEASED,
+            SettlementCoordinator.LegOutcome.RELEASED
+        );
 
         assertEq(
             uint8(coordinator.settlementOf(settlementId).state),
@@ -456,10 +460,11 @@ contract SettlementCoordinatorTest is Test {
         bytes32 settlementId = _becomeReady();
         _commit(settlementId, true);
 
-        coordinator.recordLocalCashResolved(settlementId, true);
+        coordinator.recordLocalCashResolved(settlementId, SettlementCoordinator.LegOutcome.RELEASED);
         coordinator.recordLegResolved(
             _legVaa(settlementId, MessageCodec.MessageType.ASSET_HELD, "asset-held"),
-            MessageCodec.MessageType.ASSET_HELD
+            MessageCodec.MessageType.ASSET_HELD,
+            SettlementCoordinator.LegOutcome.HELD
         );
 
         assertEq(

@@ -6,6 +6,11 @@ CLAUDE.md
 CLAUDE_ONESHOT_CONDUIT.md
 design.md
 
+# Generated and byte-compared. `scripts/generate-settlement-traces.mjs --check`
+# asserts this file matches the reference model exactly, so reformatting it
+# would fail the gate for a whitespace change.
+contracts/test/fixtures/
+
 # generated / vendored
 pnpm-lock.yaml
 foundry.lock

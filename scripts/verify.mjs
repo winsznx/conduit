@@ -115,6 +115,12 @@ const STEPS = [
     exec: () => run('forge', ['build', '--deny', 'warnings'], { allowFailure: true }),
   },
   {
+    id: 'traces',
+    title: 'differential corpus matches the reference model',
+    exec: () =>
+      run('node', ['scripts/generate-settlement-traces.mjs', '--check'], { allowFailure: true }),
+  },
+  {
     id: 'contracts-test',
     title: 'forge test',
     exec: () => run('forge', ['test'], { allowFailure: true }),

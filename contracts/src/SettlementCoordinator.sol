@@ -42,13 +42,28 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
         ABORT
     }
 
+    /// @dev What a leg actually did.
+    ///
+    /// `bool released` used to stand in for this, and it conflated a release
+    /// with a return: the differential corpus caught the coordinator accepting a
+    /// release on an abort path, which the reference model refuses. They are
+    /// different events with different authority — a release requires a
+    /// canonical COMMIT, a return requires a canonical ABORT — and collapsing
+    /// them into one flag made that distinction unrepresentable.
+    enum LegOutcome {
+        NONE,
+        RELEASED,
+        RETURNED,
+        HELD
+    }
+
     struct Settlement {
         SettlementState state;
         Decision decision;
         bool cashPrepared;
         bool assetPrepared;
-        bool cashResolved;
-        bool assetResolved;
+        LegOutcome cashOutcome;
+        LegOutcome assetOutcome;
         bytes32 intentHash;
         uint64 stateVersion;
     }
@@ -61,7 +76,7 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     event AssetLegPrepared(bytes32 indexed settlementId);
     event CommitIssued(bytes32 indexed settlementId, uint64 sequence);
     event AbortIssued(bytes32 indexed settlementId, uint64 sequence, string reason);
-    event LegResolved(bytes32 indexed settlementId, bool cash, bool released);
+    event LegResolved(bytes32 indexed settlementId, bool cash, LegOutcome outcome);
     event SettlementTerminal(bytes32 indexed settlementId, SettlementState state);
 
     error AlreadyDecided(bytes32 settlementId, Decision decision);
@@ -77,6 +92,11 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     error WrongChainForCashLeg(uint256 expected, uint256 actual);
     error AbortAfterCommitForbidden(bytes32 settlementId);
     error SettlementUnknown(bytes32 settlementId);
+    error LegNotPrepared(bytes32 settlementId, bool cash);
+    error LegAlreadyResolved(bytes32 settlementId, bool cash);
+    error ReleaseRequiresCommit(bytes32 settlementId);
+    error ReturnRequiresAbort(bytes32 settlementId);
+    error OutcomeDoesNotMatchMessage(LegOutcome outcome, MessageCodec.MessageType messageType);
 
     constructor(
         address wormhole_,
@@ -277,61 +297,126 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
     /// settlement that looks finished on one chain is not finished here. If
     /// either leg is held, the settlement is HELD and conservation still holds
     /// exactly.
-    function recordLegResolved(bytes calldata resolutionVaa, MessageCodec.MessageType expectedType)
-        external
-    {
-        bool cash = expectedType == MessageCodec.MessageType.CASH_RELEASED
-            || expectedType == MessageCodec.MessageType.CASH_HELD;
-        bool released = expectedType == MessageCodec.MessageType.CASH_RELEASED
-            || expectedType == MessageCodec.MessageType.ASSET_RELEASED;
+    function recordLegResolved(
+        bytes calldata resolutionVaa,
+        MessageCodec.MessageType expectedType,
+        LegOutcome outcome
+    ) external {
+        bool cash =
+            expectedType == MessageCodec.MessageType.CASH_RELEASED
+                || expectedType == MessageCodec.MessageType.CASH_HELD;
+        bool heldMessage = expectedType == MessageCodec.MessageType.CASH_HELD
+            || expectedType == MessageCodec.MessageType.ASSET_HELD;
+
+        // PRD 7.3 has no RETURNED message type, so the wire carries only
+        // "delivered" or "held" and the canonical decision distinguishes a
+        // release from a return. The caller states which it means and the
+        // contract checks that claim against both the message and the decision.
+        if ((outcome == LegOutcome.HELD) != heldMessage) {
+            revert OutcomeDoesNotMatchMessage(outcome, expectedType);
+        }
 
         MessageCodec.Header memory header = _consume(resolutionVaa, expectedType);
 
         Settlement storage settlement = _settlements[header.settlementId];
         if (settlement.decision == Decision.NONE) revert SettlementUnknown(header.settlementId);
+        _requireOutcomeAllowed(header.settlementId, settlement, outcome);
+        _requireResolvable(header.settlementId, settlement, cash, outcome);
 
-        if (cash) {
-            settlement.cashResolved = true;
-        } else {
-            settlement.assetResolved = true;
-        }
-        if (!released) settlement.state = SettlementState.HELD;
-        settlement.stateVersion += 1;
-
-        emit LegResolved(header.settlementId, cash, released);
-
-        if (settlement.cashResolved && settlement.assetResolved) {
-            if (settlement.state != SettlementState.HELD) {
-                settlement.state = settlement.decision == Decision.COMMIT
-                    ? SettlementState.SETTLED
-                    : SettlementState.ABORTED;
-            }
-            emit SettlementTerminal(header.settlementId, settlement.state);
-        }
+        _applyResolution(header.settlementId, settlement, cash, outcome);
     }
 
     /// @notice Records the local cash leg's own resolution, no VAA needed.
-    function recordLocalCashResolved(bytes32 settlementId, bool released) external {
+    function recordLocalCashResolved(bytes32 settlementId, LegOutcome outcome) external {
         Settlement storage settlement = _settlements[settlementId];
         if (settlement.decision == Decision.NONE) revert SettlementUnknown(settlementId);
+        _requireOutcomeAllowed(settlementId, settlement, outcome);
+        _requireResolvable(settlementId, settlement, true, outcome);
 
-        settlement.cashResolved = true;
-        if (!released) settlement.state = SettlementState.HELD;
+        _applyResolution(settlementId, settlement, true, outcome);
+    }
+
+    // ── Internals ────────────────────────────────────────────────────────────
+
+    /// @dev A release needs a COMMIT and a return needs an ABORT. A hold is
+    ///      reachable from either, because a decided settlement that cannot move
+    ///      value to its destination is held whichever way it was decided.
+    function _requireOutcomeAllowed(
+        bytes32 settlementId,
+        Settlement storage settlement,
+        LegOutcome outcome
+    ) private view {
+        if (outcome == LegOutcome.RELEASED && settlement.decision != Decision.COMMIT) {
+            revert ReleaseRequiresCommit(settlementId);
+        }
+        if (outcome == LegOutcome.RETURNED && settlement.decision != Decision.ABORT) {
+            revert ReturnRequiresAbort(settlementId);
+        }
+    }
+
+    function _applyResolution(
+        bytes32 settlementId,
+        Settlement storage settlement,
+        bool cash,
+        LegOutcome outcome
+    ) private {
+        if (cash) {
+            settlement.cashOutcome = outcome;
+        } else {
+            settlement.assetOutcome = outcome;
+        }
         settlement.stateVersion += 1;
 
-        emit LegResolved(settlementId, true, released);
+        emit LegResolved(settlementId, cash, outcome);
 
-        if (settlement.cashResolved && settlement.assetResolved) {
-            if (settlement.state != SettlementState.HELD) {
-                settlement.state = settlement.decision == Decision.COMMIT
-                    ? SettlementState.SETTLED
-                    : SettlementState.ABORTED;
-            }
+        // The settlement's state is derived from both legs every time, rather
+        // than latched on the first hold. A leg that was held and is later
+        // resolved must be able to move the settlement forward, otherwise a
+        // disposition could never complete one.
+        bool eitherHeld =
+            settlement.cashOutcome == LegOutcome.HELD || settlement.assetOutcome == LegOutcome.HELD;
+        bool bothResolved =
+            settlement.cashOutcome != LegOutcome.NONE && settlement.assetOutcome != LegOutcome.NONE;
+
+        if (eitherHeld) {
+            settlement.state = SettlementState.HELD;
+        } else if (bothResolved) {
+            settlement.state = settlement.decision == Decision.COMMIT
+                ? SettlementState.SETTLED
+                : SettlementState.ABORTED;
             emit SettlementTerminal(settlementId, settlement.state);
         }
     }
 
-    // ── Internals ────────────────────────────────────────────────────────────
+    /// @dev A leg that was never prepared has nothing to resolve.
+    ///
+    /// Found by the differential corpus: without this, a settlement where only
+    /// one leg was ever prepared could be driven to a terminal state by
+    /// "resolving" the leg that does not exist. The reference model refuses it
+    /// because the leg is in NONE; the contract accepted it because it only
+    /// tracked a resolved flag. Resolving twice is refused for the same reason
+    /// — it would let one leg satisfy the both-legs condition on its own.
+    function _requireResolvable(
+        bytes32 settlementId,
+        Settlement storage settlement,
+        bool cash,
+        LegOutcome outcome
+    ) private view {
+        bool prepared = cash ? settlement.cashPrepared : settlement.assetPrepared;
+        if (!prepared) revert LegNotPrepared(settlementId, cash);
+
+        LegOutcome current = cash ? settlement.cashOutcome : settlement.assetOutcome;
+
+        // A held leg may resolve again: that is what the Disposition Kernel does,
+        // and PRD 7.1 lists HELD -> SETTLED as an allowed transition. But only
+        // *forward*. Re-holding an already-held leg is a no-op that would let a
+        // disposition appear to make progress without moving anything.
+        if (current == LegOutcome.HELD) {
+            if (outcome == LegOutcome.HELD) revert LegAlreadyResolved(settlementId, cash);
+            return;
+        }
+        if (current != LegOutcome.NONE) revert LegAlreadyResolved(settlementId, cash);
+    }
 
     function _requireUndecided(bytes32 settlementId, Settlement storage settlement) private view {
         if (settlement.decision != Decision.NONE) {

@@ -445,7 +445,7 @@
   "contracts/src/SettlementCoordinator.sol:SettlementCoordinator": {
     "storage": [
       {
-        "astId": 6438,
+        "astId": 6616,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "consumedVaa",
         "offset": 0,
@@ -469,12 +469,12 @@
         "type": "t_address"
       },
       {
-        "astId": 5442,
+        "astId": 5450,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "_settlements",
         "offset": 0,
         "slot": "3",
-        "type": "t_mapping(t_bytes32,t_struct(Settlement)5435_storage)"
+        "type": "t_mapping(t_bytes32,t_struct(Settlement)5443_storage)"
       }
     ],
     "types": {
@@ -498,6 +498,11 @@
         "label": "enum SettlementCoordinator.Decision",
         "numberOfBytes": "1"
       },
+      "t_enum(LegOutcome)5422": {
+        "encoding": "inplace",
+        "label": "enum SettlementCoordinator.LegOutcome",
+        "numberOfBytes": "1"
+      },
       "t_enum(SettlementState)5412": {
         "encoding": "inplace",
         "label": "enum SettlementCoordinator.SettlementState",
@@ -510,20 +515,20 @@
         "numberOfBytes": "32",
         "value": "t_bool"
       },
-      "t_mapping(t_bytes32,t_struct(Settlement)5435_storage)": {
+      "t_mapping(t_bytes32,t_struct(Settlement)5443_storage)": {
         "encoding": "mapping",
         "key": "t_bytes32",
         "label": "mapping(bytes32 => struct SettlementCoordinator.Settlement)",
         "numberOfBytes": "32",
-        "value": "t_struct(Settlement)5435_storage"
+        "value": "t_struct(Settlement)5443_storage"
       },
-      "t_struct(Settlement)5435_storage": {
+      "t_struct(Settlement)5443_storage": {
         "encoding": "inplace",
         "label": "struct SettlementCoordinator.Settlement",
         "numberOfBytes": "96",
         "members": [
           {
-            "astId": 5419,
+            "astId": 5425,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "state",
             "offset": 0,
@@ -531,7 +536,7 @@
             "type": "t_enum(SettlementState)5412"
           },
           {
-            "astId": 5422,
+            "astId": 5428,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "decision",
             "offset": 1,
@@ -539,7 +544,7 @@
             "type": "t_enum(Decision)5416"
           },
           {
-            "astId": 5424,
+            "astId": 5430,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "cashPrepared",
             "offset": 2,
@@ -547,7 +552,7 @@
             "type": "t_bool"
           },
           {
-            "astId": 5426,
+            "astId": 5432,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "assetPrepared",
             "offset": 3,
@@ -555,23 +560,23 @@
             "type": "t_bool"
           },
           {
-            "astId": 5428,
+            "astId": 5435,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
-            "label": "cashResolved",
+            "label": "cashOutcome",
             "offset": 4,
             "slot": "0",
-            "type": "t_bool"
+            "type": "t_enum(LegOutcome)5422"
           },
           {
-            "astId": 5430,
+            "astId": 5438,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
-            "label": "assetResolved",
+            "label": "assetOutcome",
             "offset": 5,
             "slot": "0",
-            "type": "t_bool"
+            "type": "t_enum(LegOutcome)5422"
           },
           {
-            "astId": 5432,
+            "astId": 5440,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "intentHash",
             "offset": 0,
@@ -579,7 +584,7 @@
             "type": "t_bytes32"
           },
           {
-            "astId": 5434,
+            "astId": 5442,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "stateVersion",
             "offset": 0,

@@ -30,7 +30,18 @@ cbor_metadata = false
 
 # Untrusted-input safety for the build itself.
 ffi = false
-fs_permissions = [{ access = "read", path = "./out" }]
+# Read-only, and scoped. `./out` is needed for storage-layout inspection; the
+# fixtures directory holds the committed differential corpus. Nothing in the
+# build takes untrusted input from disk, and no write access is granted anywhere.
+fs_permissions = [
+    { access = "read", path = "./out" },
+    { access = "read", path = "./contracts/test/fixtures" },
+]
+
+# The differential suite replays hundreds of traces in a single test, which is
+# well past a block's worth of gas. This bounds the test VM, not any deployed
+# contract; per-function gas is tracked separately by the committed snapshot.
+gas_limit = "18446744073709551615"
 
 gas_reports = ["*"]
 
