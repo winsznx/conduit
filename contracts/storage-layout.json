@@ -359,5 +359,240 @@
         "numberOfBytes": "8"
       }
     }
+  },
+  "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter": {
+    "storage": [
+      {
+        "astId": 2851,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "consumedVaa",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_bool)"
+      },
+      {
+        "astId": 387,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 535,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 2413,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "intendedReceiver",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_bytes32,t_address)"
+      },
+      {
+        "astId": 2417,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "boundIntentHash",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_bytes32,t_bytes32)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_bytes32,t_address)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => address)",
+        "numberOfBytes": "32",
+        "value": "t_address"
+      },
+      "t_mapping(t_bytes32,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_bytes32,t_bytes32)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bytes32)",
+        "numberOfBytes": "32",
+        "value": "t_bytes32"
+      }
+    }
+  },
+  "contracts/src/SettlementCoordinator.sol:SettlementCoordinator": {
+    "storage": [
+      {
+        "astId": 6438,
+        "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+        "label": "consumedVaa",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_bool)"
+      },
+      {
+        "astId": 8,
+        "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 156,
+        "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 5442,
+        "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+        "label": "_settlements",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_bytes32,t_struct(Settlement)5435_storage)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_enum(Decision)5416": {
+        "encoding": "inplace",
+        "label": "enum SettlementCoordinator.Decision",
+        "numberOfBytes": "1"
+      },
+      "t_enum(SettlementState)5412": {
+        "encoding": "inplace",
+        "label": "enum SettlementCoordinator.SettlementState",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_bytes32,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_bytes32,t_struct(Settlement)5435_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct SettlementCoordinator.Settlement)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Settlement)5435_storage"
+      },
+      "t_struct(Settlement)5435_storage": {
+        "encoding": "inplace",
+        "label": "struct SettlementCoordinator.Settlement",
+        "numberOfBytes": "96",
+        "members": [
+          {
+            "astId": 5419,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "state",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_enum(SettlementState)5412"
+          },
+          {
+            "astId": 5422,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "decision",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_enum(Decision)5416"
+          },
+          {
+            "astId": 5424,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "cashPrepared",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 5426,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "assetPrepared",
+            "offset": 3,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 5428,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "cashResolved",
+            "offset": 4,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 5430,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "assetResolved",
+            "offset": 5,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 5432,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "intentHash",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 5434,
+            "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
+            "label": "stateVersion",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint64"
+          }
+        ]
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      }
+    }
   }
 }
