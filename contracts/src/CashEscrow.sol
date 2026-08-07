@@ -232,6 +232,15 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
 
     // ── Administration ───────────────────────────────────────────────────────
 
+    /// @notice Fixes the cross-chain peer. Callable once, by the owner, forever.
+    ///
+    /// Deployment order forces this: the two sides reference each other, so the
+    /// first deployed cannot know the second. No VAA is consumable until it is
+    /// set, and no later call can change it.
+    function setRemotePeer(bytes32 emitter) external onlyOwner {
+        _setRemotePeer(emitter);
+    }
+
     /// @dev Pauses new preparations only. PRD 8.2 forbids an admin seizing,
     ///      rewriting, or reversing an executed settlement, and a pause that
     ///      could block a release would strand committed value.

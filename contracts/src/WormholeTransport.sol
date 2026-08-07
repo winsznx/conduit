@@ -38,7 +38,21 @@ abstract contract WormholeTransport {
     uint16 public immutable remoteWormholeChainId;
 
     /// @notice The peer contract, left-padded to 32 bytes as Wormhole encodes it.
-    bytes32 public immutable remoteEmitter;
+    ///
+    /// Not immutable, and that is a deliberate trade. The two sides of a
+    /// cross-chain pair reference each other, so neither address exists when the
+    /// first is deployed. The alternatives were worse: a placeholder corrected
+    /// later leaves a window where the contract accepts messages from an address
+    /// nobody chose, and CREATE2 address prediction makes the deployment depend
+    /// on salt bookkeeping across two chains.
+    ///
+    /// Instead the peer is set exactly once and then locked forever. Immutable
+    /// in effect from the moment it matters, settable only in the gap before any
+    /// message can be consumed.
+    bytes32 public remoteEmitter;
+
+    /// @notice True once the peer is set. Never returns to false.
+    bool public remotePeerLocked;
 
     /// @dev PRD 8.4: "The VAA hash is marked consumed before external token calls."
     mapping(bytes32 vaaHash => bool) public consumedVaa;
@@ -49,6 +63,7 @@ abstract contract WormholeTransport {
         bytes32 indexed settlementId
     );
     event VaaConsumed(bytes32 indexed vaaHash, bytes32 indexed settlementId);
+    event RemotePeerSet(bytes32 indexed emitter);
 
     error VaaInvalid(string reason);
     error UnexpectedEmitterChain(uint16 actual, uint16 expected);
@@ -58,6 +73,9 @@ abstract contract WormholeTransport {
     error VaaAlreadyConsumed(bytes32 vaaHash);
     error UnexpectedMessageType(MessageCodec.MessageType actual, MessageCodec.MessageType expected);
     error InsufficientMessageFee(uint256 provided, uint256 required);
+    error RemotePeerAlreadyLocked();
+    error RemotePeerNotSet();
+    error RemotePeerCannotBeZero();
 
     constructor(
         address wormhole_,
@@ -70,7 +88,25 @@ abstract contract WormholeTransport {
         deploymentId = deploymentId_;
         localWormholeChainId = localWormholeChainId_;
         remoteWormholeChainId = remoteWormholeChainId_;
-        remoteEmitter = remoteEmitter_;
+
+        // The second side of the pair knows its peer at construction; the first
+        // does not and passes zero.
+        if (remoteEmitter_ != bytes32(0)) {
+            remoteEmitter = remoteEmitter_;
+            remotePeerLocked = true;
+            emit RemotePeerSet(remoteEmitter_);
+        }
+    }
+
+    /// @dev Concrete contracts wrap this with their own owner check. Callable
+    ///      once; every later attempt reverts, including by the owner.
+    function _setRemotePeer(bytes32 emitter) internal {
+        if (remotePeerLocked) revert RemotePeerAlreadyLocked();
+        if (emitter == bytes32(0)) revert RemotePeerCannotBeZero();
+
+        remoteEmitter = emitter;
+        remotePeerLocked = true;
+        emit RemotePeerSet(emitter);
     }
 
     /// @dev Wormhole charges a message fee on some chains and zero on others.
@@ -96,6 +132,11 @@ abstract contract WormholeTransport {
         internal
         returns (MessageCodec.Header memory header)
     {
+        // 0. No message is consumable before the peer is fixed. Without this,
+        //    an unlocked contract would compare against bytes32(0) and the
+        //    emitter check would be vacuous.
+        if (!remotePeerLocked) revert RemotePeerNotSet();
+
         // 1. Guardian quorum. On-chain, never a trusted off-chain parse.
         (IWormhole.VM memory vm, bool valid, string memory reason) =
             wormhole.parseAndVerifyVM(encodedVaa);

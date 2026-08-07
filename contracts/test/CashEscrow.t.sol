@@ -511,6 +511,93 @@ contract CashEscrowTest is Test {
         escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
     }
 
+    // ── Peer wiring ──────────────────────────────────────────────────────────
+
+    function test_NoVaaIsConsumableBeforeThePeerIsSet() public {
+        // The first side of a pair deploys without knowing its peer. Until the
+        // peer is fixed, the emitter check would compare against bytes32(0) and
+        // be vacuous, so consumption is refused outright.
+        CashEscrow unwired = new CashEscrow(
+            address(aToken),
+            address(wormhole),
+            DEPLOYMENT_ID,
+            LOCAL_WH_CHAIN,
+            REMOTE_WH_CHAIN,
+            bytes32(0),
+            OWNER
+        );
+
+        assertFalse(unwired.remotePeerLocked());
+
+        vm.prank(RELAYER);
+        vm.expectRevert(WormholeTransport.RemotePeerNotSet.selector);
+        unwired.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), true);
+    }
+
+    function test_PeerMayBeSetOnceAndNeverAgain() public {
+        CashEscrow unwired = new CashEscrow(
+            address(aToken),
+            address(wormhole),
+            DEPLOYMENT_ID,
+            LOCAL_WH_CHAIN,
+            REMOTE_WH_CHAIN,
+            bytes32(0),
+            OWNER
+        );
+
+        vm.prank(OWNER);
+        unwired.setRemotePeer(REMOTE_EMITTER);
+        assertEq(unwired.remoteEmitter(), REMOTE_EMITTER);
+        assertTrue(unwired.remotePeerLocked());
+
+        // Not even the owner can move it afterwards.
+        vm.prank(OWNER);
+        vm.expectRevert(WormholeTransport.RemotePeerAlreadyLocked.selector);
+        unwired.setRemotePeer(bytes32(uint256(uint160(address(0xBADBEEF)))));
+    }
+
+    function test_PeerCannotBeSetToZero() public {
+        CashEscrow unwired = new CashEscrow(
+            address(aToken),
+            address(wormhole),
+            DEPLOYMENT_ID,
+            LOCAL_WH_CHAIN,
+            REMOTE_WH_CHAIN,
+            bytes32(0),
+            OWNER
+        );
+
+        vm.prank(OWNER);
+        vm.expectRevert(WormholeTransport.RemotePeerCannotBeZero.selector);
+        unwired.setRemotePeer(bytes32(0));
+    }
+
+    function test_OnlyOwnerMaySetThePeer() public {
+        CashEscrow unwired = new CashEscrow(
+            address(aToken),
+            address(wormhole),
+            DEPLOYMENT_ID,
+            LOCAL_WH_CHAIN,
+            REMOTE_WH_CHAIN,
+            bytes32(0),
+            OWNER
+        );
+
+        vm.prank(RELAYER);
+        vm.expectRevert();
+        unwired.setRemotePeer(REMOTE_EMITTER);
+    }
+
+    function test_AConstructedPeerIsAlreadyLocked() public {
+        // The second side of the pair knows its peer at construction and must
+        // not be re-settable.
+        assertTrue(escrow.remotePeerLocked());
+
+        vm.prank(OWNER);
+        vm.expectRevert(WormholeTransport.RemotePeerAlreadyLocked.selector);
+        escrow.setRemotePeer(bytes32(uint256(uint160(address(0xBADBEEF)))));
+    }
+
     // ── Rescue ───────────────────────────────────────────────────────────────
 
     function test_RescueCannotTouchTheSettlementAsset() public {

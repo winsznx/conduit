@@ -336,6 +336,15 @@ contract SettlementCoordinator is WormholeTransport, Ownable2Step {
         _applyResolution(settlementId, settlement, true, outcome);
     }
 
+    /// @notice Fixes the cross-chain peer. Callable once, by the owner, forever.
+    ///
+    /// Deployment order forces this: the two sides reference each other, so the
+    /// first deployed cannot know the second. No VAA is consumable until it is
+    /// set, and no later call can change it.
+    function setRemotePeer(bytes32 emitter) external onlyOwner {
+        _setRemotePeer(emitter);
+    }
+
     // ── Internals ────────────────────────────────────────────────────────────
 
     /// @dev A release needs a COMMIT and a return needs an ABORT. A hold is

@@ -158,6 +158,15 @@ contract RWACVASettlementAdapter is WormholeTransport, Ownable2Step, ReentrancyG
         emit AssetReturned(header.settlementId);
     }
 
+    /// @notice Fixes the cross-chain peer. Callable once, by the owner, forever.
+    ///
+    /// Deployment order forces this: the two sides reference each other, so the
+    /// first deployed cannot know the second. No VAA is consumable until it is
+    /// set, and no later call can change it.
+    function setRemotePeer(bytes32 emitter) external onlyOwner {
+        _setRemotePeer(emitter);
+    }
+
     /// @notice Publishes this leg's terminal state back to the coordinator.
     ///
     /// PRD FR-011: the coordinator is SETTLED only after it consumes final
