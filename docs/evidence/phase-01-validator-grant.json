@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-08-07T20:50:12.348Z",
+  "endpoint": "POST /validator/grant",
+  "chain": "monad",
+  "grantee": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
+  "signer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "signedPlaintext": "monad0x3ffd39444ebba2307b34c5f36f96e4e04511eba5",
+  "payloadShape": {
+    "accepted": ["chain", "address", "owner_signature"],
+    "rejectedByGateway": [
+      "contract_address",
+      "factory_address",
+      "pool_address",
+      "target_address",
+      "validator_address",
+      "grantee_address",
+      "signature"
+    ],
+    "source": "gateway code 10002 \"Unknown field(s)\" enumeration, not the guide"
+  },
+  "attempts": [
+    {
+      "scheme": "personal_sign(chain + address)",
+      "accepted": true,
+      "code": "0000",
+      "requestId": "8e42cd4d-c2d2-4e93-a249-6bcd854889f2"
+    }
+  ],
+  "granted": true,
+  "txHash": "0x8bd857a8c912e9ae5f4d98a90cd1a6eb86d86ecbdd91d883ab438e75c2a374b2",
+  "validatorAddress": "0xac7e5179c2c7f03f209136886c172eb34f161792"
+}

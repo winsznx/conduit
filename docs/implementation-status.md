@@ -15,7 +15,7 @@ structure below is unchanged; what each phase must deliver is amended.
 | Phase    | Title                                    | State       | Gate                                                                                               |
 | -------- | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
 | Phase 00 | repository and truth lock                | PASS        | fresh clone → one bootstrap command → all empty-suite checks green                                 |
-| Phase 01 | Cleanverse capability and seam proof     | IN PROGRESS | real A-Token enters and exits the selected custody mode with exact conservation                    |
+| Phase 01 | Cleanverse capability and seam proof     | BLOCKED     | real A-Token enters and exits the selected custody mode with exact conservation                    |
 | Phase 02 | Wormhole transport proof                 | IN PROGRESS | Monad Testnet message verifies on Base Sepolia and the reverse, with replay rejected               |
 | Phase 03 | restricted RWA fixture                   | IN PROGRESS | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
 | Phase 04 | settlement contracts and reference model | PASS        | reference model and contracts produce identical outcomes for generated traces                      |
@@ -232,7 +232,7 @@ Execution continued past this point under `CLAUDE_ONESHOT_CONDUIT.md`, on reques
 
 ## Phase 01 — Cleanverse capability and seam proof
 
-**State:** IN PROGRESS — sandbox live, custody mode not yet proven on chain
+**State:** IN PROGRESS — custody mode decided and proven on chain, blocked on obtaining a token
 
 ### Delivered
 
@@ -245,8 +245,10 @@ Execution continued past this point under `CLAUDE_ONESHOT_CONDUIT.md`, on reques
 | A-Pass normalization        | `packages/cleanverse/src/apass.ts`                                              |
 | Validator reads             | `validatorVerify`, `validatorRules`, `validatorIsRegister`, `validatorIsPaused` |
 | custom CVA registration     | `packages/cleanverse/src/registration.ts`                                       |
+| CVI vault registrar         | `contracts/src/ConduitVaultRegistrar.sol`, live at `0x3FFd3944…` on Monad       |
+| validator interface         | `contracts/src/interfaces/IAPassComplianceValidator.sol`                        |
 | role/capability matrix      | machine-readable via `conduit doctor --json`                                    |
-| ADR-001 cash custody result | [ADR-0001](./adr/0001-cash-custody-mode.md) — still `Open`                      |
+| ADR-001 cash custody result | [ADR-0001](./adr/0001-cash-custody-mode.md) — `Accepted`                        |
 
 ### Live evidence captured
 
@@ -276,12 +278,55 @@ findings came out of exercising it, each recorded where it was found:
    `FEATURE_UNAVAILABLE`: a control request proves the same `api-id` receives code `0000` from
    discovery in the same session, so the credential is valid and the role is not provisioned.
 
-### Outstanding
+### Custody decided: direct contract custody, no fallback needed
+
+[ADR-0001](./adr/0001-cash-custody-mode.md). The Monad policy refused `CashEscrow` outright, and
+the refusal named the escrow rather than the token or the sender:
+
+```text
+canTransfer(aUSDC, eligibleEOA, escrow,      1)   before  NoAPass(0x1645BA08…)   after  true
+canTransfer(aUSDC, escrow,      eligibleEOA, 1)   before  NoAPass(0x1645BA08…)   after  true
+canTransfer(aUSDC, eligibleEOA, eligibleEOA, 1)   before  true                   after  true
+```
+
+The third line is the control. What changed between the two columns is two transactions from
+`ConduitVaultRegistrar`, and three things had to be established first, none of them written down
+anywhere:
+
+- **The validator's address.** Not in either guide, not returned by discovery, and not the
+  A-Token's policy — probing that policy for `isRegistered`, `complianceVerify`, `registerApass`,
+  and `REGISTER_ROLE` returns an empty-data revert on all four. It came from chain state: a grant
+  is a transaction and that transaction's `to` is the validator,
+  `0xaC7e5179C2C7f03f209136886c172eb34F161792`.
+- **The grant payload.** The gateway rejects unknown fields by name, so eliminating candidates
+  left exactly `chain`, `address`, `owner_signature`. Granting to an EOA is refused with "Invalid
+  contract owner signature" even when the EOA signs for itself, because the gateway reads
+  `owner()` on the address — the grantee must be a contract.
+- **The ordering.** `registerApass` reverts `PoolNotRegistered()` until `registerV2` has run.
+
+The validator's RuleV2 has six fields, which confirms
+[ADR-0010](./adr/0010-rulev2-has-six-fields-on-chain.md) on a second contract and a second chain.
+The proof is the selector rather than a decode that happens to work: `0x7b6c63cb` is present and
+the five-field `0xba62f533` is an empty-data revert. Both CCP guides declare five.
+
+### Blocked on the token, not on the design
 
 The gate is "real A-Token enters and exits the selected custody mode with exact conservation".
-[ADR-0001](./adr/0001-cash-custody-mode.md) stays `Open` until that round trip runs on Monad.
-Under override section 8 the fallback order is direct `CashEscrow` custody, then a
-Cleanverse-native reservation, then an institutional settlement wallet.
+Custody is proven; there is no aUSDC to move. Three paths, all closed on provisioning of this
+credential rather than on a missing platform capability:
+
+```text
+/faucet          code 0002  ERC20InsufficientBalance(0xc448042e…, balance 0)
+                            the sandbox faucet's own source wallet is empty
+deposit          executed on chain, refunded by Cleanverse ~40 blocks later. Reproduced twice.
+                 query_txs classifies each pair non_whitelist_transfer / non_whitelist_refund
+/generate_apass  HTTP 403 on both chains
+```
+
+`query_institution_txs` answers `institution address is empty`, the same fact from a third angle.
+A deposit that executes and is then refunded by policy is the platform working correctly and
+refusing us, which is why this is `SANDBOX_AUTHORIZATION_MISMATCH` and not a missing feature.
+ASM-035, `docs/evidence/phase-01-cash-funding.json`.
 
 ---
 

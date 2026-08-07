@@ -1,0 +1,72 @@
+{
+  "capturedAt": "2026-08-07T21:12:33.756Z",
+  "purpose": "Obtain real A-Token for the phase 01 custody round trip",
+  "chain": {
+    "key": "monadTestnet",
+    "nativeChainId": 10143
+  },
+  "depositor": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "depositWallet": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+  "depositWalletIsPerUser": true,
+  "originToken": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+  "aToken": "0xaC0893567D43C3E7e6e35a72803df05416C1f20D",
+  "depositTx": "0x967195863d440b58ee9c7492b5ef42e57cbd298bbcff78f735c2d6bb471ec64e",
+  "depositStatus": "success",
+  "requested": "1000000",
+  "balances": {
+    "before": {
+      "usdc": "20000000",
+      "aUsdc": "0"
+    },
+    "after": {
+      "usdc": "20000000",
+      "aUsdc": "0"
+    }
+  },
+  "mintedATokenUnits": "0",
+  "cleanverseLedger": [
+    {
+      "type": "non_whitelist_refund",
+      "txHash": "0xd48111f9ca9e35b3477d939f69369d9ff0d8d948335fc2f174e4a3d3ca3c9e06",
+      "from": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+      "to": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "amount": "1000000000000",
+      "status": "success",
+      "blockNumber": 51771309
+    },
+    {
+      "type": "non_whitelist_transfer",
+      "txHash": "0x967195863d440b58ee9c7492b5ef42e57cbd298bbcff78f735c2d6bb471ec64e",
+      "from": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "to": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+      "amount": "1000000000000",
+      "status": "success",
+      "blockNumber": 51771272
+    },
+    {
+      "type": "non_whitelist_refund",
+      "txHash": "0x50340f6ff80e9440b10a2f2c69a7c2feefd454f720a2d5f1d4f722a7900a2108",
+      "from": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+      "to": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "amount": "10000000000000",
+      "status": "success",
+      "blockNumber": 51769306
+    },
+    {
+      "type": "non_whitelist_transfer",
+      "txHash": "0x204fbe930b4cb74e2fd42edbbd29ea65b1575fd9eb7531641b1da08932e8f4d2",
+      "from": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "to": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+      "amount": "10000000000000",
+      "status": "success",
+      "blockNumber": 51769264
+    }
+  ],
+  "outcome": "REFUSED_NON_WHITELIST_DEPOSITOR",
+  "alternativesClosed": {
+    "faucet": "HTTP 200 code 0002: InstitutionFaucet failed, ERC20InsufficientBalance(0xc448042edac1899b023caa0e9da5e4a8833de873, balance 0) — the sandbox faucet source wallet is empty, so no amount succeeds",
+    "generateApass": "HTTP 403 on both chains; see docs/evidence/generate-apass-authorization.json",
+    "institutionTxs": "query_institution_txs answers code 0002 \"institution address is empty\", so this credential has no institution address bound to it"
+  },
+  "classification": "SANDBOX_AUTHORIZATION_MISMATCH — the deposit, faucet, and institution-ledger paths all fail on provisioning of this credential rather than on a missing platform capability. The deposit itself executed and was refunded by policy, which is the platform working as designed."
+}

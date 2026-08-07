@@ -41,3 +41,4 @@ test-results/
 
 # generated evidence artifacts are content-addressed and published, not committed raw
 docs/evidence/artifacts/
+.scratch/

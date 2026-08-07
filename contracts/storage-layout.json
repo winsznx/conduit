@@ -392,6 +392,33 @@
       }
     }
   },
+  "contracts/src/ConduitVaultRegistrar.sol:ConduitVaultRegistrar": {
+    "storage": [
+      {
+        "astId": 8,
+        "contract": "contracts/src/ConduitVaultRegistrar.sol:ConduitVaultRegistrar",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 156,
+        "contract": "contracts/src/ConduitVaultRegistrar.sol:ConduitVaultRegistrar",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    }
+  },
   "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter": {
     "storage": [
       {

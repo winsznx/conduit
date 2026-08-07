@@ -43,6 +43,12 @@ const CONFIG = {
     contracts: {
       SettlementCoordinator: '0x1491A25Fc93778ECcb69BCec96495c6f12c686d1',
       CashEscrow: '0x1645BA0873118A997Bd39718A82dd268E46D3B48',
+      // Holds REGISTER_ROLE on the CVI validator and nothing else. Listed here
+      // because a verifier reading only the manifest needs to see which address
+      // may register a Conduit vault, and because its bytecode hash pins the
+      // validator it points at: that address is a constructor immutable, so a
+      // repointed registrar is a different code hash. ADR-0001.
+      ConduitVaultRegistrar: '0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5',
     },
   },
 };

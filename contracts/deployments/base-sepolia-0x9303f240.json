@@ -1,7 +1,7 @@
 {
   "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
   "protocolVersion": 1,
-  "gitCommit": "9c5dd5cf070c5b1d21e9df66cbd41b32b1d4507b",
+  "gitCommit": "3bedba379bb76f1d46392d4bc89334ae83a36f00",
   "solcVersion": "0.8.36",
   "chainConfigs": {
     "baseSepolia": {
@@ -39,5 +39,5 @@
   },
   "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
   "validatorRuleHashes": {},
-  "timestamp": "2026-08-07T19:54:24.449Z"
+  "timestamp": "2026-08-07T21:11:57.265Z"
 }

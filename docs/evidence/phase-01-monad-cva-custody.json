@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-08-07T20:52:24.539Z",
+  "question": "Can CashEscrow hold the Monad cash A-Token after CVI registration? (ADR-0001)",
+  "chain": {
+    "key": "monadTestnet",
+    "nativeChainId": 10143
+  },
+  "addresses": {
+    "registrar": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
+    "validator": "0xaC7e5179C2C7f03f209136886c172eb34F161792",
+    "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd",
+    "escrow": "0x1645BA0873118A997Bd39718A82dd268E46D3B48",
+    "aToken": "0xaC0893567D43C3E7e6e35a72803df05416C1f20D"
+  },
+  "rule": {
+    "fields": "allowedGroup, allowedSubGroup, minTier, minSubTier, isBlackList, poolCountryBitmap",
+    "value": "all zero = unrestricted",
+    "note": "Deliberate starting point, not a final policy. This is the pool's own complianceVerify rule; nothing in Conduit calls it. Phase 05 replaces it with the rule read back from validator/rules. Tracked as ASM-034."
+  },
+  "transactions": {
+    "registerPool": {
+      "hash": "0x568cea22d180be0d915bf535d37f75f4568486c39bd1b29184457ed54db28f5e",
+      "status": "success",
+      "gasUsed": "155548"
+    },
+    "registerVaultCvi": {
+      "hash": "0x34088e6217d0568fcb8cc49c1d07c2f963b49b3f7c22492ce2c0b203ee8a40c5",
+      "status": "success",
+      "gasUsed": "353706"
+    }
+  },
+  "validatorIsRegistered": true,
+  "canTransfer": {
+    "before": {
+      "eligibleToEscrow": {
+        "allowed": false,
+        "refusedWith": "NoAPass(address account)",
+        "refusedAccount": "0x1645BA0873118A997Bd39718A82dd268E46D3B48"
+      },
+      "escrowToEligible": {
+        "allowed": false,
+        "refusedWith": "NoAPass(address account)",
+        "refusedAccount": "0x1645BA0873118A997Bd39718A82dd268E46D3B48"
+      },
+      "eligibleToEligible": {
+        "allowed": true
+      }
+    },
+    "after": {
+      "eligibleToEscrow": {
+        "allowed": true
+      },
+      "escrowToEligible": {
+        "allowed": true
+      },
+      "eligibleToEligible": {
+        "allowed": true
+      }
+    }
+  },
+  "custodyUnlocked": true
+}
