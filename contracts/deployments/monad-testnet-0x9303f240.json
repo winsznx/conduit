@@ -1,0 +1,38 @@
+{
+  "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
+  "protocolVersion": 1,
+  "gitCommit": "694ef6d02d557ade6b07960703b3a3c6df90d498",
+  "solcVersion": "0.8.36",
+  "chainConfigs": {
+    "monadTestnet": {
+      "nativeChainId": 10143,
+      "wormholeChainId": 10009,
+      "rpcUrlEnvVar": "MONAD_TESTNET_RPC_URL",
+      "finalityBlocks": 1
+    }
+  },
+  "contracts": {
+    "SettlementCoordinator": {
+      "chain": "monadTestnet",
+      "address": "0xFcEeCe46C8B9427E8099659C2A8A936da36a64DF"
+    },
+    "CashEscrow": {
+      "chain": "monadTestnet",
+      "address": "0x06cAFa7d8c48E6c44e286a14D3f8E97C3d866014"
+    }
+  },
+  "bytecodeHashes": {
+    "SettlementCoordinator": "0xbf195f4be5acec7127744280ba3363559241e5639d5b6c9e2403cdb19f70d91a",
+    "CashEscrow": "0xb81a2c890cd62e0ab3c726c9a475f87b95f2f7568c26552e6b36b83496007ebd"
+  },
+  "wormhole": {
+    "monadTestnet": {
+      "coreAddress": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+      "wormholeChainId": 10009,
+      "consistencyLevel": 1
+    }
+  },
+  "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
+  "validatorRuleHashes": {},
+  "timestamp": "2026-08-07T18:20:31.489Z"
+}

@@ -24,12 +24,25 @@ const CONFIG = {
     nativeChainId: 84532,
     wormholeChainId: 10004,
     coreEnv: 'WORMHOLE_CORE_BASE_SEPOLIA',
+    finalityBlocks: 512,
     contracts: {
       // Superseded 0x244198CF…d2B0, which carried AccessControl alone and so
       // had no owner() for Cleanverse to validate a registration signature
       // against. ADR-0011.
       ConduitRWACVA: '0xd018aAd670585519e0953310D29CC2F65011782C',
       RWACVASettlementAdapter: '0x4fb47869c69b37b052fD6e3A23DF9E1d77998D82',
+    },
+  },
+  'monad-testnet': {
+    chainKey: 'monadTestnet',
+    rpcEnv: 'MONAD_TESTNET_RPC_URL',
+    nativeChainId: 10143,
+    wormholeChainId: 10009,
+    coreEnv: 'WORMHOLE_CORE_MONAD_TESTNET',
+    finalityBlocks: 1,
+    contracts: {
+      SettlementCoordinator: '0xFcEeCe46C8B9427E8099659C2A8A936da36a64DF',
+      CashEscrow: '0x06cAFa7d8c48E6c44e286a14D3f8E97C3d866014',
     },
   },
 };
@@ -89,7 +102,7 @@ const manifest = {
       nativeChainId: cfg.nativeChainId,
       wormholeChainId: cfg.wormholeChainId,
       rpcUrlEnvVar: cfg.rpcEnv,
-      finalityBlocks: 512,
+      finalityBlocks: cfg.finalityBlocks ?? 512,
     },
   },
   contracts,
