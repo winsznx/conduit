@@ -1,0 +1,101 @@
+import { z } from 'zod';
+
+import { ConfigError } from './errors.js';
+
+/**
+ * Environment validation, run once at process start.
+ *
+ * Two rules shape this file. CLAUDE.md requires validation at startup, so a
+ * missing credential fails before any settlement code runs rather than at the
+ * first Cleanverse call. And PRD 9.1 forbids a secret reaching a log, so nothing
+ * here ever formats a value into an error — zod's default messages would happily
+ * print the string that failed a pattern.
+ */
+
+const base64 = z
+  .string()
+  .min(1)
+  .refine((value) => /^[A-Za-z0-9+/]+={0,2}$/.test(value), 'must be base64');
+
+const httpsUrl = z.url().refine((value) => value.startsWith('https://'), 'must be https');
+
+const positiveInt = (fallback: number) => z.coerce.number().int().positive().default(fallback);
+
+/**
+ * PRD 9.1 fixes these five names. The AES key is base64 because Cleanverse
+ * distributes it that way and PRD 9.2 decodes it before use.
+ */
+const cleanverseSchema = z.object({
+  CLEANVERSE_BASE_URL: httpsUrl,
+  CLEANVERSE_API_ID: z.string().min(1),
+  CLEANVERSE_API_KEY_BASE64: base64,
+  CLEANVERSE_REQUEST_TIMEOUT_MS: positiveInt(15_000),
+  CLEANVERSE_MAX_READ_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
+});
+
+const runtimeSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+});
+
+const rpcSchema = z.object({
+  MONAD_TESTNET_RPC_URL: z.url(),
+  ARBITRUM_SEPOLIA_RPC_URL: z.url(),
+});
+
+export type CleanverseEnv = z.infer<typeof cleanverseSchema>;
+export type RuntimeEnv = z.infer<typeof runtimeSchema>;
+export type RpcEnv = z.infer<typeof rpcSchema>;
+
+export type EnvSource = Record<string, string | undefined>;
+
+/**
+ * Reports which variable failed and why, never what it contained.
+ */
+function describe(error: z.ZodError): string[] {
+  return error.issues.map((issue) => {
+    const name = issue.path.join('.') || '(root)';
+    return issue.code === 'invalid_type' && issue.input === undefined
+      ? `${name} is required`
+      : `${name}: ${issue.message}`;
+  });
+}
+
+function parse<T>(schema: z.ZodType<T>, source: EnvSource, label: string): T {
+  const result = schema.safeParse(source);
+  if (!result.success) {
+    throw new ConfigError(`invalid ${label} configuration`, describe(result.error));
+  }
+  return result.data;
+}
+
+export function loadRuntimeEnv(source: EnvSource = process.env): RuntimeEnv {
+  return parse(runtimeSchema, source, 'runtime');
+}
+
+export function loadCleanverseEnv(source: EnvSource = process.env): CleanverseEnv {
+  return parse(cleanverseSchema, source, 'Cleanverse');
+}
+
+export function loadRpcEnv(source: EnvSource = process.env): RpcEnv {
+  return parse(rpcSchema, source, 'RPC');
+}
+
+/**
+ * Presence check for a doctor report or a health endpoint.
+ *
+ * Returns a boolean and a length, which is what the one-shot brief permits:
+ * enough to prove a credential is configured, never enough to reconstruct it.
+ */
+export function credentialPresence(
+  source: EnvSource = process.env,
+): { name: string; configured: boolean; length: number }[] {
+  return Object.keys(cleanverseSchema.shape).map((name) => {
+    const value = source[name];
+    return {
+      name,
+      configured: value !== undefined && value.length > 0,
+      length: value?.length ?? 0,
+    };
+  });
+}

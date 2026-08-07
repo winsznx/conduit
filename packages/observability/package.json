@@ -19,5 +19,9 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.9.1",
+    "pino": "10.3.1"
   }
 }

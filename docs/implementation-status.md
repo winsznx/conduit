@@ -15,7 +15,7 @@ structure below is unchanged; what each phase must deliver is amended.
 | Phase    | Title                                    | State       | Gate                                                                                               |
 | -------- | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
 | Phase 00 | repository and truth lock                | PASS        | fresh clone → one bootstrap command → all empty-suite checks green                                 |
-| Phase 01 | Cleanverse capability and seam proof     | NOT STARTED | real A-Token enters and exits the selected custody mode with exact conservation                    |
+| Phase 01 | Cleanverse capability and seam proof     | IN PROGRESS | real A-Token enters and exits the selected custody mode with exact conservation                    |
 | Phase 02 | Wormhole transport proof                 | NOT STARTED | Monad Testnet message verifies on Arbitrum Sepolia and the reverse, with replay rejected           |
 | Phase 03 | restricted RWA fixture                   | NOT STARTED | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
 | Phase 04 | settlement contracts and reference model | NOT STARTED | reference model and contracts produce identical outcomes for generated traces                      |

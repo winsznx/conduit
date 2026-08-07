@@ -41,6 +41,9 @@
       "path": "./packages/ui"
     },
     {
+      "path": "./packages/cli"
+    },
+    {
       "path": "./tsconfig.tests.json"
     }
   ]

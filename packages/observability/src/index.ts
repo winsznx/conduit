@@ -3,11 +3,28 @@
  *
  * OpenTelemetry tracing, metrics, and redaction-safe structured logging.
  *
- * Phase 00 delivers this workspace as structure only. PRD 16 defines the
- * behaviour, which lands in phase 06. Nothing here may encode product
- * logic, protocol constants, or external-capability assumptions.
+ * PRD 16.4 forbids private keys, the Cleanverse API key, raw PII, raw bank
+ * details, and decrypted Cleanverse payloads from ever reaching a log. Wallet
+ * addresses are permitted as pseudonymous identifiers.
  */
 
 export const PACKAGE_ID = '@conduit-protocol/observability';
 
 export const IMPLEMENTATION_PHASE = '06';
+
+export {
+  createLogger,
+  withSettlement,
+  type Logger,
+  type LoggerConfig,
+  type SettlementLogContext,
+} from './logger.js';
+
+export {
+  ALERT_CONDITIONS,
+  AlertCondition,
+  METRIC_NAMES,
+  Metric,
+  type AlertConditionName,
+  type MetricName,
+} from './metrics.js';

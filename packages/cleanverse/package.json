@@ -19,5 +19,10 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@conduit-protocol/config": "workspace:*",
+    "@conduit-protocol/observability": "workspace:*",
+    "zod": "4.4.3"
   }
 }

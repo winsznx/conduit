@@ -1,0 +1,33 @@
+{
+  "name": "@conduit-protocol/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The conduit command line: doctor, create-intent, inspect, relay, verify, export-audit.",
+  "license": "UNLICENSED",
+  "bin": {
+    "conduit": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@conduit-protocol/cleanverse": "workspace:*",
+    "@conduit-protocol/config": "workspace:*",
+    "@conduit-protocol/domain": "workspace:*",
+    "@conduit-protocol/wormhole": "workspace:*",
+    "commander": "15.0.0"
+  }
+}

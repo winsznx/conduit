@@ -20,13 +20,15 @@ policy, and RuleV2 semantics. The effective order is:
 
 ## Index
 
-| ADR                                                | Title                                            | Status   |
-| -------------------------------------------------- | ------------------------------------------------ | -------- |
-| [0000](./0000-template.md)                         | Template                                         | Template |
-| [0001](./0001-cash-custody-mode.md)                | Cash custody mode for the Cleanverse A-Token leg | Open     |
-| [0002](./0002-toolchain-and-dependency-pinning.md) | Toolchain and dependency pinning                 | Accepted |
-| [0003](./0003-repository-gate-topology.md)         | Repository gate topology                         | Accepted |
-| [0004](./0004-prd-v1-1-override-adoption.md)       | Adoption of the PRD v1.1 architecture override   | Accepted |
+| ADR                                                             | Title                                            | Status   |
+| --------------------------------------------------------------- | ------------------------------------------------ | -------- |
+| [0000](./0000-template.md)                                      | Template                                         | Template |
+| [0001](./0001-cash-custody-mode.md)                             | Cash custody mode for the Cleanverse A-Token leg | Open     |
+| [0002](./0002-toolchain-and-dependency-pinning.md)              | Toolchain and dependency pinning                 | Accepted |
+| [0003](./0003-repository-gate-topology.md)                      | Repository gate topology                         | Accepted |
+| [0004](./0004-prd-v1-1-override-adoption.md)                    | Adoption of the PRD v1.1 architecture override   | Accepted |
+| [0005](./0005-cli-package-and-runtime-dependencies.md)          | CLI package and the first runtime dependencies   | Accepted |
+| [0006](./0006-wormhole-registry-pin-and-live-chain-identity.md) | Wormhole registry pin and live chain identity    | Accepted |
 
 ## Rules
 

@@ -19,5 +19,9 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "viem": "2.55.11",
+    "zod": "4.4.3"
   }
 }

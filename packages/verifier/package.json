@@ -19,5 +19,11 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@conduit-protocol/domain": "workspace:*",
+    "@conduit-protocol/wormhole": "workspace:*",
+    "viem": "2.55.11",
+    "zod": "4.4.3"
   }
 }

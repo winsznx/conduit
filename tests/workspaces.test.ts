@@ -31,6 +31,7 @@ describe('workspace wiring', () => {
       'apps/web',
       'apps/worker',
       'packages/cleanverse',
+      'packages/cli',
       'packages/config',
       'packages/db',
       'packages/domain',

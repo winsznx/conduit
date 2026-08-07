@@ -19,5 +19,11 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@conduit-protocol/config": "workspace:*",
+    "@conduit-protocol/domain": "workspace:*",
+    "@conduit-protocol/observability": "workspace:*",
+    "hono": "4.13.0"
   }
 }
