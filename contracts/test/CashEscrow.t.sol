@@ -46,6 +46,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 
@@ -161,6 +163,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 
@@ -186,6 +190,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 
@@ -524,6 +530,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             bytes32(0),
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 
@@ -542,6 +550,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             bytes32(0),
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 
@@ -564,6 +574,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             bytes32(0),
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 
@@ -580,6 +592,8 @@ contract CashEscrowTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             bytes32(0),
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER
         );
 

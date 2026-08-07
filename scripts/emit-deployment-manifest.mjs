@@ -29,8 +29,8 @@ const CONFIG = {
       // Superseded 0x244198CF…d2B0, which carried AccessControl alone and so
       // had no owner() for Cleanverse to validate a registration signature
       // against. ADR-0011.
-      ConduitRWACVA: '0xd018aAd670585519e0953310D29CC2F65011782C',
-      RWACVASettlementAdapter: '0x4fb47869c69b37b052fD6e3A23DF9E1d77998D82',
+      ConduitRWACVA: '0x6B70a81E010d8CEFE7c44701e490337661785644',
+      RWACVASettlementAdapter: '0xC0A9Eb5F9D1fd0D4264564B1C7A1ed69946E3170',
     },
   },
   'monad-testnet': {
@@ -41,8 +41,8 @@ const CONFIG = {
     coreEnv: 'WORMHOLE_CORE_MONAD_TESTNET',
     finalityBlocks: 1,
     contracts: {
-      SettlementCoordinator: '0xFcEeCe46C8B9427E8099659C2A8A936da36a64DF',
-      CashEscrow: '0x06cAFa7d8c48E6c44e286a14D3f8E97C3d866014',
+      SettlementCoordinator: '0x1491A25Fc93778ECcb69BCec96495c6f12c686d1',
+      CashEscrow: '0x1645BA0873118A997Bd39718A82dd268E46D3B48',
     },
   },
 };
@@ -113,6 +113,11 @@ const manifest = {
       wormholeChainId: cfg.wormholeChainId,
       consistencyLevel: 1,
     },
+  },
+  finalityProfile: {
+    settlement: 'FINALIZED',
+    observation: 'INSTANT',
+    note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
   },
   cleanverseAssetSnapshotHash,
   // Empty until RuleV2 is configured. PRD 9.6 stores the normalized response

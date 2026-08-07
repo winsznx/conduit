@@ -6,6 +6,7 @@ import {console2} from "forge-std/console2.sol";
 
 import {CashEscrow} from "../src/CashEscrow.sol";
 import {SettlementCoordinator} from "../src/SettlementCoordinator.sol";
+import {WormholeTransport} from "../src/WormholeTransport.sol";
 
 /// @notice Deploys the cash leg on Monad Testnet. PRD 19 phases 01 and 04.
 ///
@@ -29,6 +30,11 @@ contract DeployCashLeg is Script {
         address remoteAdapter = vm.envAddress("RWA_CVA_ADAPTER_ADDRESS");
         bytes32 remoteEmitter = bytes32(uint256(uint160(remoteAdapter)));
 
+        WormholeTransport.FinalityLevel settlementFinality =
+            WormholeTransport.FinalityLevel(vm.envOr("SETTLEMENT_FINALITY", uint256(2)));
+        WormholeTransport.FinalityLevel observationFinality =
+            WormholeTransport.FinalityLevel(vm.envOr("OBSERVATION_FINALITY", uint256(0)));
+
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
@@ -43,6 +49,8 @@ contract DeployCashLeg is Script {
             localWormholeChainId,
             remoteWormholeChainId,
             remoteEmitter,
+            settlementFinality,
+            observationFinality,
             deployer,
             "Conduit",
             "1"
@@ -55,6 +63,8 @@ contract DeployCashLeg is Script {
             localWormholeChainId,
             remoteWormholeChainId,
             remoteEmitter,
+            settlementFinality,
+            observationFinality,
             deployer
         );
 

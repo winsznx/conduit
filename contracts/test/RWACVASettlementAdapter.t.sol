@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {ConduitRWACVA} from "../src/ConduitRWACVA.sol";
 import {RWACVASettlementAdapter} from "../src/RWACVASettlementAdapter.sol";
+import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
 import {MessageCodec} from "../src/libraries/MessageCodec.sol";
 import {MockATokenPolicy} from "./mocks/MockATokenPolicy.sol";
@@ -49,6 +50,8 @@ contract RWACVASettlementAdapterTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             ADMIN
         );
 

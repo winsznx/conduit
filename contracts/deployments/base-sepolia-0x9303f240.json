@@ -1,7 +1,7 @@
 {
   "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
   "protocolVersion": 1,
-  "gitCommit": "0d13871e818cd0819ed5adcd7e42cc0b4a09c1d8",
+  "gitCommit": "9c5dd5cf070c5b1d21e9df66cbd41b32b1d4507b",
   "solcVersion": "0.8.36",
   "chainConfigs": {
     "baseSepolia": {
@@ -14,16 +14,16 @@
   "contracts": {
     "ConduitRWACVA": {
       "chain": "baseSepolia",
-      "address": "0xd018aAd670585519e0953310D29CC2F65011782C"
+      "address": "0x6B70a81E010d8CEFE7c44701e490337661785644"
     },
     "RWACVASettlementAdapter": {
       "chain": "baseSepolia",
-      "address": "0x4fb47869c69b37b052fD6e3A23DF9E1d77998D82"
+      "address": "0xC0A9Eb5F9D1fd0D4264564B1C7A1ed69946E3170"
     }
   },
   "bytecodeHashes": {
     "ConduitRWACVA": "0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a",
-    "RWACVASettlementAdapter": "0xa49c1a605782f76db999f85a3c2230f90b0e3f63728a5eabe6a7672d2b1d6324"
+    "RWACVASettlementAdapter": "0x7e5dd814f5e40a9c0860d31e25a453fe757ccdd3a8e86e12aeb176bcbf5d1502"
   },
   "wormhole": {
     "baseSepolia": {
@@ -32,7 +32,12 @@
       "consistencyLevel": 1
     }
   },
+  "finalityProfile": {
+    "settlement": "FINALIZED",
+    "observation": "INSTANT",
+    "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
+  },
   "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
   "validatorRuleHashes": {},
-  "timestamp": "2026-08-07T18:14:55.619Z"
+  "timestamp": "2026-08-07T19:54:24.449Z"
 }

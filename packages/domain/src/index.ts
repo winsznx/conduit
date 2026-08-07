@@ -75,3 +75,14 @@ export {
   type MessageTypeValue,
   type SettlementStateValue,
 } from './states.js';
+
+export {
+  isAwaitingFinality,
+  isViewTerminal,
+  NOTHING_OBSERVED,
+  toViewState,
+  ViewState,
+  type FinalityObservation,
+  type ViewProjection,
+  type ViewStateValue,
+} from './view-states.js';

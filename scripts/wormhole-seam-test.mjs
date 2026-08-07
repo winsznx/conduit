@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The two-direction Wormhole transport proof. PRD 19 phase 02, ASM-011, ASM-012.
+ * The two-direction Wormhole transport seam test. PRD 19 phase 02, ASM-011, ASM-012.
  *
  * The gate is:
  *
@@ -8,11 +8,24 @@
  *   Base Sepolia publish  → signed VAA → Monad Testnet parseAndVerifyVM valid
  *   with replay rejected
  *
- * Published from an EOA rather than through `CashEscrow`, deliberately. This
- * proves the *transport*, and mixing it with settlement state would mean a
- * failure here could be either. The settlement contracts consume the same core
- * contract through the same `parseAndVerifyVM` call, so what is proven here is
- * exactly what they depend on.
+ * What this establishes, exactly: Wormhole network availability between the two
+ * chains, and destination core acceptance of a guardian-signed message from the
+ * other chain. Nothing more.
+ *
+ * What it does not establish: the emitter here is an EOA, so the locked
+ * peer-emitter path is not exercised, and neither are the deployment ID, the
+ * protocol version, the message type, the settlement ID, the intent hash, or
+ * replay consumption. Those checks live in `WormholeTransport`, not in the core
+ * contract, and they need a source-contract-to-destination-contract run to be
+ * proven. Publishing from `CashEscrow` here would have mixed the two: a failure
+ * could then be transport or settlement, and the point of a seam test is that it
+ * cannot be both.
+ *
+ * The timings are transport latency at consistency level 200, which is Wormhole's
+ * *instant*: guardians sign on observation, before the source state is
+ * irreversible. They are not settlement latency. See ADR-0013 — Conduit enforces
+ * FINALIZED for every message that authorizes value, and Base's finalized path is
+ * roughly eighteen minutes.
  *
  * Verification is `eth_call` against the real destination core contract, not an
  * off-chain parse. CLAUDE.md is explicit that off-chain VAA parsing is never
@@ -135,14 +148,15 @@ function clientsFor(chain) {
 
 /**
  * Consistency level 200 is Wormhole's "instant": guardians sign as soon as they
- * observe the message. Base Sepolia's finality threshold is 512 blocks at ~2s,
- * so a finalized-level message there would take roughly seventeen minutes to
- * become available.
+ * observe the message, before the source state is irreversible. It is the right
+ * level for a seam test, which is measuring whether the network carries a message
+ * at all, and the wrong level for settlement.
  *
- * That asymmetry is itself the answer to ASM-012 and is recorded rather than
- * hidden. Production settlement uses a finalized level; this run measures how
- * long each direction actually takes at the level used, so the choice is made
- * from data instead of preference.
+ * Production runs FINALIZED, enforced on chain per message class by
+ * `WormholeTransport` and bound into the bytecode as an immutable (ADR-0013).
+ * Base's finalized path is 512 blocks at ~2s, roughly eighteen minutes. Both
+ * numbers are published: hiding the fast one understates the transport, hiding
+ * the slow one misrepresents settlement.
  */
 const CONSISTENCY_INSTANT = 200;
 
@@ -271,10 +285,21 @@ results.push(await runDirection(CHAINS.baseSepolia, CHAINS.monadTestnet, 'base-t
 
 const evidence = {
   capturedAt: new Date().toISOString(),
+  classification: 'FAST_TRANSPORT_SEAM_EVIDENCE',
+  proves: [
+    'Wormhole network availability between Monad Testnet and Base Sepolia',
+    'destination Core acceptance of a guardian-signed message from the other chain',
+  ],
+  doesNotProve: [
+    "Conduit's locked peer-emitter path: the emitter here is an EOA, not RWACVASettlementAdapter or SettlementCoordinator",
+    'deployment ID, protocol version, message type, settlement ID, intent hash, or replay consumption, all of which are enforced in WormholeTransport rather than in the Core contract',
+    'settlement latency: these timings are transport latency at a non-final consistency level',
+  ],
   emitter: account.address,
+  emitterKind: 'EOA',
   consistencyLevel: CONSISTENCY_INSTANT,
   consistencyNote:
-    'Instant (200). Base Sepolia finality is 512 blocks at ~2s, so a finalized-level message there is roughly seventeen minutes from publish to availability. Production settlement selects the level per chain from these measurements.',
+    "Instant (200): guardians sign on observation, before the source state is irreversible. Conduit refuses this level for anything that authorizes value and enforces FINALIZED on chain per message class (ADR-0013). Base's finalized path is 512 blocks at ~2s, roughly eighteen minutes.",
   directions: results,
   allVerified: results.every((r) => r.verifiedOnDestination && r.payloadIntact && r.emitterMatches),
 };

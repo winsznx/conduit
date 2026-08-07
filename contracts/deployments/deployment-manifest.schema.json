@@ -16,7 +16,8 @@
     "wormhole",
     "cleanverseAssetSnapshotHash",
     "validatorRuleHashes",
-    "timestamp"
+    "timestamp",
+    "finalityProfile"
   ],
   "properties": {
     "deploymentId": {
@@ -44,10 +45,22 @@
         "additionalProperties": false,
         "required": ["nativeChainId", "wormholeChainId", "rpcUrlEnvVar", "finalityBlocks"],
         "properties": {
-          "nativeChainId": { "type": "integer", "minimum": 1 },
-          "wormholeChainId": { "type": "integer", "minimum": 1 },
-          "rpcUrlEnvVar": { "type": "string", "minLength": 1 },
-          "finalityBlocks": { "type": "integer", "minimum": 0 }
+          "nativeChainId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "wormholeChainId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rpcUrlEnvVar": {
+            "type": "string",
+            "minLength": 1
+          },
+          "finalityBlocks": {
+            "type": "integer",
+            "minimum": 0
+          }
         }
       }
     },
@@ -58,15 +71,24 @@
         "additionalProperties": false,
         "required": ["chain", "address"],
         "properties": {
-          "chain": { "type": "string", "minLength": 1 },
-          "address": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" }
+          "chain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          }
         }
       }
     },
     "bytecodeHashes": {
       "description": "keccak256 of deployed runtime bytecode, recomputable from source because foundry.toml sets bytecode_hash=none and cbor_metadata=false.",
       "type": "object",
-      "additionalProperties": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[0-9a-f]{64}$"
+      }
     },
     "wormhole": {
       "type": "object",
@@ -75,9 +97,19 @@
         "additionalProperties": false,
         "required": ["coreAddress", "wormholeChainId", "consistencyLevel"],
         "properties": {
-          "coreAddress": { "type": "string", "pattern": "^0x[0-9a-fA-F]{40}$" },
-          "wormholeChainId": { "type": "integer", "minimum": 1 },
-          "consistencyLevel": { "type": "integer", "minimum": 0, "maximum": 255 }
+          "coreAddress": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          },
+          "wormholeChainId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "consistencyLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
         }
       }
     },
@@ -89,12 +121,34 @@
     "validatorRuleHashes": {
       "description": "Hash of the normalized Cleanverse validator/rules response per registered pool. PRD 9.6 forbids reinterpreting the rules locally.",
       "type": "object",
-      "additionalProperties": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^0x[0-9a-f]{64}$"
+      }
     },
     "timestamp": {
       "description": "UTC, per the CLAUDE.md repository rules.",
       "type": "string",
       "format": "date-time"
+    },
+    "finalityProfile": {
+      "description": "Minimum Wormhole finality Conduit enforces per message class, bound into the bytecode as an immutable. PRD FR-014 lets a verifier bootstrap from this manifest, and which profile is live is a security property rather than a tuning detail: an authentic VAA below the settlement level is refused, because parseAndVerifyVM proves guardians signed a message and not that the source state is irreversible.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["settlement", "observation"],
+      "properties": {
+        "settlement": {
+          "description": "Required for every message that authorizes an irreversible economic outcome.",
+          "enum": ["INSTANT", "SAFE", "FINALIZED"]
+        },
+        "observation": {
+          "description": "Required for messages that inform rather than authorize.",
+          "enum": ["INSTANT", "SAFE", "FINALIZED"]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
     }
   }
 }

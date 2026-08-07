@@ -2,7 +2,7 @@
   "contracts/src/CashEscrow.sol:CashEscrow": {
     "storage": [
       {
-        "astId": 1871,
+        "astId": 1885,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "remoteEmitter",
         "offset": 0,
@@ -10,7 +10,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 1874,
+        "astId": 1888,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -18,7 +18,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 1879,
+        "astId": 1901,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "consumedVaa",
         "offset": 0,
@@ -395,7 +395,7 @@
   "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter": {
     "storage": [
       {
-        "astId": 2868,
+        "astId": 2882,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "remoteEmitter",
         "offset": 0,
@@ -403,7 +403,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 2871,
+        "astId": 2885,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -411,7 +411,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 2876,
+        "astId": 2898,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "consumedVaa",
         "offset": 0,
@@ -493,7 +493,7 @@
   "contracts/src/SettlementCoordinator.sol:SettlementCoordinator": {
     "storage": [
       {
-        "astId": 6624,
+        "astId": 6637,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "remoteEmitter",
         "offset": 0,
@@ -501,7 +501,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 6627,
+        "astId": 6640,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -509,7 +509,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 6632,
+        "astId": 6653,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "consumedVaa",
         "offset": 0,

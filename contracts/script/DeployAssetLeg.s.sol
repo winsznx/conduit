@@ -6,6 +6,7 @@ import {console2} from "forge-std/console2.sol";
 
 import {ConduitRWACVA} from "../src/ConduitRWACVA.sol";
 import {RWACVASettlementAdapter} from "../src/RWACVASettlementAdapter.sol";
+import {WormholeTransport} from "../src/WormholeTransport.sol";
 
 /// @notice Deploys the asset leg on Base Sepolia. PRD 19 phase 03.
 ///
@@ -37,6 +38,13 @@ contract DeployAssetLeg is Script {
         string memory symbol = vm.envOr("RWA_CVA_SYMBOL", string("cBOND"));
         uint8 decimals = uint8(vm.envOr("RWA_CVA_DECIMALS", uint256(6)));
 
+        // Immutable and recorded in the deployment manifest. A COMMIT is
+        // economically irreversible, so the state it rests on must be final.
+        WormholeTransport.FinalityLevel settlementFinality =
+            WormholeTransport.FinalityLevel(vm.envOr("SETTLEMENT_FINALITY", uint256(2)));
+        WormholeTransport.FinalityLevel observationFinality =
+            WormholeTransport.FinalityLevel(vm.envOr("OBSERVATION_FINALITY", uint256(0)));
+
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
@@ -58,6 +66,8 @@ contract DeployAssetLeg is Script {
             remoteWormholeChainId,
             // Peer unset. Locked in by the wiring step once the coordinator exists.
             bytes32(0),
+            settlementFinality,
+            observationFinality,
             deployer
         );
 
@@ -72,5 +82,7 @@ contract DeployAssetLeg is Script {
         console2.log("RWACVASettlementAdapter", address(adapter));
         console2.log("SETTLEMENT_ROLE granted to the adapter");
         console2.log("peer emitter           UNSET - run the wiring step after the Monad deploy");
+        console2.log("settlementFinality     ", uint256(settlementFinality));
+        console2.log("observationFinality    ", uint256(observationFinality));
     }
 }

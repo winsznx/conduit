@@ -64,6 +64,13 @@ authentic", and only Conduit can answer "has this message already been acted on"
 - The message fee is zero on both chains today. `WormholeTransport` reads `messageFee()` per call
   rather than caching it, so a fee introduced later does not silently start reverting publishes.
 
+**The seam test proves connectivity, not the settlement path.** The emitter was an EOA, so what
+is established is Wormhole network availability and destination core acceptance. It does not
+exercise the locked peer-emitter path, the deployment ID, the protocol version, the settlement
+ID, the intent hash, or replay consumption — all of which live in Conduit rather than in the
+core contract. A full source-contract-to-destination-contract integration proof is part of the
+DvP gate and is deliberately not claimed here.
+
 ## Alternatives rejected
 
 **Prove it through the settlement contracts.** Would have coupled the oldest open assumption to

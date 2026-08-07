@@ -16,9 +16,9 @@ structure below is unchanged; what each phase must deliver is amended.
 | -------- | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
 | Phase 00 | repository and truth lock                | PASS        | fresh clone → one bootstrap command → all empty-suite checks green                                 |
 | Phase 01 | Cleanverse capability and seam proof     | IN PROGRESS | real A-Token enters and exits the selected custody mode with exact conservation                    |
-| Phase 02 | Wormhole transport proof                 | NOT STARTED | Monad Testnet message verifies on Arbitrum Sepolia and the reverse, with replay rejected           |
-| Phase 03 | restricted RWA fixture                   | NOT STARTED | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
-| Phase 04 | settlement contracts and reference model | IN PROGRESS | reference model and contracts produce identical outcomes for generated traces                      |
+| Phase 02 | Wormhole transport proof                 | IN PROGRESS | Monad Testnet message verifies on Base Sepolia and the reverse, with replay rejected               |
+| Phase 03 | restricted RWA fixture                   | IN PROGRESS | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
+| Phase 04 | settlement contracts and reference model | PASS        | reference model and contracts produce identical outcomes for generated traces                      |
 | Phase 05 | Cleanverse Validator integration         | NOT STARTED | real Cleanverse eligibility result changes commit outcome on-chain                                 |
 | Phase 06 | full happy-path DvP                      | NOT STARTED | CVA cash and restricted RWA settle under one intent, both chains publicly verifiable               |
 | Phase 07 | Disposition Kernel                       | NOT STARTED | every generated held case reaches an allowed terminal state or stays safely contested              |
@@ -34,22 +34,25 @@ item added upstream fails the build until it appears here.
 
 | Acceptance addition                                                 | State       | Gate phase |
 | ------------------------------------------------------------------- | ----------- | ---------- |
-| `ConduitRWACVA` is deployed on Arbitrum Sepolia.                    | NOT STARTED | 03         |
+| `ConduitRWACVA` is deployed on Arbitrum Sepolia.                    | IN PROGRESS | 03         |
 | It is registered/issued as a Cleanverse CVA.                        | NOT STARTED | 03         |
-| RuleV2 is configured and independently queryable.                   | NOT STARTED | 03         |
+| RuleV2 is configured and independently queryable.                   | IN PROGRESS | 03         |
 | Eligible RWA CVA transfer succeeds.                                 | NOT STARTED | 03         |
 | Ineligible RWA CVA transfer fails through CCP policy.               | NOT STARTED | 03         |
 | Reservation prevents seller double-spend.                           | NOT STARTED | 03         |
-| Reservation cannot cancel after COMMIT.                             | NOT STARTED | 04         |
+| Reservation cannot cancel after COMMIT.                             | PASS        | 04         |
 | Held post-COMMIT RWA can be dispositioned once.                     | NOT STARTED | 07         |
 | Final demo uses the real registered CVA, not an ERC-3643-only mock. | NOT STARTED | 10         |
 | API compatibility fields are not confused with canonical RuleV2.    | NOT STARTED | 05         |
 | final web matches `design.md`.                                      | NOT STARTED | 06         |
 | staging runs on Cloudflare.                                         | NOT STARTED | 09         |
 
-Two of these are blocked on inputs this repository does not hold. The CCP CVA Integration Guide
-that defines RuleV2 semantics and the `IATokenPolicy` interface has not been supplied (ASM-018),
-and `design.md` is a `HUMAN_GATE_DESIGN` deliverable. Neither is a reason to start phase 01.
+The first row's wording is upstream text and is quoted verbatim so `tests/docs.test.ts` can
+match it. The asset leg now deploys to **Base Sepolia**: Arbitrum Sepolia has no CCP deployment,
+which [ADR-0009](./adr/0009-asset-leg-moves-to-base-sepolia.md) demonstrates two independent
+ways. Base is the implementation network. It is not the architecture.
+
+`design.md` remains a `HUMAN_GATE_DESIGN` deliverable.
 
 ---
 
@@ -128,7 +131,10 @@ gate PASSED: 16/16 steps green
 bootstrap complete — repository gate is green
 ```
 
-Counts: 234 Vitest assertions across 5 files, 2 Foundry tests, 2 Playwright tests.
+Counts at the time of the phase 00 gate: 234 Vitest assertions across 5 files, 2 Foundry tests,
+2 Playwright tests. That measurement is left as recorded. The gate has since grown to seventeen
+steps — step 7 regenerates the settlement trace corpus and fails if the committed corpus drifts
+from its generator — and current counts are in the phase 04 section.
 
 ### What the empty suites actually assert
 
@@ -220,11 +226,13 @@ ADR-0001. Under override section 8 it gains a second branch: if direct `CashEscr
 fails CCP transfer policy, attempt a Cleanverse-native `ConduitSettlementCVA` reservation before
 considering an institutional settlement wallet.
 
+Execution continued past this point under `CLAUDE_ONESHOT_CONDUIT.md`, on request.
+
 ---
 
 ## Phase 01 — Cleanverse capability and seam proof
 
-**State:** IN PROGRESS — code complete, blocked on live credentials
+**State:** IN PROGRESS — sandbox live, custody mode not yet proven on chain
 
 ### Delivered
 
@@ -236,11 +244,9 @@ considering an institutional settlement wallet.
 | doctor CLI                  | `packages/cli` — `conduit doctor`                                               |
 | A-Pass normalization        | `packages/cleanverse/src/apass.ts`                                              |
 | Validator reads             | `validatorVerify`, `validatorRules`, `validatorIsRegister`, `validatorIsPaused` |
+| custom CVA registration     | `packages/cleanverse/src/registration.ts`                                       |
 | role/capability matrix      | machine-readable via `conduit doctor --json`                                    |
 | ADR-001 cash custody result | [ADR-0001](./adr/0001-cash-custody-mode.md) — still `Open`                      |
-
-Not yet delivered: A-Token discovery against the live sandbox, faucet support, and
-sandbox wallets. All three need credentials.
 
 ### Live evidence captured
 
@@ -248,32 +254,197 @@ Chain identity and Wormhole core deployment, against public testnet RPCs
 ([ADR-0006](./adr/0006-wormhole-registry-pin-and-live-chain-identity.md)):
 
 ```text
-ok  rpc.monadTestnet                  chain ID 10143
-ok  rpc.arbitrumSepolia               chain ID 421614
-ok  wormhole.bytecode.monadTestnet    680 bytes at 0xaBf89de706B583424328B54dD05a8fC986750Da8
-ok  wormhole.bytecode.arbitrumSepolia 680 bytes at 0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35
+ok  rpc.monadTestnet               chain ID 10143
+ok  rpc.baseSepolia                chain ID 84532
+ok  wormhole.bytecode.monadTestnet 680 bytes at 0xaBf89de706B583424328B54dD05a8fC986750Da8
+ok  wormhole.bytecode.baseSepolia  680 bytes at 0x79A1027a6A159502049F10906D333EC57E95F083
 ```
 
-### Blocked
+The credential authenticates and the eligibility matrix is real rather than assumed. Four
+findings came out of exercising it, each recorded where it was found:
 
-The phase 01 gate is "real A-Token enters and exits the selected custody mode with
-exact conservation". It cannot start without Cleanverse sandbox credentials, which
-are not present in the environment. See the gate report.
+1. **Body encryption is per endpoint, not global** ([ADR-0008](./adr/0008-per-endpoint-body-encryption.md)).
+   Sending an encrypted body to a plaintext endpoint produced an earlier, wrong conclusion that
+   the `chain` argument was ignored. ADR-0007 is corrected at source.
+2. **The API key arrives as unpadded Base64.** The decoder restores padding rather than
+   rejecting a credential the platform actually issues.
+3. **A-Pass is scoped per chain** (ASM-031). `0x83C130ed…065Bb` is `ACTIVE` on Monad and absent
+   on Base: the live policy reverts `NoAPass(address)` for the same wallet. Eligibility on the
+   cash leg does not imply eligibility on the asset leg.
+4. **`generate_apass` returns HTTP 403 on both chains**, as a plain-text gateway response with
+   no Cleanverse envelope. Recorded as `SANDBOX_AUTHORIZATION_MISMATCH`, not
+   `FEATURE_UNAVAILABLE`: a control request proves the same `api-id` receives code `0000` from
+   discovery in the same session, so the credential is valid and the role is not provisioned.
+
+### Outstanding
+
+The gate is "real A-Token enters and exits the selected custody mode with exact conservation".
+[ADR-0001](./adr/0001-cash-custody-mode.md) stays `Open` until that round trip runs on Monad.
+Under override section 8 the fallback order is direct `CashEscrow` custody, then a
+Cleanverse-native reservation, then an institutional settlement wallet.
+
+---
+
+## Phase 02 — Wormhole transport proof
+
+**State:** IN PROGRESS — transport proven both directions, contract path not yet exercised live
+
+### Delivered
+
+`contracts/src/WormholeTransport.sol` is the shared base of all three settlement contracts. Every
+inbound VAA passes seven checks before it can do anything:
+
+| #   | Check                                                     | Failure mode it closes                                  |
+| --- | --------------------------------------------------------- | ------------------------------------------------------- |
+| 1   | peer emitter is set                                       | a live contract that accepts anyone                     |
+| 2   | `parseAndVerifyVM` guardian quorum                        | forged message                                          |
+| 3   | emitter chain matches the configured remote               | a real message from the wrong chain                     |
+| 4   | emitter address matches the locked peer                   | a real message from an unrelated contract               |
+| 5   | VAA hash not already consumed                             | replay                                                  |
+| 6   | deployment ID, protocol version, destination chain        | cross-deployment and cross-version confusion            |
+| 7   | finality at or above the level the message class requires | authentic message resting on reorganisable source state |
+
+Check 7 is the phase 02 security correction. See
+[ADR-0013](./adr/0013-finality-policy-for-economic-authorization.md).
+
+### Gate evidence
+
+Two-direction seam test, verified by `eth_call` against the real destination core contract rather
+than an off-chain parse ([ADR-0012](./adr/0012-wormhole-transport-proven-both-directions.md)):
+
+```text
+Monad Testnet → Base Sepolia  tx 0x0de96ea098a7b7206c2451d145c7f23b35d788a5d75abe13c238f2a4faba81c8
+                              VAA in 3.5s, valid=true on the Base core
+Base Sepolia → Monad Testnet  tx 0x523aff0aed58dc41f5236f4b94e9dd324437bc9e99e60ba3f7139dc700c590be
+                              VAA in 2.6s, valid=true on the Monad core
+```
+
+Both figures are transport latency at consistency level 200 and are labelled
+`FAST_TRANSPORT_SEAM_EVIDENCE` in `docs/evidence/phase-02-wormhole-seam.json`. They are not
+settlement latency. Conduit enforces `FINALIZED` for every message that authorizes value, and
+Base's finalized path is roughly eighteen minutes. Both numbers are published because publishing
+only the fast one would misrepresent settlement and publishing only the slow one would understate
+the transport.
+
+Finality profile, read back live from the deployed contracts:
+
+```text
+Monad Testnet   SettlementCoordinator   settlementFinality 2 (FINALIZED)  observationFinality 0
+                CashEscrow              settlementFinality 2 (FINALIZED)  observationFinality 0
+Base Sepolia    RWACVASettlementAdapter settlementFinality 2 (FINALIZED)  observationFinality 0
+```
+
+`contracts/test/Finality.t.sol` — 10 tests including a 256-run fuzz over every possible
+consistency byte — proves the raw level is classified rather than compared, that instant and safe
+cannot authorize a release under the production profile, that a rejected VAA is not consumed so a
+downgrade attempt cannot strand the settlement, that no setter exists, that the profile is visible
+in the code hash, and that all nine message classes require settlement finality.
+
+### Known limitations
+
+1. **The seam test emitter is an EOA.** What it establishes is Wormhole network availability and
+   destination core acceptance. It does not exercise the locked peer-emitter path, the deployment
+   ID, the protocol version, the settlement ID, the intent hash, or replay consumption, because
+   those are enforced in `WormholeTransport` rather than in the core contract. The
+   contract-to-contract run is part of the phase 06 DvP gate. Until then this phase is
+   `IN PROGRESS`, not `PASS`.
+2. **The testnet guardian set has one signer** (ASM-033). Quorum is genuinely verified on chain,
+   but a 1-of-1 quorum is a testnet property and is stated as such wherever the proof appears.
+
+---
+
+## Phase 03 — restricted RWA fixture
+
+**State:** IN PROGRESS — deployed and policy-bound, Cleanverse registration awaiting a signature
+
+### Delivered
+
+Live on Base Sepolia (84532), manifest `contracts/deployments/base-sepolia-0x9303f240.json`:
+
+```text
+ConduitRWACVA            0x6B70a81E010d8CEFE7c44701e490337661785644
+RWACVASettlementAdapter  0xC0A9Eb5F9D1fd0D4264564B1C7A1ed69946E3170
+```
+
+`ConduitRWACVA` calls the live CCP policy on every transfer. It holds no eligibility opinion of
+its own: `policy.canTransfer` decides, and a refusal is a refusal. The adapter holds
+`SETTLEMENT_ROLE` and nothing else, so a compromised adapter cannot mint, cannot change RuleV2,
+and cannot move an unreserved balance.
+
+Two corrections landed here rather than in review:
+
+- **RuleV2 has six fields, not the five in the guide** ([ADR-0010](./adr/0010-rulev2-has-six-fields.md)).
+  The deployed struct still carries the deprecated `isBlackList` slot. A five-field decode threw
+  on real data. A byte-level regression test now pins the layout.
+- **The token had no `owner()`.** Cleanverse registration reads it, so registration would have
+  failed _after_ a human had already signed the owner message. `Ownable2Step` was added and the
+  token redeployed.
+
+### Outstanding
+
+`HUMAN_GATE_SIGN`. Registration through the documented `POST /atoken/register_atoken` needs an
+EIP-191 signature from the owner key over the exact plaintext
+`base0x6b70a81e010d8cefe7c44701e490337661785644`. The client is written and tested; only the
+signature is missing. ASM-032 stays `OPEN` until a real request returns a terminal `applyStatus`.
+
+An earlier claim that Method B had no endpoint was based on guessed route names and is retracted
+in ADR-0011 and ASM-032. It was never a platform limitation, and recording it as one would have
+been wrong.
 
 ---
 
 ## Phase 04 — settlement contracts and reference model
 
-**State:** IN PROGRESS — reference model complete, contracts not written
+**State:** PASS
 
-`packages/domain` delivers the pure reference model, the PRD 7.1 transition table,
-EIP-712 intent hashing, the fixed-width message codec, and the PRD 14.4 invariants
-as executable checks. Property tests drive 2000 generated traces per invariant.
+### Gate evidence
 
-Four defects surfaced there rather than in review, and each is recorded in the
-commit that fixed it: conservation stated as an equation rather than an inequality
-plus a terminal equality, a decision tracked as a boolean rather than a kind,
-partial transfers marking legs complete, and completion fabricating a commit.
+The gate is "reference model and contracts produce identical outcomes for generated traces".
 
-The Solidity side is not written. It is unblocked and is the next work item once
-the gates below are resolved.
+`scripts/generate-settlement-traces.mjs` emits 400 traces through the TypeScript reference model
+in `packages/domain`. `contracts/test/Differential.t.sol` replays every one against the deployed
+Solidity and asserts the same outcome, leg by leg. Regenerating the corpus is step 7 of the gate,
+so a generator change that would silently invalidate the corpus fails the build instead.
+
+Four coordinator defects surfaced there after roughly ninety hand-written tests had passed:
+
+1. a leg that was never prepared could be resolved;
+2. a release was accepted on the abort path;
+3. a held leg could never resolve again;
+4. a held leg could be re-held.
+
+Each is a state-machine hole that reads as correct in isolation and only appears when arbitrary
+orderings are generated rather than imagined.
+
+```text
+CashEscrowTest               31
+CodecsTest                   11
+ConduitRWACVATest            27
+DifferentialTest              1  (400 traces)
+FinalityTest                 10
+RWACVASettlementAdapterTest  18
+SettlementCoordinatorTest    26
+ToolchainPinTest              2
+                            ---
+                            126 Solidity tests, 0 failed
+
+448 Vitest assertions across 15 files
+gate PASSED: 17/17 steps green
+```
+
+Live on Monad Testnet (10143), manifest `contracts/deployments/monad-testnet-0x9303f240.json`:
+
+```text
+SettlementCoordinator  0x1491A25Fc93778ECcb69BCec96495c6f12c686d1
+CashEscrow             0x1645BA0873118A997Bd39718A82dd268E46D3B48
+```
+
+Both peers are locked in both directions. `setRemotePeer` is settable once and then permanently
+locked, which is how the deployment ordering circularity is resolved without a window where
+either side accepts a message from an address nobody chose.
+
+### Known limitations
+
+The contracts are deployed and unit-proven. No settlement has run end to end across both chains
+yet: that is the phase 06 gate, and it needs the registered CVA from phase 03 and the compliance
+attestation from phase 05.

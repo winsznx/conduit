@@ -46,6 +46,8 @@ contract SettlementCoordinatorTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             OWNER,
             "Conduit",
             "1"

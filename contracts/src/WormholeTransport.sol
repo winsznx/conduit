@@ -24,6 +24,19 @@ import {MessageCodec} from "./libraries/MessageCodec.sol";
 /// Consumption is recorded *before* any external call. A token callback that
 /// re-enters finds the hash already spent.
 abstract contract WormholeTransport {
+    /// @notice How final a source chain's state was when guardians signed.
+    ///
+    /// Deliberately an enum rather than the raw `consistencyLevel`, because the
+    /// wire encoding is not ordinal: 200 means instant, 201 means safe, and
+    /// *anything else* means finalized. A naive `>=` on the raw byte would rank
+    /// instant above finalized and admit exactly the message it was meant to
+    /// reject.
+    enum FinalityLevel {
+        INSTANT,
+        SAFE,
+        FINALIZED
+    }
+
     IWormhole public immutable wormhole;
 
     /// @notice Binds this deployment. PRD 8.2: every intent binds exact
@@ -54,6 +67,26 @@ abstract contract WormholeTransport {
     /// @notice True once the peer is set. Never returns to false.
     bool public remotePeerLocked;
 
+    /// @notice The minimum finality a message may carry when it authorizes an
+    ///         irreversible economic outcome.
+    ///
+    /// Immutable and bound into the deployment. A COMMIT is economically
+    /// irreversible, so every state it depends on must have reached this
+    /// threshold first. Wormhole warns that non-finalized consistency on EVM
+    /// carries reorg risk, and a reorg that unwinds a PREPARED after its COMMIT
+    /// has released the opposite leg is the double-payout the whole protocol
+    /// exists to prevent.
+    ///
+    /// It cannot be lowered per settlement, by an owner, or by a relayer. A
+    /// downgradeable finality policy is not a policy.
+    FinalityLevel public immutable settlementFinality;
+
+    /// @notice The minimum for messages that inform rather than authorize.
+    ///
+    /// A fast VAA is genuinely useful: it warms a relayer, updates a UI, and
+    /// lets downstream work start early. It simply may not move value.
+    FinalityLevel public immutable observationFinality;
+
     /// @dev PRD 8.4: "The VAA hash is marked consumed before external token calls."
     mapping(bytes32 vaaHash => bool) public consumedVaa;
 
@@ -76,14 +109,22 @@ abstract contract WormholeTransport {
     error RemotePeerAlreadyLocked();
     error RemotePeerNotSet();
     error RemotePeerCannotBeZero();
+    error InsufficientFinality(
+        MessageCodec.MessageType messageType, FinalityLevel actual, FinalityLevel required
+    );
 
     constructor(
         address wormhole_,
         bytes32 deploymentId_,
         uint16 localWormholeChainId_,
         uint16 remoteWormholeChainId_,
-        bytes32 remoteEmitter_
+        bytes32 remoteEmitter_,
+        FinalityLevel settlementFinality_,
+        FinalityLevel observationFinality_
     ) {
+        settlementFinality = settlementFinality_;
+        observationFinality = observationFinality_;
+
         wormhole = IWormhole(wormhole_);
         deploymentId = deploymentId_;
         localWormholeChainId = localWormholeChainId_;
@@ -96,6 +137,42 @@ abstract contract WormholeTransport {
             remotePeerLocked = true;
             emit RemotePeerSet(remoteEmitter_);
         }
+    }
+
+    /// @notice Maps a raw Wormhole consistency level onto its finality class.
+    ///
+    /// Wormhole's EVM encoding: 200 instant, 201 safe, everything else
+    /// finalized. Treating the byte as a magnitude is the trap this exists to
+    /// close.
+    function finalityOf(uint8 consistencyLevel) public pure returns (FinalityLevel) {
+        if (consistencyLevel == 200) return FinalityLevel.INSTANT;
+        if (consistencyLevel == 201) return FinalityLevel.SAFE;
+        return FinalityLevel.FINALIZED;
+    }
+
+    /// @notice Whether a message class can make an outcome economically irreversible.
+    ///
+    /// A remote PREPARED is included because it authorizes COMMIT, and COMMIT is
+    /// the point of no return. A RELEASED or HELD proof is included because the
+    /// coordinator marks the settlement terminal on it.
+    function authorizesValue(MessageCodec.MessageType messageType) public pure returns (bool) {
+        return messageType == MessageCodec.MessageType.COMMIT
+            || messageType == MessageCodec.MessageType.ABORT
+            || messageType == MessageCodec.MessageType.CASH_PREPARED
+            || messageType == MessageCodec.MessageType.ASSET_PREPARED
+            || messageType == MessageCodec.MessageType.CASH_RELEASED
+            || messageType == MessageCodec.MessageType.ASSET_RELEASED
+            || messageType == MessageCodec.MessageType.CASH_HELD
+            || messageType == MessageCodec.MessageType.ASSET_HELD
+            || messageType == MessageCodec.MessageType.DISPOSITION_RESOLVED;
+    }
+
+    function requiredFinalityFor(MessageCodec.MessageType messageType)
+        public
+        view
+        returns (FinalityLevel)
+    {
+        return authorizesValue(messageType) ? settlementFinality : observationFinality;
     }
 
     /// @dev Concrete contracts wrap this with their own owner check. Callable
@@ -167,6 +244,18 @@ abstract contract WormholeTransport {
         }
         if (header.destinationChainId != block.chainid) {
             revert UnexpectedDestinationChain(header.destinationChainId, block.chainid);
+        }
+
+        // 7. Authentic is not the same as final. `parseAndVerifyVM` proves the
+        //    guardians signed it; it says nothing about whether the source state
+        //    can still be reorganised out from under us. A relayer chooses which
+        //    VAA to submit, so without this a fast VAA could be substituted for
+        //    a finalized one and the settlement made irreversible on state that
+        //    is not.
+        FinalityLevel actual = finalityOf(vm.consistencyLevel);
+        FinalityLevel required = requiredFinalityFor(header.messageType);
+        if (uint8(actual) < uint8(required)) {
+            revert InsufficientFinality(header.messageType, actual, required);
         }
 
         consumedVaa[vm.hash] = true;

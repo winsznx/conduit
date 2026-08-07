@@ -1,11 +1,26 @@
 {
   "capturedAt": "2026-08-07T19:19:06.993Z",
+  "relabelled": {
+    "at": "2026-08-07T00:00:00.000Z",
+    "note": "Interpretation corrected, measurements untouched and not re-run. Every measured field below is byte-identical to the original capture. What changed is what the run is claimed to prove: it is fast-transport seam evidence, not settlement latency, and the EOA emitter means it does not exercise the locked peer-emitter path. See ADR-0012 and ADR-0013."
+  },
+  "classification": "FAST_TRANSPORT_SEAM_EVIDENCE",
+  "proves": [
+    "Wormhole network availability between Monad Testnet and Base Sepolia",
+    "destination Core acceptance of a guardian-signed message from the other chain"
+  ],
+  "doesNotProve": [
+    "Conduit's locked peer-emitter path: the emitter here is an EOA, not RWACVASettlementAdapter or SettlementCoordinator",
+    "deployment ID, protocol version, message type, settlement ID, intent hash, or replay consumption, all of which are enforced in WormholeTransport rather than in the Core contract",
+    "settlement latency: these timings are transport latency at a non-final consistency level"
+  ],
   "emitter": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "emitterKind": "EOA",
   "consistencyLevel": 200,
-  "consistencyNote": "Instant (200). Base Sepolia finality is 512 blocks at ~2s, so a finalized-level message there is roughly seventeen minutes from publish to availability. Production settlement selects the level per chain from these measurements.",
+  "consistencyNote": "Instant (200): guardians sign on observation, before the source state is irreversible. Conduit refuses this level for anything that authorizes value and enforces FINALIZED on chain per message class (ADR-0013). Base's finalized path is 512 blocks at ~2s, roughly eighteen minutes.",
   "directions": [
     {
-      "direction": "Monad Testnet → Base Sepolia",
+      "direction": "Monad Testnet \u2192 Base Sepolia",
       "sourceWormholeChainId": 10009,
       "destinationWormholeChainId": 10004,
       "txHash": "0x0de96ea098a7b7206c2451d145c7f23b35d788a5d75abe13c238f2a4faba81c8",
@@ -23,7 +38,7 @@
       "vaaHash": "0x9a0eedbc88c1d23ebc7445df4c3c6b4d429b503470436e7e37bf5313e782d459"
     },
     {
-      "direction": "Base Sepolia → Monad Testnet",
+      "direction": "Base Sepolia \u2192 Monad Testnet",
       "sourceWormholeChainId": 10004,
       "destinationWormholeChainId": 10009,
       "txHash": "0x523aff0aed58dc41f5236f4b94e9dd324437bc9e99e60ba3f7139dc700c590be",

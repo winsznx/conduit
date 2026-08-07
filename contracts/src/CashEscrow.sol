@@ -87,14 +87,24 @@ contract CashEscrow is WormholeTransport, Ownable2Step, ReentrancyGuard {
         uint16 localWormholeChainId_,
         uint16 remoteWormholeChainId_,
         bytes32 remoteEmitter_,
+        FinalityLevel settlementFinality_,
+        FinalityLevel observationFinality_,
         address owner_
     )
         WormholeTransport(
-            wormhole_, deploymentId_, localWormholeChainId_, remoteWormholeChainId_, remoteEmitter_
+            wormhole_,
+            deploymentId_,
+            localWormholeChainId_,
+            remoteWormholeChainId_,
+            remoteEmitter_,
+            settlementFinality_,
+            observationFinality_
         )
         Ownable(owner_)
     {
-        if (cashAsset_ == address(0) || wormhole_ == address(0)) revert ZeroAddress();
+        if (cashAsset_ == address(0) || wormhole_ == address(0)) {
+            revert ZeroAddress();
+        }
         cashAsset = IERC20(cashAsset_);
     }
 

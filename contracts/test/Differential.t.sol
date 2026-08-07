@@ -4,6 +4,7 @@ pragma solidity =0.8.36;
 import {Test} from "forge-std/Test.sol";
 
 import {SettlementCoordinator} from "../src/SettlementCoordinator.sol";
+import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
 import {MessageCodec} from "../src/libraries/MessageCodec.sol";
 import {SettlementIntentLib} from "../src/libraries/SettlementIntentLib.sol";
@@ -67,6 +68,8 @@ contract DifferentialTest is Test {
             LOCAL_WH_CHAIN,
             REMOTE_WH_CHAIN,
             REMOTE_EMITTER,
+            WormholeTransport.FinalityLevel.FINALIZED,
+            WormholeTransport.FinalityLevel.INSTANT,
             address(0x0E7E4),
             "Conduit",
             "1"
