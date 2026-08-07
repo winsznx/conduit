@@ -18,7 +18,7 @@ structure below is unchanged; what each phase must deliver is amended.
 | Phase 01 | Cleanverse capability and seam proof     | IN PROGRESS | real A-Token enters and exits the selected custody mode with exact conservation                    |
 | Phase 02 | Wormhole transport proof                 | NOT STARTED | Monad Testnet message verifies on Arbitrum Sepolia and the reverse, with replay rejected           |
 | Phase 03 | restricted RWA fixture                   | NOT STARTED | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
-| Phase 04 | settlement contracts and reference model | NOT STARTED | reference model and contracts produce identical outcomes for generated traces                      |
+| Phase 04 | settlement contracts and reference model | IN PROGRESS | reference model and contracts produce identical outcomes for generated traces                      |
 | Phase 05 | Cleanverse Validator integration         | NOT STARTED | real Cleanverse eligibility result changes commit outcome on-chain                                 |
 | Phase 06 | full happy-path DvP                      | NOT STARTED | CVA cash and restricted RWA settle under one intent, both chains publicly verifiable               |
 | Phase 07 | Disposition Kernel                       | NOT STARTED | every generated held case reaches an allowed terminal state or stays safely contested              |
@@ -219,3 +219,61 @@ resolves ASM-001 through ASM-004, ASM-007, and ASM-019, and records the custody 
 ADR-0001. Under override section 8 it gains a second branch: if direct `CashEscrow` custody
 fails CCP transfer policy, attempt a Cleanverse-native `ConduitSettlementCVA` reservation before
 considering an institutional settlement wallet.
+
+---
+
+## Phase 01 — Cleanverse capability and seam proof
+
+**State:** IN PROGRESS — code complete, blocked on live credentials
+
+### Delivered
+
+| Deliverable                 | Where                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| typed Cleanverse client     | `packages/cleanverse/src/client.ts`                                             |
+| encryption helper           | `packages/cleanverse/src/encryption.ts`                                         |
+| response parser             | `packages/cleanverse/src/schemas.ts`, `codes.ts`                                |
+| doctor CLI                  | `packages/cli` — `conduit doctor`                                               |
+| A-Pass normalization        | `packages/cleanverse/src/apass.ts`                                              |
+| Validator reads             | `validatorVerify`, `validatorRules`, `validatorIsRegister`, `validatorIsPaused` |
+| role/capability matrix      | machine-readable via `conduit doctor --json`                                    |
+| ADR-001 cash custody result | [ADR-0001](./adr/0001-cash-custody-mode.md) — still `Open`                      |
+
+Not yet delivered: A-Token discovery against the live sandbox, faucet support, and
+sandbox wallets. All three need credentials.
+
+### Live evidence captured
+
+Chain identity and Wormhole core deployment, against public testnet RPCs
+([ADR-0006](./adr/0006-wormhole-registry-pin-and-live-chain-identity.md)):
+
+```text
+ok  rpc.monadTestnet                  chain ID 10143
+ok  rpc.arbitrumSepolia               chain ID 421614
+ok  wormhole.bytecode.monadTestnet    680 bytes at 0xaBf89de706B583424328B54dD05a8fC986750Da8
+ok  wormhole.bytecode.arbitrumSepolia 680 bytes at 0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35
+```
+
+### Blocked
+
+The phase 01 gate is "real A-Token enters and exits the selected custody mode with
+exact conservation". It cannot start without Cleanverse sandbox credentials, which
+are not present in the environment. See the gate report.
+
+---
+
+## Phase 04 — settlement contracts and reference model
+
+**State:** IN PROGRESS — reference model complete, contracts not written
+
+`packages/domain` delivers the pure reference model, the PRD 7.1 transition table,
+EIP-712 intent hashing, the fixed-width message codec, and the PRD 14.4 invariants
+as executable checks. Property tests drive 2000 generated traces per invariant.
+
+Four defects surfaced there rather than in review, and each is recorded in the
+commit that fixed it: conservation stated as an equation rather than an inequality
+plus a terminal equality, a decision tracked as a boolean rather than a kind,
+partial transfers marking legs complete, and completion fabricating a commit.
+
+The Solidity side is not written. It is unblocked and is the next work item once
+the gates below are resolved.
