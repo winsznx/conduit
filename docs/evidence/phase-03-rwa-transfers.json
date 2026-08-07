@@ -1,0 +1,70 @@
+{
+  "capturedAt": "2026-08-07T23:41:08.398Z",
+  "chain": {
+    "key": "baseSepolia",
+    "nativeChainId": 84532
+  },
+  "token": "0x6B70a81E010d8CEFE7c44701e490337661785644",
+  "policy": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+  "holder": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "counterparty": "0x000000000000000000000000000000000000dEaD",
+  "holderCvi": {
+    "source": "registerApass through the Base ConduitVaultRegistrar; ASM-031 route",
+    "tierOnBase": 20,
+    "note": "A-Pass is chain-scoped. The same wallet is tier 28 on Monad and was absent on Base until registerApass issued CVI there."
+  },
+  "policyEnforcementModel": {
+    "observed": {
+      "me -> unknown EOA": "allowed",
+      "unknown EOA -> me": "allowed",
+      "unknown EOA -> unknown EOA": "refused"
+    },
+    "conclusion": "The policy is not a per-recipient allowlist, and the same shape holds for Cleanverse's own aUSDC. Ineligibility is produced by the RuleV2 tier floor against a party's CVI, so that is what this run exercises."
+  },
+  "ineligible": {
+    "rule": [["0x0000", "0x0000", "30", "0", "false", "0"]],
+    "setRuleTx": {
+      "hash": "0x3d48fe4f2f14698267b139671b632559571b995f46b93ccf768ae2e85f9bb37d",
+      "status": "success"
+    },
+    "transfer": {
+      "sent": false,
+      "revertedWith": "revert",
+      "revertedAccount": "0x6B70a81E010d8CEFE7c44701e490337661785644"
+    }
+  },
+  "eligible": {
+    "rule": [["0x0000", "0x0000", "20", "0", "false", "0"]],
+    "setRuleTx": {
+      "hash": "0xecde2f424a07c96bf30f342697f28c660e4d037c89cd8e10aae6e6759d5cd547",
+      "status": "success"
+    },
+    "transfer": {
+      "sent": true,
+      "status": "success",
+      "hash": "0xbd83aa9c059c8c903aa8bc7751491585cb1363e28ce6753ce60020ae845b2dd7",
+      "blockNumber": "45188885"
+    },
+    "balanceBefore": "1999000",
+    "balanceAfter": "1998000"
+  },
+  "reservation": {
+    "settlementId": "0x636f6e647569742d70686173652d30332d7265736572766174696f6e00000000",
+    "reserveTx": null,
+    "reserved": "999000",
+    "available": "999000",
+    "spendBeyondAvailable": {
+      "sent": false,
+      "revertedWith": "revert",
+      "revertedAccount": "0x6B70a81E010d8CEFE7c44701e490337661785644"
+    },
+    "spendWithinAvailable": {
+      "sent": true,
+      "status": "success",
+      "hash": "0xb0bb71dbd4648d041ed20e506aecc6031d4f5a0936f5666f691b9b43de50880d",
+      "blockNumber": "45188890"
+    },
+    "reservedAfter": "999000"
+  },
+  "gateMet": true
+}

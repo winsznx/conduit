@@ -1,0 +1,59 @@
+{
+  "capturedAt": "2026-08-07T23:16:27.117Z",
+  "chain": {
+    "key": "baseSepolia",
+    "nativeChainId": 84532
+  },
+  "token": "0x6B70a81E010d8CEFE7c44701e490337661785644",
+  "policy": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+  "ruleSource": "On chain via ConduitRWACVA.setRuleV2 -> IATokenPolicy.setRuleV2FromToken. The CVA guide recommends self-management for a registered contract.",
+  "ruleApiFinding": {
+    "endpoint": "POST /validator/add_rule",
+    "acceptedShape": ["chain", "contract_address", "rule"],
+    "result": "12026 AddComplianceRule failed: add validator rule: execution reverted",
+    "interpretation": "That endpoint drives IAPassComplianceValidator, where a registered CVA is not a registered pool. It is the correct path for a pool and the wrong contract for a CVA. Its rule object does accept a `countries` string array, which is where platform-side bitmap computation lives."
+  },
+  "countryBitmap": {
+    "value": 0,
+    "meaning": "no country restriction, per the guide",
+    "open": "ASM-025 — bit positions are stated to follow ISO 3166-1 numeric codes, which run to 894 against a 256-bit field, and no index table has been supplied. No country-enforcement claim is made."
+  },
+  "transaction": {
+    "hash": "0x84114fd828e52426db95d9311f566522df77ed3f2ef4fcf07802cdde65482da2",
+    "status": "success",
+    "gasUsed": "67794"
+  },
+  "rulesBefore": [
+    {
+      "allowedGroup": "0x0000",
+      "allowedSubGroup": "0x0000",
+      "minTier": 0,
+      "minSubTier": 0,
+      "isBlackList": false,
+      "poolCountryBitmap": "0"
+    }
+  ],
+  "rulesAfter": [
+    {
+      "allowedGroup": "0x0000",
+      "allowedSubGroup": "0x0000",
+      "minTier": 0,
+      "minSubTier": 0,
+      "isBlackList": false,
+      "poolCountryBitmap": "0"
+    }
+  ],
+  "policyAnswers": {
+    "deployerToDeployer": {
+      "allowed": false,
+      "refusedWith": "NoAPass(address account)",
+      "refusedAccount": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb"
+    },
+    "deployerToNobody": {
+      "allowed": false,
+      "refusedWith": "NoAPass(address account)",
+      "refusedAccount": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb"
+    }
+  },
+  "registrationProvenLive": true
+}

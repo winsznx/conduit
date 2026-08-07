@@ -1,0 +1,40 @@
+{
+  "capturedAt": "2026-08-07T23:23:54.654Z",
+  "endpoint": "POST /validator/grant",
+  "chain": "base",
+  "grantee": "0x955329CeCBE332b09Abd2E5CdF2D336d11716c34",
+  "signer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "signedPlaintext": "base0x955329cecbe332b09abd2e5cdf2d336d11716c34",
+  "payloadShape": {
+    "accepted": ["chain", "address", "owner_signature"],
+    "rejectedByGateway": [
+      "contract_address",
+      "factory_address",
+      "pool_address",
+      "target_address",
+      "validator_address",
+      "grantee_address",
+      "signature"
+    ],
+    "source": "gateway code 10002 \"Unknown field(s)\" enumeration, not the guide"
+  },
+  "attempts": [
+    {
+      "scheme": "personal_sign(chain + address)",
+      "accepted": false,
+      "code": null,
+      "apiMessage": "/validator/grant request failed: TypeError (X-Request-ID: 9f599cb5-5eec-411f-baff-5aa49a64ea65)",
+      "requestId": "9f599cb5-5eec-411f-baff-5aa49a64ea65"
+    },
+    {
+      "scheme": "personal_sign(keccak256(chain + address))",
+      "accepted": false,
+      "code": null,
+      "apiMessage": "/validator/grant request failed: TypeError (X-Request-ID: 47f98945-0098-4706-bb66-5cc925ab1d88)",
+      "requestId": "47f98945-0098-4706-bb66-5cc925ab1d88"
+    }
+  ],
+  "granted": false,
+  "txHash": null,
+  "validatorAddress": null
+}

@@ -6,7 +6,7 @@ import {console2} from "forge-std/console2.sol";
 
 import {ConduitVaultRegistrar} from "../src/ConduitVaultRegistrar.sol";
 
-/// @notice Deploys the CVI registrar on Monad Testnet. PRD 19 phase 01, ADR-0001.
+/// @notice Deploys the CVI registrar. PRD 19 phase 01 and 03, ADR-0001.
 ///
 /// The validator address is passed in rather than written as a literal. It is not
 /// published in any guide and was recovered from chain state — the `to` of the
@@ -18,7 +18,12 @@ import {ConduitVaultRegistrar} from "../src/ConduitVaultRegistrar.sol";
 /// it has arrived rather than assuming it.
 contract DeployVaultRegistrar is Script {
     function run() external {
-        address validator = vm.envAddress("CCP_VALIDATOR_MONAD_TESTNET");
+        // One env var name, chosen per chain, because the validator turns out to
+        // be deployed at the same address on both and hardcoding either would
+        // hide that fact rather than record it.
+        address validator = block.chainid == 84_532
+            ? vm.envAddress("CCP_VALIDATOR_BASE_SEPOLIA")
+            : vm.envAddress("CCP_VALIDATOR_MONAD_TESTNET");
 
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);

@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-08-07T23:08:42.450Z",
+  "endpoint": "POST /atoken/register_atoken",
+  "chain": {
+    "slug": "base",
+    "nativeChainId": 84532
+  },
+  "token": {
+    "address": "0x6B70a81E010d8CEFE7c44701e490337661785644",
+    "name": "Conduit Demo Bond",
+    "symbol": "cBOND",
+    "decimals": 6,
+    "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
+  },
+  "ownerOnChain": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "signedPlaintext": "base0x6b70a81e010d8cefe7c44701e490337661785644",
+  "recoveredSigner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "recoveredMatchesOwner": true,
+  "requestHash": "0x98749ed000c92f06eacbbcdc2471fb12624b98d05c1c66c2d6e963b5c85a0d2e",
+  "submission": {
+    "requestId": "bbfea4a9-dd1a-46a5-aa65-a8ba97be82fe",
+    "code": "0000",
+    "message": "success",
+    "responseHash": "0x58f776529e2f9e38e47c78a2275dbb21711ca32644891c9b79c5b7d71ff7c146",
+    "redactedBody": {
+      "code": "0000",
+      "message": "success",
+      "data": {
+        "todo": true,
+        "requestId": "IAR20260808070830548628",
+        "issueAssetRegisterId": 295
+      }
+    },
+    "applicationRequestId": "IAR20260808070830548628",
+    "issueAssetRegisterId": 295
+  },
+  "failure": null,
+  "applyStatus": "ISSUED",
+  "registered": true,
+  "applyStatusDetail": {
+    "flowType": "REGISTER_ATOKEN",
+    "requestId": "IAR20260808070830548628",
+    "applyStatus": "ISSUED",
+    "chain": "base",
+    "atokenAddress": "0x6b70a81e010d8cefe7c44701e490337661785644",
+    "txHash": "0x321399a3046236c8e2467cd249ea39325c4fdbad8166ad6dd4c1e5820bdee3b6",
+    "issueErrorMsg": "",
+    "issuedAt": "2026-08-08 07:08:31"
+  }
+}

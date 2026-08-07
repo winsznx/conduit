@@ -37,11 +37,20 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { cleanverseClientFromEnv } from './lib/cleanverse.mjs';
 import { ROOT } from './lib/run.mjs';
 
-const CHAIN = 'monad';
+const CHAINS = {
+  monad: { rpcEnv: 'MONAD_TESTNET_RPC_URL', nativeChainId: 10143 },
+  base: { rpcEnv: 'BASE_SEPOLIA_RPC_URL', nativeChainId: 84532 },
+};
+
+const CHAIN = process.argv[3] ?? 'monad';
 const grantee = process.argv[2];
 
 if (grantee === undefined || !/^0x[0-9a-fA-F]{40}$/.test(grantee)) {
-  console.error('usage: node --env-file=.env scripts/validator-grant.mjs <address>');
+  console.error('usage: node --env-file=.env scripts/validator-grant.mjs <address> [chain]');
+  process.exit(1);
+}
+if (CHAINS[CHAIN] === undefined) {
+  console.error(`unknown chain ${CHAIN}; expected one of ${Object.keys(CHAINS).join(', ')}`);
   process.exit(1);
 }
 
@@ -100,10 +109,15 @@ for (const scheme of schemes) {
       apiMessage,
       requestId: error?.requestId ?? null,
     });
-    // A refusal that is not about the signature means the scheme is not the
-    // problem, so trying the other one would only produce a second identical
-    // authorization failure and a second misleading line in the evidence.
-    if (code !== null && code !== '0001') break;
+    // Only a signature refusal justifies trying the other scheme.
+    //
+    // `code === null` means the request failed at transport and the server's
+    // answer is unknown — it may never have arrived, or it may have landed and
+    // the response been lost. Trying again there is a blind write retry, which
+    // CLAUDE.md forbids for exactly this reason: a grant that already applied
+    // would be applied twice. Observed for real when a TypeError from `fetch`
+    // sent this loop through both schemes against a live endpoint.
+    if (code === null || code !== '0001') break;
   }
 }
 
@@ -114,8 +128,8 @@ for (const scheme of schemes) {
 let validatorAddress = null;
 const txHash = granted?.data?.tx_hash ?? null;
 if (typeof txHash === 'string' && txHash.length > 0) {
-  const monad = createPublicClient({ transport: http(process.env['MONAD_TESTNET_RPC_URL']) });
-  const receipt = await monad.waitForTransactionReceipt({ hash: txHash });
+  const client = createPublicClient({ transport: http(process.env[CHAINS[CHAIN].rpcEnv]) });
+  const receipt = await client.waitForTransactionReceipt({ hash: txHash });
   validatorAddress = receipt.to;
   console.log(`\n  tx        ${txHash}`);
   console.log(`  validator ${validatorAddress}   ← from chain state, not from the guide`);
@@ -147,7 +161,7 @@ const evidence = {
   validatorAddress,
 };
 
-const path = join(ROOT, 'docs', 'evidence', 'phase-01-validator-grant.json');
+const path = join(ROOT, 'docs', 'evidence', `phase-01-validator-grant-${CHAIN}.json`);
 writeFileSync(path, `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(`\nwritten ${path}`);
 process.exitCode = granted === null ? 1 : 0;
