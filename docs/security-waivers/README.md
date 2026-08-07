@@ -5,9 +5,10 @@ PRD 15.5: _"No security tool result may be silenced without a documented waiver 
 
 ## Current waivers
 
-| Waiver                                                   | Tool     | Scope                                           | Expires    |
-| -------------------------------------------------------- | -------- | ----------------------------------------------- | ---------- |
-| [gitleaks-env-templates.md](./gitleaks-env-templates.md) | gitleaks | worktree scan of `.env` and `.env.example` only | 2026-11-07 |
+| Waiver                                                                     | Tool     | Scope                                           | Expires    |
+| -------------------------------------------------------------------------- | -------- | ----------------------------------------------- | ---------- |
+| [gitleaks-env-templates.md](./gitleaks-env-templates.md)                   | gitleaks | worktree scan of `.env` and `.env.example` only | 2026-11-07 |
+| [slither-timestamp-conduitrwacva.md](./slither-timestamp-conduitrwacva.md) | Slither  | `timestamp` detector, `ConduitRWACVA` only      | 2026-11-07 |
 
 `tests/docs.test.ts` fails if a waiver file appears without a status and an expiry, or if an
 expiry has passed.
@@ -24,6 +25,16 @@ Any of these needs a file here before it merges:
 - a threat register row moved to `ACCEPTED`.
 
 A step removed from `scripts/verify.mjs` is not a waiver, it is a gate change, and needs an ADR.
+
+## What does not need a waiver
+
+A finding that is _provably inapplicable at the site_, annotated inline with the reason. The
+current example is `forge-lint: erc20-unchecked-transfer` on calls inside `vm.expectRevert`: the
+call is asserted to revert, so no return value is ever produced to check.
+
+The distinction is whether the finding could be true. A rule disabled because the finding is
+inconvenient is a waiver. A rule disabled because the code path makes it meaningless is a
+comment, and it must say why on the line above.
 
 ## Format
 

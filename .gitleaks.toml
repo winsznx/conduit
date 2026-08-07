@@ -1,25 +1,24 @@
 # gitleaks scope for the worktree scan.
 #
-# The default ruleset is extended, never replaced. Nothing here disables a rule.
+# The default ruleset is extended, never replaced. No rule is disabled.
 #
 # `pnpm verify` runs gitleaks twice: `gitleaks git .` over the full history, and
 # `gitleaks dir .` over the working tree. The history scan is the one that
 # matters for what has actually been published, and it runs with no allowlist at
 # all. This file scopes only the worktree scan.
 #
-# The worktree scan exists to catch a secret *before* it is committed. Two paths
-# are out of that scope by construction, and both are documented in
-# docs/security-waivers/gitleaks-env-templates.md.
+# Every entry is documented in docs/security-waivers/gitleaks-env-templates.md
+# with an expiry.
 
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Local environment file and the committed template"
+description = "Paths that cannot carry a Conduit secret into a commit"
 paths = [
   # `.env` holds real credentials and is gitignored, so it cannot reach a commit.
-  # tests/repo-structure.test.ts asserts that .gitignore still contains `.env`,
-  # so removing that protection turns the build red rather than silently making
+  # tests/repo-structure.test.ts asserts .gitignore still contains `.env`, so
+  # removing that protection turns the build red rather than silently making
   # this allowlist dangerous.
   '''^\.env$''',
 
@@ -29,4 +28,20 @@ paths = [
   # assignment in that file is empty, which is a stronger guarantee than the
   # heuristic being suppressed here.
   '''^\.env\.example$''',
+
+  # Vendored Solidity dependencies, pinned by commit in foundry.lock. These are
+  # git submodules: this repository stores a pointer, not the files, so nothing
+  # here can enter our history. `gitleaks git .` confirms that independently.
+  # OpenZeppelin ships test mnemonics and keys in its own fixtures, which are
+  # theirs to manage and are public by design.
+  '''^contracts/lib/''',
 ]
+
+# A public on-chain address is not a secret. The evidence artifacts publish them
+# deliberately, and `generic-api-key` matches on surrounding field names such as
+# `accesscore_address` rather than on anything sensitive.
+#
+# Scoped to the exact shape of an EVM address, so a real credential that merely
+# sits near one is still reported.
+regexes = ['''0x[0-9a-fA-F]{40}''']
+regexTarget = "match"

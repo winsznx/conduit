@@ -28,6 +28,11 @@
       "repo": "foundry-rs/forge-std",
       "tag": "v1.16.2",
       "commit": "bf647bd6046f2f7da30d0c2bf435e5c76a780c1b"
+    },
+    "openzeppelin-contracts": {
+      "repo": "OpenZeppelin/openzeppelin-contracts",
+      "tag": "v5.7.0",
+      "commit": "cab19933c33c2ad1d4c7a84864a3601dddfd16f3"
     }
   },
   "staticAnalysis": {

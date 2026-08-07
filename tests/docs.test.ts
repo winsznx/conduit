@@ -58,13 +58,28 @@ describe('assumptions register (CLAUDE.md documentation rules)', () => {
     }
   });
 
-  it('resolves nothing before the phase that can produce live evidence', () => {
-    const resolved = [...assumptions.matchAll(/^\|\s*(ASM-\d{3})\s*\|[^|]*\|\s*RESOLVED\s*\|/gm)];
-    for (const [, id] of resolved) {
+  it('makes every RESOLVED row cite the evidence that resolved it', () => {
+    // Parses the evidence column rather than scanning a character window after
+    // the ID: a longer assumption row used to push the citation out of range and
+    // fail a row that was perfectly well documented.
+    const rows = assumptions
+      .split('\n')
+      .filter((line) => /^\|\s*ASM-\d{3}\s*\|/.test(line))
+      .map((line) => line.split('|').map((cell) => cell.trim()));
+
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const cells of rows) {
+      // | id | assumption | state | resolved by | evidence |
+      const [, id, , state, , evidence] = cells;
+      if (state !== 'RESOLVED') continue;
+
+      expect(evidence, `${id ?? ''} is RESOLVED but cites no evidence`).toBeDefined();
+      expect(evidence, `${id ?? ''} is RESOLVED with an empty evidence column`).not.toBe('—');
       expect(
-        assumptions,
-        `${id ?? ''} is RESOLVED and must cite the evidence that resolved it`,
-      ).toMatch(new RegExp(`${id ?? ''}[\\s\\S]{0,400}?(ADR-|0x[0-9a-f]{8}|tx )`));
+        /ADR-\d{4}|0x[0-9a-f]{8}|tx /.test(evidence ?? ''),
+        `${id ?? ''} evidence must name an ADR, a hash, or a transaction: "${evidence ?? ''}"`,
+      ).toBe(true);
     }
   });
 });

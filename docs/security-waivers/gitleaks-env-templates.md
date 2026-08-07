@@ -3,8 +3,9 @@
 **Status:** Active
 **Opened:** 2026-08-07
 **Expires:** 2026-11-07
-**Scope:** the worktree scan only (`gitleaks dir .`), for exactly two paths: `.env` and
-`.env.example`. The history scan (`gitleaks git .`) runs with no allowlist.
+**Scope:** the worktree scan only (`gitleaks dir .`): the paths `.env`, `.env.example`, and
+`contracts/lib/`, plus findings whose matched text is an EVM address. The history scan
+(`gitleaks git .`) runs with no allowlist.
 
 ## Finding
 
@@ -25,6 +26,18 @@ committed, runs unrestricted and reports clean across all four commits.
 **`.env.example`** is committed and its content genuinely matters. The finding is a false
 positive: `generic-api-key` matched the variable _name_ `CLOUDFLARE_API_TOKEN` on a line whose
 value is empty. Every assignment in that file is empty by construction.
+
+**`contracts/lib/`** holds vendored Solidity dependencies as git submodules, pinned by commit in
+`foundry.lock`. This repository stores a pointer, not the files, so nothing there can enter our
+history — which `gitleaks git .` confirms independently by reporting clean. OpenZeppelin ships
+test mnemonics and keys in its own fixtures; those are public by design and theirs to manage.
+Installing it raised 180 findings at once, none of them ours.
+
+**EVM addresses** are public by construction. `generic-api-key` fired twice on
+`docs/evidence/phase-01-monad-cash-token.json`, matching the field name `accesscore_address`
+beside a contract address the evidence exists to publish. The exclusion is scoped to the exact
+shape `0x` followed by forty hex characters, so a real credential sitting near an address is
+still reported.
 
 ## Invariants checked
 

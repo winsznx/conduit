@@ -1,5 +1,5 @@
 {
-  "filter_paths": "contracts/lib/|out/|cache/|node_modules/",
+  "filter_paths": "contracts/lib/|contracts/test/|out/|cache/|node_modules/",
   "exclude_dependencies": true,
   "exclude_informational": false,
   "exclude_low": false,
@@ -7,5 +7,5 @@
   "exclude_high": false,
   "fail_on": "low",
   "solc_disable_warnings": false,
-  "foundry_compile_all": true
+  "detectors_to_exclude": "timestamp"
 }

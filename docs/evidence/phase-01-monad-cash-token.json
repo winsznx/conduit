@@ -1,0 +1,106 @@
+{
+  "capturedAt": "2026-08-07T10:02:05.403Z",
+  "chain": {
+    "key": "monadTestnet",
+    "cleanverseChain": "monad",
+    "nativeChainId": 10143,
+    "reportedChainId": 10143
+  },
+  "discovery": {
+    "endpoint": "/query_deposit_atoken_list",
+    "request": {
+      "chain": "monad"
+    },
+    "catalogueSize": 1,
+    "rawResponseHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
+    "redactedResponse": {
+      "code": "0000",
+      "message": "ok",
+      "data": {
+        "chain": "monad",
+        "tokens": [
+          {
+            "origin_token": {
+              "address": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+              "name": "USDC",
+              "symbol": "usdc",
+              "decimals": 6,
+              "icon": "https://images.cleanverse.com/app/token_icon/USDC.svg"
+            },
+            "atoken": {
+              "address": "0xaC0893567D43C3E7e6e35a72803df05416C1f20D",
+              "name": "aUSDC",
+              "symbol": "ausdc",
+              "decimals": 6,
+              "icon": "https://images.cleanverse.com/app/token_icon/A_USDC.svg"
+            },
+            "accesscore_address": "0x8F118338a1fa41E7Fa86Be19A4e8B99Ed58A6EcC",
+            "apass_address": "0xbA82D189540CaC9DC6FF46B6837CaC1BFdEC58B9"
+          }
+        ]
+      }
+    }
+  },
+  "catalogue": {
+    "aToken": {
+      "address": "0xaC0893567D43C3E7e6e35a72803df05416C1f20D",
+      "name": "aUSDC",
+      "symbol": "ausdc",
+      "decimals": 6,
+      "icon": "https://images.cleanverse.com/app/token_icon/A_USDC.svg"
+    },
+    "originToken": {
+      "address": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+      "name": "USDC",
+      "symbol": "usdc",
+      "decimals": 6,
+      "icon": "https://images.cleanverse.com/app/token_icon/USDC.svg"
+    },
+    "accessCoreAddress": "0x8F118338a1fa41E7Fa86Be19A4e8B99Ed58A6EcC",
+    "aPassAddress": "0xbA82D189540CaC9DC6FF46B6837CaC1BFdEC58B9"
+  },
+  "onChain": {
+    "erc20": {
+      "name": "Access USDC",
+      "symbol": "aUSDC",
+      "decimals": 6,
+      "totalSupply": "152140000"
+    },
+    "contracts": [
+      {
+        "label": "atoken",
+        "address": "0xaC0893567D43C3E7e6e35a72803df05416C1f20D",
+        "deployed": true,
+        "codeBytes": 122,
+        "codeHash": "0xa403fa29cda49311b973967ea91292c75ab23dd093a8444ae680d9099fac817a",
+        "proxy": true,
+        "implementation": "0x5a520e9992d30416c33e2dcdc2d8f3befce426da",
+        "implementationCodeHash": "0xa7e47de33dd9e5e112d0d116588d45342ab3b062dedee17fd1215017a43d4173"
+      },
+      {
+        "label": "accesscore",
+        "address": "0x8F118338a1fa41E7Fa86Be19A4e8B99Ed58A6EcC",
+        "deployed": true,
+        "codeBytes": 122,
+        "codeHash": "0xa403fa29cda49311b973967ea91292c75ab23dd093a8444ae680d9099fac817a",
+        "proxy": true,
+        "implementation": "0xb099f7049517a9f886fdbc60cf4a9db33ff02f9a",
+        "implementationCodeHash": "0x30b58f061c091b2b3c0b854d8c2e511d06c3a1b7c3fa099169e82fb86c3c2787"
+      },
+      {
+        "label": "apass",
+        "address": "0xbA82D189540CaC9DC6FF46B6837CaC1BFdEC58B9",
+        "deployed": true,
+        "codeBytes": 122,
+        "codeHash": "0xa403fa29cda49311b973967ea91292c75ab23dd093a8444ae680d9099fac817a",
+        "proxy": true,
+        "implementation": "0x9406f5d46268ee6617f7ab28ed8ae0767d3415a3",
+        "implementationCodeHash": "0x8c4eaefe0bf2fa4b9fef808b09d2d7f7fccbef47585afc0a5806459d1709ac4a"
+      }
+    ]
+  },
+  "crossCheck": {
+    "ok": true,
+    "problems": []
+  }
+}
