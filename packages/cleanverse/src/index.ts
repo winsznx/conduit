@@ -26,6 +26,14 @@ export {
 } from './apass.js';
 
 export {
+  aTokensDeployedOn,
+  EVM_ADDRESS,
+  isEvmAddress,
+  type AttributedAToken,
+  type CodeReader,
+} from './discovery.js';
+
+export {
   ApassStatus,
   ApiCode,
   describeVerifyApassCode,

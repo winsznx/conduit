@@ -61,8 +61,26 @@ function describe(error: z.ZodError): string[] {
   });
 }
 
+/**
+ * An environment variable that is present but empty is absent.
+ *
+ * `.env` files written from the committed template carry `KEY=` lines, and
+ * Node's `--env-file` loads those as empty strings rather than omitting them.
+ * zod applies a `.default()` only for `undefined`, and `z.coerce.number()` turns
+ * `''` into `0`, so an untouched template value failed validation as "too
+ * small" instead of quietly taking its documented default.
+ *
+ * Dropping empty values makes the two cases identical, which is what an operator
+ * already assumes when they leave a line blank.
+ */
+function withoutEmpty(source: EnvSource): EnvSource {
+  return Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== undefined && value.trim() !== ''),
+  );
+}
+
 function parse<T>(schema: z.ZodType<T>, source: EnvSource, label: string): T {
-  const result = schema.safeParse(source);
+  const result = schema.safeParse(withoutEmpty(source));
   if (!result.success) {
     throw new ConfigError(`invalid ${label} configuration`, describe(result.error));
   }

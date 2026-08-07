@@ -8,6 +8,7 @@ import {
   type EnvSource,
 } from '@conduit-protocol/config';
 import {
+  aTokensDeployedOn,
   CleanverseApiError,
   CleanverseClient,
   createCipher,
@@ -278,24 +279,37 @@ export async function runDoctor(
   // depends on this answer, so it runs first and gates the rest.
   let atokenAddress: string | undefined;
   try {
-    const list = await client.queryDepositATokenList(cashChain.wormholeName.toLowerCase());
-    const first = list.data.list[0];
-    atokenAddress = first?.atoken_address;
+    const list = await client.queryDepositATokenList(cashChain.cleanverseChain);
+
+    // The endpoint ignores its `chain` argument and returns every token across
+    // every chain it supports, with no chain field on any entry. Attribution
+    // comes from chain state instead: a token is on this chain when this
+    // chain's RPC reports bytecode at its address.
+    const rpcUrl = rpc?.[cashChain.rpcUrlEnvVar as keyof typeof rpc];
+    const onChain =
+      rpcUrl === undefined
+        ? []
+        : await aTokensDeployedOn(list.data.tokens, (address) => deps.readCode(rpcUrl, address));
+
+    atokenAddress = onChain[0]?.aTokenAddress;
 
     checks.push(
       check(
         'cleanverse.atokenList',
-        'A-Token discovery on the cash chain',
+        `A-Token discovery on ${options.cashChain}`,
         true,
-        list.data.list.length > 0 ? 'pass' : 'fail',
-        list.data.list.length > 0
-          ? list.data.list
-              .map(
-                (t) =>
-                  `${t.atoken_symbol} ${t.atoken_address} (${String(t.atoken_decimals)} decimals, origin ${t.origin_token_symbol})`,
-              )
-              .join('; ')
-          : 'query_deposit_atoken_list returned no tokens',
+        onChain.length > 0 ? 'pass' : 'fail',
+        onChain.length > 0
+          ? `${String(onChain.length)} of ${String(list.data.tokens.length)} discovered entries are deployed on ${options.cashChain}: ` +
+              onChain
+                .map(
+                  (t) =>
+                    `${t.symbol} ${t.aTokenAddress} (${String(t.decimals)} decimals, ${String(t.originTokens.length)} origin token(s))`,
+                )
+                .join('; ')
+          : rpcUrl === undefined
+            ? `cannot attribute tokens to a chain without ${cashChain.rpcUrlEnvVar}`
+            : `none of the ${String(list.data.tokens.length)} discovered tokens are deployed on ${options.cashChain}`,
         ['ASM-001'],
       ),
     );
@@ -344,11 +358,7 @@ export async function runDoctor(
     if (atokenAddress === undefined) continue;
 
     try {
-      const verify = await client.verifyApass(
-        cashChain.wormholeName.toLowerCase(),
-        wallet,
-        atokenAddress,
-      );
+      const verify = await client.verifyApass(cashChain.cleanverseChain, wallet, atokenAddress);
       const allowed = verifyApassAllowsTransfer(verify.data.code);
       checks.push(
         check(

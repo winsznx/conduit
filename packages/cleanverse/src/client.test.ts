@@ -332,14 +332,16 @@ describe('A-Token discovery (PRD 2.4)', () => {
       jsonResponse({
         code: '0000',
         data: {
-          list: [
+          chain: '',
+          tokens: [
             {
-              origin_token_address: '0x3333333333333333333333333333333333333333',
-              origin_token_symbol: 'USDC',
-              origin_token_decimals: 6,
-              atoken_address: ATOKEN,
-              atoken_symbol: 'aUSDC',
-              atoken_decimals: 6,
+              origin_token: {
+                address: '0x3333333333333333333333333333333333333333',
+                name: 'USDC',
+                symbol: 'usdc',
+                decimals: 6,
+              },
+              atoken: { address: ATOKEN, name: 'aUSDC', symbol: 'ausdc', decimals: 6 },
               accesscore_address: '0x4444444444444444444444444444444444444444',
               apass_address: '0x5555555555555555555555555555555555555555',
             },
@@ -350,8 +352,21 @@ describe('A-Token discovery (PRD 2.4)', () => {
 
     const result = await client.queryDepositATokenList('monad');
 
-    expect(result.data.list).toHaveLength(1);
-    expect(result.data.list[0]?.atoken_address).toBe(ATOKEN);
-    expect(result.data.list[0]?.atoken_decimals).toBe(6);
+    expect(result.data.tokens).toHaveLength(1);
+    expect(result.data.tokens[0]?.atoken.address).toBe(ATOKEN);
+    expect(result.data.tokens[0]?.atoken.decimals).toBe(6);
+  });
+
+  it('fails loudly when the token array is absent rather than reporting zero tokens', async () => {
+    // Regression: `tokens` was declared with `.default([])`, so a response with
+    // an entirely different shape validated cleanly as "no tokens available".
+    // Schema drift reported as an empty result is the same failure mode as
+    // treating HTTP 200 as business success.
+    const { client, fetch } = await harness(0);
+    fetch.mockResolvedValue(jsonResponse({ code: '0000', data: { somethingElse: [] } }));
+
+    await expect(client.queryDepositATokenList('monad')).rejects.toBeInstanceOf(
+      CleanverseSchemaError,
+    );
   });
 });

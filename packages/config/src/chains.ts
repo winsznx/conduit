@@ -24,6 +24,11 @@ export interface ChainDefinition {
   readonly nativeChainId: number;
   /** What a VAA emitter header carries. Never interchangeable with the above. */
   readonly wormholeChainId: number;
+  /**
+   * The `chain` value Cleanverse expects in a request body. A third naming
+   * system for the same network, unrelated to either chain ID.
+   */
+  readonly cleanverseChain: string;
   readonly rpcUrlEnvVar: string;
   readonly role: 'cash' | 'asset';
 }
@@ -34,6 +39,7 @@ export const CHAINS: Readonly<Record<ChainKey, ChainDefinition>> = Object.freeze
     wormholeName: 'MonadTestnet',
     nativeChainId: 10_143,
     wormholeChainId: 10_009,
+    cleanverseChain: 'monad',
     rpcUrlEnvVar: 'MONAD_TESTNET_RPC_URL',
     role: 'cash',
   }),
@@ -42,6 +48,7 @@ export const CHAINS: Readonly<Record<ChainKey, ChainDefinition>> = Object.freeze
     wormholeName: 'ArbitrumSepolia',
     nativeChainId: 421_614,
     wormholeChainId: 10_003,
+    cleanverseChain: 'arbitrum',
     rpcUrlEnvVar: 'ARBITRUM_SEPOLIA_RPC_URL',
     role: 'asset',
   }),

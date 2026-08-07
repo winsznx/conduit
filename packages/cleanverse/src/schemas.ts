@@ -28,8 +28,6 @@ export const encryptedEnvelopeSchema = z.object({
   data: z.string().min(1),
 });
 
-const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'must be a 20-byte hex address');
-
 const unixSeconds = z.number().int().nonnegative();
 
 /** `POST /query_apass`. Fields per PRD 2.1. */
@@ -109,23 +107,55 @@ export const validatorWriteDataSchema = z.object({
   tx_hash: z.string().min(1),
 });
 
-/** `POST /query_deposit_atoken_list`. PRD 2.4: addresses are discovered, never hardcoded. */
+/**
+ * `POST /query_deposit_atoken_list`. PRD 2.4: addresses are discovered, never
+ * hardcoded.
+ *
+ * The shape here was read off the live sandbox, not inferred from the PRD. The
+ * PRD describes the fields flatly ("origin token address, symbol, decimals;
+ * A-Token address, symbol, decimals"); the API nests them under `origin_token`
+ * and `atoken`, and returns them under `data.tokens` rather than `data.list`.
+ *
+ * `tokens` is deliberately required with no default. An earlier version wrote
+ * `.default([])`, and a response with an entirely different shape validated
+ * cleanly as "zero tokens" — schema drift reported as an empty result, which is
+ * the same failure mode as treating HTTP 200 as business success. An array that
+ * must be present is never defaulted.
+ */
+/**
+ * Addresses here are NOT constrained to EVM format.
+ *
+ * The live sandbox returns tokens for every chain it supports in one response,
+ * including Solana-style base58 addresses. Requiring 20-byte hex rejected the
+ * whole response because two of thirty-four entries were not EVM, which is a
+ * schema asserting a fact about the API that is simply untrue.
+ *
+ * EVM-shaped validation belongs downstream, once a token has been attributed to
+ * a specific chain by `aTokensDeployedOn`.
+ */
+const tokenDescriptorSchema = z.object({
+  address: z.string().min(1),
+  name: z.string(),
+  symbol: z.string(),
+  decimals: z.number().int().min(0).max(255),
+  icon: z.string().optional(),
+});
+
 export const depositATokenSchema = z.object({
-  origin_token_address: address,
-  origin_token_symbol: z.string(),
-  origin_token_decimals: z.number().int().min(0).max(255),
-  atoken_address: address,
-  atoken_symbol: z.string(),
-  atoken_decimals: z.number().int().min(0).max(255),
-  accesscore_address: address,
-  apass_address: address,
+  origin_token: tokenDescriptorSchema,
+  atoken: tokenDescriptorSchema,
+  accesscore_address: z.string().min(1),
+  apass_address: z.string().min(1),
 });
 
 export const depositATokenListDataSchema = z.object({
-  list: z.array(depositATokenSchema).default([]),
+  /** Echoed back by the sandbox, observed empty. Not relied on. */
+  chain: z.string().optional(),
+  tokens: z.array(depositATokenSchema),
 });
 
 export type DepositAToken = z.infer<typeof depositATokenSchema>;
+export type TokenDescriptor = z.infer<typeof tokenDescriptorSchema>;
 
 /** `POST /query_txs`. PRD FR-013 evidence ingestion. */
 export const transactionRecordSchema = z.object({

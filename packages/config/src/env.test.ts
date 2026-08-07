@@ -37,6 +37,27 @@ describe('Cleanverse environment validation', () => {
     expect(env.CLEANVERSE_MAX_READ_RETRIES).toBe(2);
   });
 
+  it('treats a present-but-empty variable as absent', () => {
+    // `.env` files written from the template carry `KEY=` lines, and Node's
+    // --env-file loads those as empty strings. Without normalization,
+    // z.coerce.number() turns '' into 0 and the documented default never
+    // applies, so an untouched template line fails as "too small".
+    const env = loadCleanverseEnv({
+      ...VALID_CLEANVERSE,
+      CLEANVERSE_REQUEST_TIMEOUT_MS: '',
+      CLEANVERSE_MAX_READ_RETRIES: '   ',
+    });
+
+    expect(env.CLEANVERSE_REQUEST_TIMEOUT_MS).toBe(15_000);
+    expect(env.CLEANVERSE_MAX_READ_RETRIES).toBe(2);
+  });
+
+  it('still fails closed when a required variable is present but empty', () => {
+    expect(() => loadCleanverseEnv({ ...VALID_CLEANVERSE, CLEANVERSE_API_ID: '' })).toThrow(
+      ConfigError,
+    );
+  });
+
   it.each(['CLEANVERSE_BASE_URL', 'CLEANVERSE_API_ID', 'CLEANVERSE_API_KEY_BASE64'])(
     'fails closed when %s is absent',
     (name) => {
@@ -46,8 +67,8 @@ describe('Cleanverse environment validation', () => {
   );
 
   it('rejects a plaintext base URL', () => {
-    // TLS is the only confidentiality this API has: PRD 9.2 is explicit that the
-    // fixed-IV AES layer provides none.
+    // The AES layer encrypts the body but authenticates no endpoint, so TLS is
+    // what prevents the credential being sent to an attacker-controlled host.
     expect(() =>
       loadCleanverseEnv({ ...VALID_CLEANVERSE, CLEANVERSE_BASE_URL: 'http://sandbox.example' }),
     ).toThrow(ConfigError);

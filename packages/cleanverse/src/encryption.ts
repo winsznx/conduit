@@ -6,13 +6,25 @@
  * ────────────────────────────────────────────────────────────────────────────
  *
  * Cleanverse V5.6 specifies AES/CBC/PKCS5Padding with a fixed sixteen-byte zero
- * IV. A fixed IV means identical plaintexts produce identical ciphertexts, so
- * the scheme leaks equality and provides no integrity. That is an upstream
- * protocol requirement, not a choice available to this repository.
+ * IV. That is an upstream protocol requirement, not a choice available to this
+ * repository.
+ *
+ * What the fixed IV costs, stated precisely because the imprecise version leads
+ * to the wrong decisions in both directions:
+ *
+ *   - it is deterministic, so identical plaintexts produce identical
+ *     ciphertexts and the scheme leaks plaintext equality;
+ *   - it provides no integrity and no authentication, so a ciphertext must
+ *     never be treated as evidence that a request was not tampered with;
+ *   - it does still encrypt the body against someone without the key, so this
+ *     is weaker than an AEAD rather than equivalent to sending plaintext.
+ *
+ * TLS remains mandatory and does the job AES cannot: it authenticates the
+ * Cleanverse host, so the credential and request traffic cannot be delivered to
+ * an attacker-controlled endpoint.
  *
  * Consequences, all mandated by CLAUDE.md and PRD 9.2:
  *
- *   - confidentiality in transit comes from TLS, not from this function;
  *   - this file is the only place in the monorepo that may implement AES;
  *   - nothing here may be reused for internal cryptography, where a random IV
  *     and an AEAD mode are available and required;
