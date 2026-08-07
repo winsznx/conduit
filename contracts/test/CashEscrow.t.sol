@@ -28,7 +28,7 @@ contract CashEscrowTest is Test {
     address private constant RELAYER = address(0x4E1A4);
 
     uint16 private constant LOCAL_WH_CHAIN = 10_009; // MonadTestnet
-    uint16 private constant REMOTE_WH_CHAIN = 10_003; // ArbitrumSepolia
+    uint16 private constant REMOTE_WH_CHAIN = 10_004; // BaseSepolia
     bytes32 private constant DEPLOYMENT_ID = keccak256("deployment-1");
     bytes32 private constant REMOTE_EMITTER = bytes32(uint256(uint160(address(0xC0FFEE))));
     bytes32 private constant SETTLEMENT_ID = keccak256("settlement-1");
@@ -56,7 +56,7 @@ contract CashEscrowTest is Test {
 
     function _prepare() private {
         vm.prank(PAYER);
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 421_614, 1);
+        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
     }
 
     function _vaa(MessageCodec.MessageType messageType) private view returns (bytes memory) {
@@ -79,7 +79,7 @@ contract CashEscrowTest is Test {
                 deploymentId: deploymentId,
                 settlementId: SETTLEMENT_ID,
                 intentHash: INTENT_HASH,
-                sourceChainId: 421_614,
+                sourceChainId: 84_532,
                 destinationChainId: destinationChainId,
                 stateVersion: 2
             })
@@ -137,7 +137,7 @@ contract CashEscrowTest is Test {
         assertEq(header.deploymentId, DEPLOYMENT_ID);
         assertEq(header.settlementId, SETTLEMENT_ID);
         assertEq(header.intentHash, INTENT_HASH);
-        assertEq(header.destinationChainId, 421_614);
+        assertEq(header.destinationChainId, 84_532);
     }
 
     function test_CashMayBePreparedOnlyOnce() public {
@@ -147,7 +147,7 @@ contract CashEscrowTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(CashEscrow.LegAlreadyPrepared.selector, SETTLEMENT_ID)
         );
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 421_614, 1);
+        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
     }
 
     function test_RejectsFeeOnTransferToken() public {
@@ -173,7 +173,7 @@ contract CashEscrowTest is Test {
                 CashEscrow.InexactBalanceDelta.selector, AMOUNT, AMOUNT - (AMOUNT / 100)
             )
         );
-        feeEscrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 421_614, 1);
+        feeEscrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
         vm.stopPrank();
     }
 
@@ -198,17 +198,17 @@ contract CashEscrowTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(CashEscrow.InexactBalanceDelta.selector, AMOUNT, AMOUNT + 1)
         );
-        rebaseEscrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 421_614, 1);
+        rebaseEscrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
         vm.stopPrank();
     }
 
     function test_RejectsZeroAmountAndZeroReceiver() public {
         vm.startPrank(PAYER);
         vm.expectRevert(CashEscrow.AmountMustBePositive.selector);
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, 0, 421_614, 1);
+        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, 0, 84_532, 1);
 
         vm.expectRevert(CashEscrow.ZeroAddress.selector);
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, address(0), AMOUNT, 421_614, 1);
+        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, address(0), AMOUNT, 84_532, 1);
         vm.stopPrank();
     }
 
@@ -218,7 +218,7 @@ contract CashEscrowTest is Test {
 
         vm.prank(PAYER);
         vm.expectRevert(CashEscrow.PreparationsArePaused.selector);
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 421_614, 1);
+        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
     }
 
     function test_PauseCannotStrandCommittedValue() public {
@@ -492,7 +492,7 @@ contract CashEscrowTest is Test {
                 deploymentId: DEPLOYMENT_ID,
                 settlementId: SETTLEMENT_ID,
                 intentHash: keccak256("a-different-intent"),
-                sourceChainId: 421_614,
+                sourceChainId: 84_532,
                 destinationChainId: block.chainid,
                 stateVersion: 2
             })
@@ -538,7 +538,7 @@ contract CashEscrowTest is Test {
         uint256 locked = bound(uint256(amount), 1, AMOUNT * 5);
 
         vm.prank(PAYER);
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, locked, 421_614, 1);
+        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, locked, 84_532, 1);
 
         assertEq(escrow.totalEscrowed(), locked);
         assertGe(aToken.balanceOf(address(escrow)), escrow.totalEscrowed());

@@ -13,11 +13,30 @@ pragma solidity =0.8.36;
 /// repository pins every first-party file to the exact compiler in
 /// toolchain.json. The ABI is unaffected.
 interface IComplianceRule {
+    /// @dev SIX fields, not the five the guide declares.
+    ///
+    /// The guide's `IComplianceRule` listing omits `isBlackList` and its API
+    /// table calls the field "Deprecated; always pass false. Replaced by
+    /// poolCountryBitmap". The deployed policy still carries it in the struct.
+    ///
+    /// Read from the live Base Sepolia policy
+    /// `0x36489be45fa84f70a0c2bdb11d824be608cb12dd` on 2026-08-07 via
+    /// `getRulesV2`. A five-field decode of a real rule fails outright, because
+    /// the 256-bit country bitmap lands in the slot a `uint8` was expected in:
+    ///
+    ///   (bytes2,bytes2,uint8,uint8,bool,uint256)  decodes 2 rules
+    ///   (bytes2,bytes2,uint8,uint8,uint256)       fails
+    ///
+    /// Encoding five fields into a six-field call is not a cosmetic mismatch.
+    /// `setRuleV2FromToken` would either revert or write a rule nobody intended,
+    /// and a silently wrong compliance rule is the worst outcome available here.
+    /// ADR-0010 records the evidence.
     struct RuleV2 {
         bytes2 allowedGroup; //   0x0000 = unrestricted
         bytes2 allowedSubGroup; // 0x0000 = unrestricted
         uint8 minTier; //         0 = unrestricted; range 0-99
         uint8 minSubTier; //      0 = unrestricted; range 0-99
+        bool isBlackList; //      deprecated upstream, still in the deployed struct
         uint256 poolCountryBitmap; // 0 = unrestricted; bitwise AND check
     }
 }

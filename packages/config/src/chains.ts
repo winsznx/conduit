@@ -3,18 +3,25 @@ import { ChainMismatchError } from './errors.js';
 /**
  * Chain identity.
  *
- * Two numbering systems are in play and confusing them is threat T-12. The
- * native EVM chain ID is what `eth_chainId` returns and what EIP-712 binds. The
- * Wormhole chain ID is what a VAA header carries. They are unrelated integers
- * for the same network, so they never share a type here.
+ * Three numbering systems are in play and confusing any two of them is threat
+ * T-12. The native EVM chain ID is what `eth_chainId` returns and what EIP-712
+ * binds. The Wormhole chain ID is what a VAA header carries. The Cleanverse
+ * chain string is what its API expects in a request body. They are unrelated
+ * identifiers for the same network, so they never share a type here.
  *
- * The values below are quoted from PRD 8.3. They have not yet been checked
- * against a pinned official Wormhole registry snapshot in this repository, which
- * is ASM-016 and is closed in phase 02. Nothing consumes the Wormhole IDs before
- * then.
+ * The asset leg is Base Sepolia, not the Arbitrum Sepolia named in PRD 8.3.
+ * Cleanverse CCP has no deployment on Arbitrum Sepolia: `accesscore`, `apass`,
+ * and the A-Tokens all return empty bytecode there, while the same addresses
+ * are live on Base Sepolia. A CVA cannot be issued or policy-gated on a chain
+ * where the policy contract does not exist. ADR-0009 records the evidence and
+ * the owner decision.
+ *
+ * Wormhole values are cross-checked against the pinned registry snapshot by
+ * `@conduit-protocol/wormhole`, and both chain IDs are verified against a live
+ * RPC at startup.
  */
 
-export type ChainKey = 'monadTestnet' | 'arbitrumSepolia';
+export type ChainKey = 'monadTestnet' | 'baseSepolia';
 
 export interface ChainDefinition {
   readonly key: ChainKey;
@@ -43,13 +50,13 @@ export const CHAINS: Readonly<Record<ChainKey, ChainDefinition>> = Object.freeze
     rpcUrlEnvVar: 'MONAD_TESTNET_RPC_URL',
     role: 'cash',
   }),
-  arbitrumSepolia: Object.freeze({
-    key: 'arbitrumSepolia',
-    wormholeName: 'ArbitrumSepolia',
-    nativeChainId: 421_614,
-    wormholeChainId: 10_003,
-    cleanverseChain: 'arbitrum',
-    rpcUrlEnvVar: 'ARBITRUM_SEPOLIA_RPC_URL',
+  baseSepolia: Object.freeze({
+    key: 'baseSepolia',
+    wormholeName: 'BaseSepolia',
+    nativeChainId: 84_532,
+    wormholeChainId: 10_004,
+    cleanverseChain: 'base',
+    rpcUrlEnvVar: 'BASE_SEPOLIA_RPC_URL',
     role: 'asset',
   }),
 });

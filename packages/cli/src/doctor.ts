@@ -142,7 +142,7 @@ export async function runDoctor(
   // hand-edited snapshot before anything else is attempted.
   const registryProblems = crossCheck({
     monadTestnet: CHAINS.monadTestnet,
-    arbitrumSepolia: CHAINS.arbitrumSepolia,
+    baseSepolia: CHAINS.baseSepolia,
   });
 
   checks.push(

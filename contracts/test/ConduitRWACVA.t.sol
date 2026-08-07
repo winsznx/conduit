@@ -296,6 +296,9 @@ contract ConduitRWACVATest is Test {
             allowedSubGroup: bytes2(0),
             minTier: 30,
             minSubTier: 0,
+            // Deprecated upstream but present in the deployed struct; the guide
+            // says always pass false. ADR-0010.
+            isBlackList: false,
             // ASM-025: the country encoding is unresolved, so this is always 0
             // and no country enforcement is claimed.
             poolCountryBitmap: 0
@@ -308,6 +311,35 @@ contract ConduitRWACVATest is Test {
         assertEq(rules.length, 1);
         assertEq(rules[0].minTier, 30);
         assertEq(rules[0].poolCountryBitmap, 0, "country bitmap stays unrestricted");
+    }
+
+    function test_RuleV2MatchesTheDeployedPolicyLayout() public pure {
+        // Pins the ABI encoding against the live Base Sepolia policy. The CCP
+        // guide declares five fields; the deployed struct has six, and a
+        // five-field encoding would either revert or write a rule nobody
+        // intended. This is a byte-level assertion because a field-count
+        // mismatch is invisible at the Solidity type level once both sides
+        // compile. ADR-0010.
+        IComplianceRule.RuleV2 memory rule = IComplianceRule.RuleV2({
+            allowedGroup: bytes2(0x5700),
+            allowedSubGroup: bytes2(0x4e00),
+            minTier: 23,
+            minSubTier: 1,
+            isBlackList: true,
+            poolCountryBitmap: 0x400000000000800000000000
+        });
+
+        // Exactly the six words observed in the live getRulesV2 response for
+        // RT809094 on Base Sepolia.
+        assertEq(
+            abi.encode(rule),
+            hex"5700000000000000000000000000000000000000000000000000000000000000"
+            hex"4e00000000000000000000000000000000000000000000000000000000000000"
+            hex"0000000000000000000000000000000000000000000000000000000000000017"
+            hex"0000000000000000000000000000000000000000000000000000000000000001"
+            hex"0000000000000000000000000000000000000000000000000000000000000001"
+            hex"0000000000000000000000000000000000000000400000000000800000000000"
+        );
     }
 
     function test_OnlyAdminMayManageRules() public {

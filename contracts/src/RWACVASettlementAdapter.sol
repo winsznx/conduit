@@ -8,7 +8,7 @@ import {ConduitRWACVA} from "./ConduitRWACVA.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
 
-/// @notice The asset leg on Arbitrum. PRD v1.1 override sections 5 and 10.
+/// @notice The asset leg on Base. PRD v1.1 override sections 5 and 10.
 ///
 /// The override removes `AssetEscrow` from this leg: the RWA never leaves the
 /// seller's wallet before commit, it is reserved inside the token. This adapter

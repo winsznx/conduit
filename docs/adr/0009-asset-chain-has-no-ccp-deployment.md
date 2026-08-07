@@ -1,6 +1,6 @@
 # ADR-0009: The specified asset chain has no CCP deployment
 
-**Status:** Open
+**Status:** Accepted
 **Date:** 2026-08-07
 **Phase:** 03
 **Supersedes:** —
@@ -56,11 +56,16 @@ somebody else's contract.
 
 ## Decision
 
-**Not yet made.** The asset chain is fixed by two ranked sources, and CLAUDE.md requires that a
-conflict between sources stop work and be documented rather than silently resolved. Changing it
-is the project owner's decision.
+**Option A: the asset leg moves to Base Sepolia.** Decided by the project owner on 2026-08-07,
+on the reasoning that live evidence outranks a generic network statement — the guide says
+Arbitrum is a supported EVM network, it does not promise an Arbitrum Sepolia deployment.
 
-Three options, with what each costs.
+The thesis does not move with it. Base is an implementation network, not the moat. The claim
+remains: Conduit coordinates DvP between two Cleanverse-native assets on different chains,
+verified cash settling on Monad while a RuleV2-gated RWA CVA changes ownership on Base, with the
+assets never bridging and authenticated settlement state doing the travelling.
+
+Three options were considered.
 
 **A. Move the asset leg to Base Sepolia.** CCP is deployed there with 23 catalogued CVAs, and
 Wormhole Testnet covers BaseSepolia with a core contract carrying the same 680 bytes of
@@ -80,19 +85,24 @@ override's central claim that Cleanverse is load-bearing on both economic legs, 
 forbids describing the asset as ERC-3643 once a real CVA is the target. Recorded for
 completeness; not recommended.
 
-**Recommendation: A.** It is the only option that neither waits on a third party nor gives up
-the thing that makes the product interesting.
-
 ## Consequences
 
-Deferred until the decision is made. Two are already fixed:
-
-- Nothing is deployed to either chain until the asset chain is settled. The coordinator's
-  constructor binds `remoteWormholeChainId` and the peer emitter, so deploying the cash side
-  first would bake in a chain that may change.
-- The pinned Wormhole registry snapshot currently holds only Monad Testnet and Arbitrum
-  Sepolia. Option A requires re-extracting it to include BaseSepolia from the same pinned SDK
-  version, not hand-editing a value in.
+- The asset chain is `baseSepolia`: native 84532, Wormhole 10004, core
+  `0x79A1027a6A159502049F10906D333EC57E95F083`, verified live at 680 bytes. Finality is 512
+  blocks at ~2s against Monad's 1 block at ~1s, so the two directions are strongly asymmetric
+  and ASM-012 must measure each separately rather than assuming a single latency.
+- The Wormhole snapshot was re-extracted from the pinned SDK rather than hand-edited, and the
+  extractor now lives in `packages/wormhole/scripts` where the SDK actually resolves. It gained
+  a `--check` mode so a drifted snapshot fails the gate.
+- Extracting it exposed a provenance problem: the previous snapshot named
+  `@wormhole-foundation/sdk-base@6.1.5` as its source while that package was never a dependency.
+  It is now pinned in `packages/wormhole`, so the provenance is substantiable rather than
+  asserted.
+- `ChainKey` is `'monadTestnet' | 'baseSepolia'`, and the RPC variable is `BASE_SEPOLIA_RPC_URL`.
+  The change is in the authoritative config, not scattered literals.
+- `CONDUIT_PRD_v1.0.md`, `CONDUIT_PRD_v1.1_OVERRIDE.md`, and `CLAUDE.md` still read "Arbitrum
+  Sepolia". They are byte-preserved ranked sources and are not edited; this ADR is the record of
+  their supersession on this point.
 
 ## Assumptions touched
 

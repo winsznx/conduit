@@ -40,7 +40,7 @@ const runtimeSchema = z.object({
 
 const rpcSchema = z.object({
   MONAD_TESTNET_RPC_URL: z.url(),
-  ARBITRUM_SEPOLIA_RPC_URL: z.url(),
+  BASE_SEPOLIA_RPC_URL: z.url(),
 });
 
 export type CleanverseEnv = z.infer<typeof cleanverseSchema>;

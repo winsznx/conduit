@@ -137,22 +137,22 @@ describe('chain identity', () => {
     // network and must never be interchangeable.
     expect(CHAINS.monadTestnet.nativeChainId).toBe(10_143);
     expect(CHAINS.monadTestnet.wormholeChainId).toBe(10_009);
-    expect(CHAINS.arbitrumSepolia.nativeChainId).toBe(421_614);
-    expect(CHAINS.arbitrumSepolia.wormholeChainId).toBe(10_003);
+    expect(CHAINS.baseSepolia.nativeChainId).toBe(84_532);
+    expect(CHAINS.baseSepolia.wormholeChainId).toBe(10_004);
   });
 
   it('looks a chain up by either identifier', () => {
     expect(chainByNativeId(10_143)?.key).toBe('monadTestnet');
-    expect(chainByWormholeId(10_003)?.key).toBe('arbitrumSepolia');
+    expect(chainByWormholeId(10_004)?.key).toBe('baseSepolia');
   });
 
   it('does not resolve a Wormhole ID through the native lookup', () => {
     expect(chainByNativeId(10_009)).toBeUndefined();
   });
 
-  it('assigns the cash leg to Monad and the asset leg to Arbitrum', () => {
+  it('assigns the cash leg to Monad and the asset leg to Base', () => {
     expect(CHAINS.monadTestnet.role).toBe('cash');
-    expect(CHAINS.arbitrumSepolia.role).toBe('asset');
+    expect(CHAINS.baseSepolia.role).toBe('asset');
   });
 });
 
@@ -174,10 +174,10 @@ describe('startup chain-ID verification', () => {
   it('checks every configured chain', async () => {
     const seen: string[] = [];
     await assertAllChainIds(
-      { monadTestnet: 'https://monad.example', arbitrumSepolia: 'https://arb.example' },
+      { monadTestnet: 'https://monad.example', baseSepolia: 'https://arb.example' },
       (url) => {
         seen.push(url);
-        return Promise.resolve(url.includes('monad') ? 10_143 : 421_614);
+        return Promise.resolve(url.includes('monad') ? 10_143 : 84_532);
       },
     );
 
@@ -187,7 +187,7 @@ describe('startup chain-ID verification', () => {
   it('fails the whole startup when any one chain disagrees', async () => {
     await expect(
       assertAllChainIds(
-        { monadTestnet: 'https://monad.example', arbitrumSepolia: 'https://arb.example' },
+        { monadTestnet: 'https://monad.example', baseSepolia: 'https://arb.example' },
         (url) => Promise.resolve(url.includes('monad') ? 10_143 : 999),
       ),
     ).rejects.toBeInstanceOf(ChainMismatchError);

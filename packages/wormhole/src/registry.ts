@@ -37,12 +37,12 @@ const snapshotSchema = z.object({
   }),
   chains: z.object({
     monadTestnet: chainSchema,
-    arbitrumSepolia: chainSchema,
+    baseSepolia: chainSchema,
   }),
 });
 
 export type WormholeChainRegistry = z.infer<typeof chainSchema>;
-export type WormholeRegistryKey = 'monadTestnet' | 'arbitrumSepolia';
+export type WormholeRegistryKey = 'monadTestnet' | 'baseSepolia';
 
 /**
  * Validated at module load. A malformed snapshot fails the process at import
@@ -56,7 +56,7 @@ export const WORMHOLE_REGISTRY_PROVENANCE = Object.freeze(parsed.provenance);
 
 export const WORMHOLE_REGISTRY_KEYS: readonly WormholeRegistryKey[] = Object.freeze([
   'monadTestnet',
-  'arbitrumSepolia',
+  'baseSepolia',
 ]);
 
 export function registryFor(key: WormholeRegistryKey): WormholeChainRegistry {

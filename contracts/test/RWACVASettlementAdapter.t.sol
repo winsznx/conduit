@@ -28,7 +28,7 @@ contract RWACVASettlementAdapterTest is Test {
     address private constant RELAYER = address(0x4E1A4);
     address private constant OUTSIDER = address(0x0417);
 
-    uint16 private constant LOCAL_WH_CHAIN = 10_003; // ArbitrumSepolia
+    uint16 private constant LOCAL_WH_CHAIN = 10_004; // BaseSepolia
     uint16 private constant REMOTE_WH_CHAIN = 10_009; // MonadTestnet
     bytes32 private constant DEPLOYMENT_ID = keccak256("deployment-1");
     bytes32 private constant REMOTE_EMITTER = bytes32(uint256(uint160(address(0xC0FFEE))));

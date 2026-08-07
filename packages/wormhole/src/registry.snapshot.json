@@ -1,5 +1,5 @@
 {
-  "$comment": "Pinned snapshot of the official Wormhole registry. CLAUDE.md: 'Use core contract addresses from pinned official registry snapshot.' Regenerate only by bumping the source version below and re-extracting; never hand-edit a value.",
+  "$comment": "Pinned snapshot of the official Wormhole registry. CLAUDE.md: 'Use core contract addresses from pinned official registry snapshot.' Regenerate with scripts/extract-wormhole-registry.mjs; never hand-edit a value.",
   "provenance": {
     "source": "@wormhole-foundation/sdk-base",
     "version": "6.1.5",
@@ -21,13 +21,13 @@
       "finalityThresholdBlocks": 1,
       "blockTimeMilliseconds": 1000
     },
-    "arbitrumSepolia": {
-      "wormholeName": "ArbitrumSepolia",
-      "wormholeChainId": 10003,
-      "nativeChainId": 421614,
-      "coreBridgeAddress": "0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35",
-      "finalityThresholdBlocks": 4096,
-      "blockTimeMilliseconds": 260
+    "baseSepolia": {
+      "wormholeName": "BaseSepolia",
+      "wormholeChainId": 10004,
+      "nativeChainId": 84532,
+      "coreBridgeAddress": "0x79A1027a6A159502049F10906D333EC57E95F083",
+      "finalityThresholdBlocks": 512,
+      "blockTimeMilliseconds": 2000
     }
   }
 }

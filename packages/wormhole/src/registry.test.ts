@@ -36,12 +36,12 @@ describe('pinned values', () => {
     expect(chain.nativeChainId).toBe(10_143);
   });
 
-  it('matches the official registry for Arbitrum Sepolia', () => {
-    const chain = registryFor('arbitrumSepolia');
+  it('matches the official registry for Base Sepolia', () => {
+    const chain = registryFor('baseSepolia');
 
-    expect(chain.coreBridgeAddress).toBe('0x6b9C8671cdDC8dEab9c719bB87cBd3e782bA6a35');
-    expect(chain.wormholeChainId).toBe(10_003);
-    expect(chain.nativeChainId).toBe(421_614);
+    expect(chain.coreBridgeAddress).toBe('0x79A1027a6A159502049F10906D333EC57E95F083');
+    expect(chain.wormholeChainId).toBe(10_004);
+    expect(chain.nativeChainId).toBe(84_532);
   });
 
   it('agrees with the values PRD 8.3 quotes', () => {
@@ -49,8 +49,8 @@ describe('pinned values', () => {
     // source is stale, and settlement must not proceed on either.
     expect(registryFor('monadTestnet').wormholeChainId).toBe(10_009);
     expect(registryFor('monadTestnet').nativeChainId).toBe(10_143);
-    expect(registryFor('arbitrumSepolia').wormholeChainId).toBe(10_003);
-    expect(registryFor('arbitrumSepolia').nativeChainId).toBe(421_614);
+    expect(registryFor('baseSepolia').wormholeChainId).toBe(10_004);
+    expect(registryFor('baseSepolia').nativeChainId).toBe(84_532);
   });
 
   it.each(WORMHOLE_REGISTRY_KEYS)('%s core address is a checksummed 20-byte address', (key) => {
@@ -59,27 +59,32 @@ describe('pinned values', () => {
 
   it('gives the two chains different core addresses', () => {
     expect(registryFor('monadTestnet').coreBridgeAddress).not.toBe(
-      registryFor('arbitrumSepolia').coreBridgeAddress,
+      registryFor('baseSepolia').coreBridgeAddress,
     );
   });
 
   it('carries the finality parameters ASM-012 will be measured against', () => {
     expect(registryFor('monadTestnet').finalityThresholdBlocks).toBe(1);
-    expect(registryFor('arbitrumSepolia').finalityThresholdBlocks).toBe(4096);
+    // Base Sepolia needs 512 blocks at ~2s, roughly 17 minutes to finality,
+    // against Monad's single block at ~1s. ASM-012 measures what that means for
+    // real VAA availability; the asymmetry is the reason it has to be measured
+    // rather than assumed symmetric.
+    expect(registryFor('baseSepolia').finalityThresholdBlocks).toBe(512);
+    expect(registryFor('baseSepolia').blockTimeMilliseconds).toBe(2000);
   });
 });
 
 describe('lookup by Wormhole chain ID', () => {
   it('resolves each configured chain', () => {
     expect(registryByWormholeChainId(10_009)?.wormholeName).toBe('MonadTestnet');
-    expect(registryByWormholeChainId(10_003)?.wormholeName).toBe('ArbitrumSepolia');
+    expect(registryByWormholeChainId(10_004)?.wormholeName).toBe('BaseSepolia');
   });
 
   it('does not resolve a native chain ID', () => {
     // Passing a native ID where a Wormhole ID belongs is threat T-12, and it
     // must return nothing rather than the wrong chain.
     expect(registryByWormholeChainId(10_143)).toBeUndefined();
-    expect(registryByWormholeChainId(421_614)).toBeUndefined();
+    expect(registryByWormholeChainId(84_532)).toBeUndefined();
   });
 });
 
@@ -88,7 +93,7 @@ describe('cross-check against chain configuration', () => {
     expect(
       crossCheck({
         monadTestnet: { nativeChainId: 10_143, wormholeChainId: 10_009 },
-        arbitrumSepolia: { nativeChainId: 421_614, wormholeChainId: 10_003 },
+        baseSepolia: { nativeChainId: 84_532, wormholeChainId: 10_004 },
       }),
     ).toEqual([]);
   });
@@ -96,7 +101,7 @@ describe('cross-check against chain configuration', () => {
   it('reports a native chain ID disagreement', () => {
     const problems = crossCheck({
       monadTestnet: { nativeChainId: 1, wormholeChainId: 10_009 },
-      arbitrumSepolia: { nativeChainId: 421_614, wormholeChainId: 10_003 },
+      baseSepolia: { nativeChainId: 84_532, wormholeChainId: 10_004 },
     });
 
     expect(problems).toHaveLength(1);
@@ -106,7 +111,7 @@ describe('cross-check against chain configuration', () => {
   it('reports a Wormhole chain ID disagreement', () => {
     const problems = crossCheck({
       monadTestnet: { nativeChainId: 10_143, wormholeChainId: 10_009 },
-      arbitrumSepolia: { nativeChainId: 421_614, wormholeChainId: 2 },
+      baseSepolia: { nativeChainId: 84_532, wormholeChainId: 2 },
     });
 
     expect(problems).toHaveLength(1);

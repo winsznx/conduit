@@ -18,12 +18,17 @@
   ],
   "scripts": {
     "build": "tsc --build",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "registry:extract": "node scripts/extract-registry.mjs",
+    "registry:check": "node scripts/extract-registry.mjs --check"
   },
   "dependencies": {
     "@conduit-protocol/config": "workspace:*",
     "@conduit-protocol/domain": "workspace:*",
     "viem": "2.55.11",
     "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@wormhole-foundation/sdk-base": "6.1.5"
   }
 }

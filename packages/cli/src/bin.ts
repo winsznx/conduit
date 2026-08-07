@@ -39,7 +39,7 @@ program
       },
       {
         testWallets: options.wallet,
-        cashChain: options.cashChain === 'arbitrumSepolia' ? 'arbitrumSepolia' : 'monadTestnet',
+        cashChain: options.cashChain === 'baseSepolia' ? 'baseSepolia' : 'monadTestnet',
       },
     );
 
