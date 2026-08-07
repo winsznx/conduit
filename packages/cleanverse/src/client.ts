@@ -126,6 +126,72 @@ export class CleanverseClient {
     this.pendingMutationTxHash = undefined;
   }
 
+  /**
+   * A plain GET against a path-parameterised endpoint.
+   *
+   * `query_apply_status` takes its request ID in the path rather than a body,
+   * so it does not fit the POST-with-payload shape every other endpoint uses.
+   * It still goes through the same envelope contract: HTTP status, JSON parse,
+   * schema validation, then `code` — because PRD 9.3's rule that HTTP 200 is
+   * not business success does not stop applying just because the verb changed.
+   */
+  public async getJson<T>(path: string, dataSchema: z.ZodType<T>): Promise<T> {
+    const requestId = this.randomUUID();
+    const url = `${this.baseUrl}${path}`;
+
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, {
+        method: 'GET',
+        headers: {
+          'X-Request-ID': requestId,
+          [this.apiIdHeader]: this.apiId,
+        },
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : 'unknown error';
+      throw new CleanverseTransportError(`${path} request failed: ${reason}`, undefined, requestId);
+    }
+
+    if (!response.ok) {
+      throw new CleanverseTransportError(
+        `${path} returned HTTP ${String(response.status)}`,
+        response.status,
+        requestId,
+      );
+    }
+
+    const rawBody = await response.text();
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawBody);
+    } catch {
+      throw new CleanverseSchemaError(path, ['body is not valid JSON'], requestId);
+    }
+
+    const envelope = envelopeSchema.safeParse(parsed);
+    if (!envelope.success) {
+      throw new CleanverseSchemaError(path, ['response is not a Cleanverse envelope'], requestId);
+    }
+
+    // PRD 9.3 step 4. A GET is no more trustworthy than a POST: `code` decides.
+    if (!isApiOk(envelope.data.code)) {
+      throw new CleanverseApiError(path, envelope.data.code, envelope.data.message, requestId);
+    }
+
+    const data = dataSchema.safeParse(envelope.data.data);
+    if (!data.success) {
+      throw new CleanverseSchemaError(
+        path,
+        data.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+        requestId,
+      );
+    }
+    return data.data;
+  }
+
   public async call<T>(
     name: EndpointName,
     payload: Record<string, unknown>,

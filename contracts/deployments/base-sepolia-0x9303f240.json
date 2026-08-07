@@ -1,7 +1,7 @@
 {
   "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
   "protocolVersion": 1,
-  "gitCommit": "213dd2cd6f2af15c88d2ebe9655ed62a7f9407e9",
+  "gitCommit": "0d13871e818cd0819ed5adcd7e42cc0b4a09c1d8",
   "solcVersion": "0.8.36",
   "chainConfigs": {
     "baseSepolia": {
@@ -14,16 +14,16 @@
   "contracts": {
     "ConduitRWACVA": {
       "chain": "baseSepolia",
-      "address": "0x244198CFA8660BE9B47961E3C061DFA90622d2B0"
+      "address": "0xd018aAd670585519e0953310D29CC2F65011782C"
     },
     "RWACVASettlementAdapter": {
       "chain": "baseSepolia",
-      "address": "0x5479a4ff288E1cC77B5E352BfD822a9ce269E93f"
+      "address": "0x4fb47869c69b37b052fD6e3A23DF9E1d77998D82"
     }
   },
   "bytecodeHashes": {
-    "ConduitRWACVA": "0x5f48175c078bbbaca9eb3d04ec1f12f57a653aff6b8c2885bdd18b10441cfb54",
-    "RWACVASettlementAdapter": "0xadea164d5b7fe8b6af6e2759a2edbe9702308208bd18d5c2367d8c8fe9c81142"
+    "ConduitRWACVA": "0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a",
+    "RWACVASettlementAdapter": "0xa49c1a605782f76db999f85a3c2230f90b0e3f63728a5eabe6a7672d2b1d6324"
   },
   "wormhole": {
     "baseSepolia": {
@@ -34,5 +34,5 @@
   },
   "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
   "validatorRuleHashes": {},
-  "timestamp": "2026-08-07T16:10:24.431Z"
+  "timestamp": "2026-08-07T18:14:55.619Z"
 }

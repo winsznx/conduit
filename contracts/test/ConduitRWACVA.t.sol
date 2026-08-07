@@ -342,6 +342,30 @@ contract ConduitRWACVATest is Test {
         );
     }
 
+    function test_ExposesOwnerForCleanverseRegistration() public view {
+        // Cleanverse validates the registration signature against the contract
+        // owner. An AccessControl-only build reverts on owner() and registration
+        // fails after a human has already signed. PRD 9.6 requires it too.
+        assertEq(token.owner(), ADMIN);
+    }
+
+    function test_OwnershipAndRuleAdminAreSeparate() public {
+        // Transferring ownership must not hand over rule management with it.
+        vm.prank(ADMIN);
+        token.transferOwnership(OUTSIDER);
+        vm.prank(OUTSIDER);
+        token.acceptOwnership();
+
+        assertEq(token.owner(), OUTSIDER);
+        assertTrue(token.hasRole(token.DEFAULT_ADMIN_ROLE(), ADMIN));
+        assertFalse(token.hasRole(token.DEFAULT_ADMIN_ROLE(), OUTSIDER));
+
+        IComplianceRule.RuleV2 memory rule;
+        vm.prank(OUTSIDER);
+        vm.expectRevert();
+        token.setRuleV2(rule);
+    }
+
     function test_OnlyAdminMayManageRules() public {
         IComplianceRule.RuleV2 memory rule;
 

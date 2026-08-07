@@ -158,7 +158,7 @@
   "contracts/src/ConduitRWACVA.sol:ConduitRWACVA": {
     "storage": [
       {
-        "astId": 538,
+        "astId": 772,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_balances",
         "offset": 0,
@@ -166,7 +166,7 @@
         "type": "t_mapping(t_address,t_uint256)"
       },
       {
-        "astId": 544,
+        "astId": 778,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_allowances",
         "offset": 0,
@@ -174,7 +174,7 @@
         "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
       },
       {
-        "astId": 546,
+        "astId": 780,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_totalSupply",
         "offset": 0,
@@ -182,7 +182,7 @@
         "type": "t_uint256"
       },
       {
-        "astId": 548,
+        "astId": 782,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_name",
         "offset": 0,
@@ -190,7 +190,7 @@
         "type": "t_string_storage"
       },
       {
-        "astId": 550,
+        "astId": 784,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_symbol",
         "offset": 0,
@@ -206,19 +206,35 @@
         "type": "t_mapping(t_bytes32,t_struct(RoleData)21_storage)"
       },
       {
-        "astId": 1251,
+        "astId": 387,
+        "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_address"
+      },
+      {
+        "astId": 535,
+        "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_address"
+      },
+      {
+        "astId": 1491,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_reservations",
         "offset": 0,
-        "slot": "6",
-        "type": "t_mapping(t_bytes32,t_struct(Reservation)1246_storage)"
+        "slot": "8",
+        "type": "t_mapping(t_bytes32,t_struct(Reservation)1486_storage)"
       },
       {
-        "astId": 1255,
+        "astId": 1495,
         "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
         "label": "_reservedOf",
         "offset": 0,
-        "slot": "7",
+        "slot": "9",
         "type": "t_mapping(t_address,t_uint256)"
       }
     ],
@@ -259,12 +275,12 @@
         "numberOfBytes": "32",
         "value": "t_uint256"
       },
-      "t_mapping(t_bytes32,t_struct(Reservation)1246_storage)": {
+      "t_mapping(t_bytes32,t_struct(Reservation)1486_storage)": {
         "encoding": "mapping",
         "key": "t_bytes32",
         "label": "mapping(bytes32 => struct ConduitRWACVA.Reservation)",
         "numberOfBytes": "32",
-        "value": "t_struct(Reservation)1246_storage"
+        "value": "t_struct(Reservation)1486_storage"
       },
       "t_mapping(t_bytes32,t_struct(RoleData)21_storage)": {
         "encoding": "mapping",
@@ -278,13 +294,13 @@
         "label": "string",
         "numberOfBytes": "32"
       },
-      "t_struct(Reservation)1246_storage": {
+      "t_struct(Reservation)1486_storage": {
         "encoding": "inplace",
         "label": "struct ConduitRWACVA.Reservation",
         "numberOfBytes": "128",
         "members": [
           {
-            "astId": 1233,
+            "astId": 1473,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "owner",
             "offset": 0,
@@ -292,7 +308,7 @@
             "type": "t_address"
           },
           {
-            "astId": 1235,
+            "astId": 1475,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "amount",
             "offset": 0,
@@ -300,7 +316,7 @@
             "type": "t_uint256"
           },
           {
-            "astId": 1237,
+            "astId": 1477,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "settlementId",
             "offset": 0,
@@ -308,7 +324,7 @@
             "type": "t_bytes32"
           },
           {
-            "astId": 1239,
+            "astId": 1479,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "createdAt",
             "offset": 0,
@@ -316,7 +332,7 @@
             "type": "t_uint64"
           },
           {
-            "astId": 1241,
+            "astId": 1481,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "committed",
             "offset": 8,
@@ -324,7 +340,7 @@
             "type": "t_bool"
           },
           {
-            "astId": 1243,
+            "astId": 1483,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "released",
             "offset": 9,
@@ -332,7 +348,7 @@
             "type": "t_bool"
           },
           {
-            "astId": 1245,
+            "astId": 1485,
             "contract": "contracts/src/ConduitRWACVA.sol:ConduitRWACVA",
             "label": "cancelled",
             "offset": 10,
@@ -379,7 +395,7 @@
   "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter": {
     "storage": [
       {
-        "astId": 2859,
+        "astId": 2868,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "remoteEmitter",
         "offset": 0,
@@ -387,7 +403,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 2862,
+        "astId": 2871,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -395,7 +411,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 2867,
+        "astId": 2876,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "consumedVaa",
         "offset": 0,
@@ -419,7 +435,7 @@
         "type": "t_address"
       },
       {
-        "astId": 2413,
+        "astId": 2422,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "intendedReceiver",
         "offset": 0,
@@ -427,7 +443,7 @@
         "type": "t_mapping(t_bytes32,t_address)"
       },
       {
-        "astId": 2417,
+        "astId": 2426,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "boundIntentHash",
         "offset": 0,

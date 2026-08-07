@@ -25,8 +25,11 @@ const CONFIG = {
     wormholeChainId: 10004,
     coreEnv: 'WORMHOLE_CORE_BASE_SEPOLIA',
     contracts: {
-      ConduitRWACVA: '0x244198CFA8660BE9B47961E3C061DFA90622d2B0',
-      RWACVASettlementAdapter: '0x5479a4ff288E1cC77B5E352BfD822a9ce269E93f',
+      // Superseded 0x244198CF…d2B0, which carried AccessControl alone and so
+      // had no owner() for Cleanverse to validate a registration signature
+      // against. ADR-0011.
+      ConduitRWACVA: '0xd018aAd670585519e0953310D29CC2F65011782C',
+      RWACVASettlementAdapter: '0x4fb47869c69b37b052fD6e3A23DF9E1d77998D82',
     },
   },
 };

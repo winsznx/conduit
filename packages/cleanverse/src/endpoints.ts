@@ -59,6 +59,12 @@ export const ENDPOINTS = Object.freeze({
   queryDepositAddress: readEncrypted('/query_deposit_address'),
   queryInstitutionWhiteList: read('/query_institution_white_list'),
 
+  // CVA issuance. Method B registers an already-deployed custom contract; the
+  // gateway validates `owner_signature` against the contract's owner before
+  // forwarding the application, which is why ConduitRWACVA exposes `owner()`.
+  registerAToken: write('/atoken/register_atoken', false),
+  launchAToken: write('/atoken/launch', false),
+
   // Validator
   validatorGrant: write('/validator/grant', true),
   validatorRegister: write('/validator/register', true),

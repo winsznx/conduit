@@ -107,3 +107,23 @@ export {
   WebhookVerificationError,
   type WebhookDelivery,
 } from './webhooks.js';
+
+export {
+  pollApplyStatus,
+  registerAToken,
+  registrationMessage,
+  type ApplyStatusData,
+  type PollOptions,
+  type RegisterATokenData,
+  type RegisterATokenRequest,
+  type RegistrationOutcome,
+} from './registration.js';
+
+export {
+  applyStatusDataSchema,
+  ApplyStatus,
+  isApplyStatusTerminal,
+  isRegistrationComplete,
+  registerATokenDataSchema,
+  type ApplyStatusValue,
+} from './schemas.js';

@@ -200,3 +200,53 @@ export function describeIssues(error: z.ZodError): string[] {
     return path.length === 0 ? issue.message : `${path}: ${issue.message}`;
   });
 }
+
+/**
+ * `POST /atoken/register_atoken`. Method B, custom-contract registration.
+ *
+ * A response here means the application was *accepted*, not that the CVA is
+ * registered. PRD 9.3's rule applies with force: `code == "0000"` is an API
+ * success and nothing more. Registration is only real once
+ * `query_apply_status` reports `ISSUED`.
+ */
+export const registerATokenDataSchema = z.object({
+  requestId: z.string().min(1),
+  issueAssetRegisterId: z.union([z.string(), z.number()]).optional(),
+});
+
+/**
+ * `GET /atoken/query_apply_status/{requestId}`.
+ *
+ * `ISSUED` is the only terminal success. Treating `PENDING` or `APPROVED` as
+ * done would mean claiming a registered CVA that the policy still refuses.
+ */
+export const ApplyStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  ISSUED: 'ISSUED',
+  REJECTED: 'REJECTED',
+  FAILED: 'FAILED',
+} as const;
+
+export type ApplyStatusValue = (typeof ApplyStatus)[keyof typeof ApplyStatus];
+
+export const applyStatusDataSchema = z.object({
+  applyStatus: z.string().min(1),
+  atokenAddress: z.string().optional(),
+  chain: z.string().optional(),
+  reason: z.string().optional(),
+  message: z.string().optional(),
+});
+
+/** Only ISSUED means the CVA exists as far as the policy is concerned. */
+export function isRegistrationComplete(applyStatus: string): boolean {
+  return applyStatus.toUpperCase() === ApplyStatus.ISSUED;
+}
+
+/** Terminal states, successful or not. Anything else is still in flight. */
+export function isApplyStatusTerminal(applyStatus: string): boolean {
+  const upper = applyStatus.toUpperCase();
+  return (
+    upper === ApplyStatus.ISSUED || upper === ApplyStatus.REJECTED || upper === ApplyStatus.FAILED
+  );
+}

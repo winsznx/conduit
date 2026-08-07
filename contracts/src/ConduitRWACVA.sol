@@ -2,6 +2,7 @@
 pragma solidity =0.8.36;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {IATokenPolicy, IComplianceRule} from "./interfaces/IATokenPolicy.sol";
@@ -34,7 +35,18 @@ import {IATokenPolicy, IComplianceRule} from "./interfaces/IATokenPolicy.sol";
 /// The COMMIT proof itself is verified by the settlement adapter, not here. This
 /// contract enforces that a release cannot happen without one having been
 /// presented, and that a cancellation cannot happen after one has.
-contract ConduitRWACVA is ERC20, AccessControl {
+contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
+    /// @dev Both an owner and roles, which is what the CCP templates do.
+    ///
+    /// `owner()` is not decorative. Cleanverse validates the registration
+    /// signature against the contract's owner, and an earlier build carried
+    /// AccessControl alone: `owner()` reverted, and registration would have
+    /// failed after a human had already signed for it. PRD 9.6 says the same
+    /// thing from the other direction — protocol contracts expose `owner()`.
+    ///
+    /// Ownership is the registration identity. `DEFAULT_ADMIN_ROLE` is the
+    /// operational one that manages RuleV2 and grants MINTER_ROLE, so
+    /// transferring ownership does not silently hand over rule management.
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     /// @notice Held by the settlement adapter. Never by an EOA in staging or production.
     bytes32 public constant SETTLEMENT_ROLE = keccak256("SETTLEMENT_ROLE");
@@ -86,7 +98,7 @@ contract ConduitRWACVA is ERC20, AccessControl {
         uint8 decimals_,
         address policy_,
         address admin_
-    ) ERC20(name_, symbol_) {
+    ) ERC20(name_, symbol_) Ownable(admin_) {
         if (policy_ == address(0) || admin_ == address(0)) revert ZeroAddress();
 
         policy = IATokenPolicy(policy_);
