@@ -47,15 +47,34 @@ export function isRestricted(status: NormalizedApassStatusValue): boolean {
   return RESTRICTED.has(status);
 }
 
+/**
+ * Business codes that mean "this wallet has no A-Pass".
+ *
+ * The sandbox reports a missing A-Pass as envelope code 0002 with a `CN_001`
+ * message, not as an empty success. PRD 2.1 makes MISSING a normalized *state*,
+ * so treating it as a transport fault would turn a legitimate compliance answer
+ * into a retryable error, which is threat T-06.
+ */
+export const APASS_NOT_FOUND_MARKERS: readonly string[] = Object.freeze([
+  'CN_001',
+  'apass not found',
+  'apass not exist',
+]);
+
+export function isApassNotFound(message: string): boolean {
+  const lowered = message.toLowerCase();
+  return APASS_NOT_FOUND_MARKERS.some((marker) => lowered.includes(marker.toLowerCase()));
+}
+
 export interface ApassRecord {
-  readonly status: number;
+  readonly status?: number | null | undefined;
   /** Unix seconds, UTC. */
   readonly expirationTime: number;
   readonly tier: number;
   readonly subTier: number;
-  readonly group: string;
-  readonly subGroup: string;
-  readonly currentKycHash: string;
+  readonly group?: string | null | undefined;
+  readonly subGroup?: string | null | undefined;
+  readonly currentKycHash?: string | null | undefined;
   readonly countries: readonly string[];
 }
 

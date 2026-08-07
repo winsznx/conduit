@@ -30,16 +30,24 @@ export const encryptedEnvelopeSchema = z.object({
 
 const unixSeconds = z.number().int().nonnegative();
 
-/** `POST /query_apass`. Fields per PRD 2.1. */
+/**
+ * `POST /query_apass`. Fields per PRD 2.1, corrected against the live sandbox.
+ *
+ * `tier` arrives as a string (`"50"`) while `subTier` arrives as a number, so
+ * both are coerced. `group` and `subGroup` can be absent or null rather than
+ * empty strings. The PRD describes all of these as plain values; the API is
+ * looser, and a schema that insists otherwise rejects valid identities.
+ */
 export const queryApassDataSchema = z.object({
-  status: z.number().int(),
-  expirationTime: unixSeconds,
-  tier: z.number().int().nonnegative(),
-  subTier: z.number().int().nonnegative(),
-  group: z.string(),
-  subGroup: z.string(),
-  currentKycHash: z.string(),
+  status: z.coerce.number().int().nullish(),
+  expirationTime: z.coerce.number().int().nonnegative(),
+  tier: z.coerce.number().int().nonnegative(),
+  subTier: z.coerce.number().int().nonnegative(),
+  group: z.string().nullish(),
+  subGroup: z.string().nullish(),
+  currentKycHash: z.string().nullish(),
   countries: z.array(z.string()).default([]),
+  cvRecordId: z.string().nullish(),
 });
 
 export type QueryApassData = z.infer<typeof queryApassDataSchema>;
@@ -48,6 +56,9 @@ export type QueryApassData = z.infer<typeof queryApassDataSchema>;
 export const verifyApassDataSchema = z.object({
   code: z.number().int(),
   message: z.string().default(''),
+  chain: z.string().optional(),
+  atoken: z.string().optional(),
+  address: z.string().optional(),
 });
 
 export type VerifyApassData = z.infer<typeof verifyApassDataSchema>;
@@ -70,11 +81,15 @@ export type ValidatorVerifyData = z.infer<typeof validatorVerifyDataSchema>;
 /** `POST /validator/is_register`. */
 export const validatorIsRegisterDataSchema = z.object({
   registered: z.boolean(),
+  chain: z.string().optional(),
+  contract_address: z.string().optional(),
 });
 
 /** `POST /validator/is_paused`. */
 export const validatorIsPausedDataSchema = z.object({
   paused: z.boolean(),
+  chain: z.string().optional(),
+  contract_address: z.string().optional(),
 });
 
 /**
@@ -97,7 +112,9 @@ export const validatorRuleSchema = z.object({
 });
 
 export const validatorRulesDataSchema = z.object({
-  rules: z.array(validatorRuleSchema).default([]),
+  rules: z.array(validatorRuleSchema),
+  chain: z.string().optional(),
+  contract_address: z.string().optional(),
 });
 
 export type ValidatorRule = z.infer<typeof validatorRuleSchema>;

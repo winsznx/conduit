@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import { normalizeApass, type NormalizedApass } from './apass.js';
+import { isApassNotFound, normalizeApass, type NormalizedApass } from './apass.js';
 import { ApiCode, isApiOk, isRetryableApiCode } from './codes.js';
 import {
   CleanverseApiError,
@@ -337,24 +337,33 @@ export class CleanverseClient {
     chain: string,
     wallet: string,
     options: { now: number; warningWindowSeconds: number },
-  ): Promise<{ result: CleanverseResult<unknown>; normalized: NormalizedApass }> {
-    const result = await this.call(
-      'queryApass',
-      { chain, address: wallet },
-      queryApassDataSchema.optional(),
-    );
+  ): Promise<{ result: CleanverseResult<unknown> | undefined; normalized: NormalizedApass }> {
+    try {
+      const result = await this.call(
+        'queryApass',
+        { chain, address: wallet },
+        queryApassDataSchema.optional(),
+      );
 
-    return {
-      result,
-      normalized: normalizeApass(result.data, options),
-    };
+      return { result, normalized: normalizeApass(result.data, options) };
+    } catch (error) {
+      // PRD 2.1: no A-Pass record is MISSING, a normalized state. The sandbox
+      // reports it as a business failure code, and letting that propagate as an
+      // exception would make a legitimate compliance answer look like an outage
+      // and invite a retry (threat T-06).
+      if (error instanceof CleanverseApiError && isApassNotFound(error.apiMessage)) {
+        return { result: undefined, normalized: normalizeApass(undefined, options) };
+      }
+      throw error;
+    }
   }
 
   /** PRD 2.2. Only inner code 4 authorizes a transfer. */
   public async verifyApass(chain: string, wallet: string, atokenAddress: string) {
     return this.call(
       'verifyApass',
-      { chain, address: wallet, atoken_address: atokenAddress },
+      // Field names verified against the sandbox: `atoken`, not `atoken_address`.
+      { chain, address: wallet, atoken: atokenAddress },
       verifyApassDataSchema,
     );
   }
@@ -366,7 +375,7 @@ export class CleanverseClient {
   public async validatorVerify(chain: string, poolAddress: string, wallet: string) {
     return this.call(
       'validatorVerify',
-      { chain, pool_address: poolAddress, address: wallet },
+      { chain, contract_address: poolAddress, user_address: wallet },
       validatorVerifyDataSchema,
     );
   }
@@ -382,7 +391,7 @@ export class CleanverseClient {
   public async validatorIsPaused(chain: string, poolAddress: string) {
     return this.call(
       'validatorIsPaused',
-      { chain, pool_address: poolAddress },
+      { chain, contract_address: poolAddress },
       validatorIsPausedDataSchema,
     );
   }
@@ -391,7 +400,7 @@ export class CleanverseClient {
   public async validatorRules(chain: string, poolAddress: string) {
     return this.call(
       'validatorRules',
-      { chain, pool_address: poolAddress },
+      { chain, contract_address: poolAddress },
       validatorRulesDataSchema,
     );
   }

@@ -270,8 +270,8 @@ describe('verify_apass result codes (PRD 2.2)', () => {
 });
 
 describe('request construction and evidence', () => {
-  it('sends an encrypted body and a per-request X-Request-ID', async () => {
-    const { client, fetch, cipher } = await harness(0);
+  it('sends a plaintext body for a plaintext endpoint, with a per-request X-Request-ID', async () => {
+    const { client, fetch } = await harness(0);
     fetch.mockResolvedValue(jsonResponse({ code: '0000', data: { paused: false } }));
 
     await client.validatorIsPaused('monad', ATOKEN);
@@ -283,14 +283,27 @@ describe('request construction and evidence', () => {
     expect(headers['X-Request-ID']).toBe('00000000-0000-4000-8000-000000000000');
     expect(headers['api-id']).toBe('test-api-id');
 
-    // The plaintext payload must not be on the wire.
+    // validator/is_paused takes a plaintext body. Verified against the live
+    // sandbox: an encrypted body reaches the server unparsed and the endpoint
+    // reports its required fields as missing.
     const rawBody = init?.body;
+    if (typeof rawBody !== 'string') throw new TypeError('expected a serialized request body');
+
+    expect(JSON.parse(rawBody)).toEqual({ chain: 'monad', contract_address: ATOKEN });
+  });
+
+  it('sends an encrypted body for an endpoint that requires encryption', async () => {
+    const { client, fetch, cipher } = await harness(0);
+    fetch.mockResolvedValue(jsonResponse({ code: '0000', data: { tx_hash: '0xabc' } }));
+
+    await client.call('validatorRegister', { chain: 'monad' }, z.object({ tx_hash: z.string() }));
+
+    const rawBody = fetch.mock.calls[0]?.[1]?.body;
     if (typeof rawBody !== 'string') throw new TypeError('expected a serialized request body');
 
     const body = JSON.parse(rawBody) as { data: string };
     expect(Object.keys(body)).toEqual(['data']);
-    expect(rawBody).not.toContain(ATOKEN);
-    expect(JSON.parse(await cipher.decrypt(body.data))).toMatchObject({ pool_address: ATOKEN });
+    expect(JSON.parse(await cipher.decrypt(body.data))).toMatchObject({ chain: 'monad' });
   });
 
   it('hashes the raw body and returns a redacted copy', async () => {
@@ -316,12 +329,17 @@ describe('request construction and evidence', () => {
     });
   });
 
-  it('decrypts an encrypted response envelope', async () => {
+  it('decrypts an encrypted response envelope on an encrypted endpoint', async () => {
     const { client, fetch, cipher } = await harness(0);
-    const inner = JSON.stringify({ code: '0000', message: '', data: { paused: true } });
+    const inner = JSON.stringify({ code: '0000', message: '', data: { tx_hash: '0xfeed' } });
     fetch.mockResolvedValue(jsonResponse({ data: await cipher.encrypt(inner) }));
 
-    expect((await client.validatorIsPaused('monad', ATOKEN)).data.paused).toBe(true);
+    const result = await client.call(
+      'validatorRegister',
+      { chain: 'monad' },
+      z.object({ tx_hash: z.string() }),
+    );
+    expect(result.data.tx_hash).toBe('0xfeed');
   });
 });
 

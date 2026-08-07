@@ -10,6 +10,24 @@
 
 export type EndpointKind = 'read' | 'write';
 
+/**
+ * Whether a body is AES-encrypted is per endpoint, not global.
+ *
+ * PRD 9.2 says "for documented encrypted endpoints", and an earlier version of
+ * this file read that as "all of them". It is not. Every endpoint below marked
+ * plaintext was verified against the live sandbox on 2026-08-07: an encrypted
+ * body reached the server, failed to parse, and the endpoint reported its
+ * required fields as missing — which reads exactly like a client sending the
+ * wrong field names, and cost real time to distinguish.
+ *
+ * Worse, the endpoints that appeared to work encrypted were silently ignoring
+ * the entire body. `query_deposit_atoken_list` looked like it ignored its
+ * `chain` argument; in plaintext it filters correctly.
+ *
+ * An endpoint is only marked encrypted here with evidence that encryption is
+ * what it wants.
+ */
+
 export interface EndpointDefinition {
   readonly path: string;
   readonly kind: EndpointKind;
@@ -18,8 +36,14 @@ export interface EndpointDefinition {
   readonly awaitsChainConfirmation: boolean;
 }
 
-function read(path: string, encrypted = true): EndpointDefinition {
-  return { path, kind: 'read', encrypted, awaitsChainConfirmation: false };
+/** Verified plaintext against the live sandbox. */
+function read(path: string): EndpointDefinition {
+  return { path, kind: 'read', encrypted: false, awaitsChainConfirmation: false };
+}
+
+/** Not yet verified either way; encryption is assumed until evidence says otherwise. */
+function readEncrypted(path: string): EndpointDefinition {
+  return { path, kind: 'read', encrypted: true, awaitsChainConfirmation: false };
 }
 
 function write(path: string, awaitsChainConfirmation: boolean): EndpointDefinition {
@@ -32,7 +56,7 @@ export const ENDPOINTS = Object.freeze({
   queryApass: read('/query_apass'),
   queryApassList: read('/query_apass_list'),
   verifyApass: read('/verify_apass'),
-  queryDepositAddress: read('/query_deposit_address'),
+  queryDepositAddress: readEncrypted('/query_deposit_address'),
   queryInstitutionWhiteList: read('/query_institution_white_list'),
 
   // Validator
@@ -48,9 +72,9 @@ export const ENDPOINTS = Object.freeze({
   validatorIsPaused: read('/validator/is_paused'),
 
   // Evidence
-  queryTxs: read('/query_txs'),
-  queryInstitutionTxs: read('/query_institution_txs'),
-  downloadTravelRule: read('/download_travel_rule'),
+  queryTxs: readEncrypted('/query_txs'),
+  queryInstitutionTxs: readEncrypted('/query_institution_txs'),
+  downloadTravelRule: readEncrypted('/download_travel_rule'),
 
   // Sandbox. PRD 9.5: update_status is allowed only in the isolated demo/admin
   // harness and is never exposed to ordinary users.
@@ -58,13 +82,13 @@ export const ENDPOINTS = Object.freeze({
   updateStatus: write('/update_status', false),
 
   // Ramp
-  queryRampCountries: read('/query_ramp_countries'),
-  queryRampFiatCurrencies: read('/query_ramp_fiat_currencies'),
-  queryRampCryptoCurrencies: read('/query_ramp_crypto_currencies'),
-  queryRampPaymentMethods: read('/query_ramp_payment_methods'),
-  queryRampQuote: read('/query_ramp_quote'),
+  queryRampCountries: readEncrypted('/query_ramp_countries'),
+  queryRampFiatCurrencies: readEncrypted('/query_ramp_fiat_currencies'),
+  queryRampCryptoCurrencies: readEncrypted('/query_ramp_crypto_currencies'),
+  queryRampPaymentMethods: readEncrypted('/query_ramp_payment_methods'),
+  queryRampQuote: readEncrypted('/query_ramp_quote'),
   createRampWidgetUrl: write('/create_ramp_widget_url', false),
-  queryRampOrder: read('/query_ramp_order'),
+  queryRampOrder: readEncrypted('/query_ramp_order'),
 }) satisfies Readonly<Record<string, EndpointDefinition>>;
 
 export type EndpointName = keyof typeof ENDPOINTS;

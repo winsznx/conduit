@@ -18,24 +18,29 @@ The live sandbox differs from that description in three ways that matter, all ob
 
 1. the payload is `data.tokens`, not `data.list`, and the token fields are nested under
    `origin_token` and `atoken` rather than flattened;
-2. the `chain` request argument is ignored. Sending `monad`, `monadtestnet`, `monad_testnet`,
-   `MONAD`, `Monad`, and `""` all return byte-identical responses, and the echoed `data.chain`
-   is empty;
-3. the response spans every chain the sandbox supports. Thirty-four entries came back, including
-   two Solana-style base58 addresses, and no entry carries a chain field.
+2. ~~the `chain` request argument is ignored~~ **— corrected, see ADR-0008.** The argument is
+   honoured. It appeared to be ignored because the request body was being AES-encrypted for an
+   endpoint that expects plaintext, so the server parsed no arguments at all and returned its
+   full catalogue;
+3. with a plaintext body, `chain: "monad"` returns exactly one token, `chain: "arbitrum"`
+   returns zero, and `chain: "base"` returns twenty-two. Non-EVM entries appear only for the
+   chains they belong to.
 
-Point 3 is the problem. PRD 2.4 wants the cash token selected from the API response, and the
-response cannot say which chain a token is on.
+The response still carries no per-entry chain field, and the same A-Token address appears on
+more than one chain: aUSDC is `0xaC0893567D43C3E7e6e35a72803df05416C1f20D` on both Monad and
+Base. So a token must never be identified by address alone.
 
 ## Decision
 
-**Attribute tokens to a chain by reading chain state.** A token is on a chain when that chain's
-RPC reports bytecode at its address. `aTokensDeployedOn` filters the discovered list through an
-injected code reader, deduplicating by A-Token address because the sandbox maps several origin
+**Ask the API for one chain, then confirm against chain state.** The chain argument narrows the
+catalogue; `aTokensDeployedOn` then confirms each candidate carries bytecode on the chain we
+actually configured. Both steps are kept even though the first now works, because they fail
+independently: a mislabelled catalogue entry and a wrong RPC do not produce the same error.
+
+`aTokensDeployedOn` deduplicates by A-Token address, because the sandbox maps several origin
 tokens onto one A-Token and emits each mapping as its own entry.
 
-This keeps PRD 2.4 satisfied in substance: the address still comes from the API and is never
-hardcoded. What the chain adds is the fact the API omits.
+This keeps PRD 2.4 satisfied: the address comes from the API and is never hardcoded.
 
 Attribution fails closed. An unreachable RPC yields "not on this chain" rather than an
 assumption, because an RPC that cannot answer is not evidence of presence.
@@ -56,14 +61,16 @@ assumption, because an RPC that cannot answer is not evidence of presence.
 
 ```text
 ok  cleanverse.atokenList  (required)  [ASM-001]
-    2 of 34 discovered entries are deployed on monadTestnet:
-      ausdc 0xaC0893567D43C3E7e6e35a72803df05416C1f20D (6 decimals, 5 origin token(s));
-      ausdt 0xB5f430eA34d743694A4BF12F8d5917d7668232B7 (6 decimals, 3 origin token(s))
+    1 of 1 discovered entries are deployed on monadTestnet:
+      ausdc 0xaC0893567D43C3E7e6e35a72803df05416C1f20D (6 decimals, 1 origin token(s))
 ```
 
-Twenty-six of the thirty-four entries are unique EVM A-Tokens. Twenty-four of those are deployed
-on neither Monad Testnet nor Arbitrum Sepolia, which is consistent with a shared sandbox holding
-other participants' test tokens.
+Per-chain catalogue sizes: monad 1, arbitrum 0, base 22.
+
+An earlier encrypted-body run returned all 34 entries and attributed two to Monad, including
+aUSDT `0xB5f430eA34d743694A4BF12F8d5917d7668232B7`. aUSDT does carry bytecode on Monad but is
+not offered in the Monad deposit catalogue, so it is not a valid cash token. That is precisely
+the case bytecode alone would have got wrong, and it is why both checks are kept.
 
 Supporting addresses for both Monad tokens: `accesscore_address`
 `0x8F118338a1fa41E7Fa86Be19A4e8B99Ed58A6EcC`, `apass_address`

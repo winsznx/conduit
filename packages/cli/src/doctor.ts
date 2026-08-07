@@ -328,7 +328,7 @@ export async function runDoctor(
 
   for (const wallet of options.testWallets) {
     try {
-      const { normalized } = await client.queryApass(cashChain.wormholeName.toLowerCase(), wallet, {
+      const { normalized } = await client.queryApass(cashChain.cleanverseChain, wallet, {
         now: Math.floor(deps.now().getTime() / 1000),
         warningWindowSeconds: 86_400,
       });
