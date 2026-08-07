@@ -5,10 +5,11 @@ PRD 15.5: _"No security tool result may be silenced without a documented waiver 
 
 ## Current waivers
 
-| Waiver                                                                     | Tool     | Scope                                           | Expires    |
-| -------------------------------------------------------------------------- | -------- | ----------------------------------------------- | ---------- |
-| [gitleaks-env-templates.md](./gitleaks-env-templates.md)                   | gitleaks | worktree scan of `.env` and `.env.example` only | 2026-11-07 |
-| [slither-timestamp-conduitrwacva.md](./slither-timestamp-conduitrwacva.md) | Slither  | `timestamp` detector, `ConduitRWACVA` only      | 2026-11-07 |
+| Waiver                                                                     | Tool     | Scope                                                                                    | Expires    |
+| -------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- | ---------- |
+| [gitleaks-env-templates.md](./gitleaks-env-templates.md)                   | gitleaks | worktree scan of `.env` and `.env.example` only                                          | 2026-11-07 |
+| [slither-timestamp-conduitrwacva.md](./slither-timestamp-conduitrwacva.md) | Slither  | `timestamp` detector, `ConduitRWACVA` only                                               | 2026-11-07 |
+| [slither-transport-and-codec.md](./slither-transport-and-codec.md)         | Slither  | `assembly` on `MessageCodec.decode`, `reentrancy-events` on `WormholeTransport._publish` | 2026-11-07 |
 
 `tests/docs.test.ts` fails if a waiver file appears without a status and an expiry, or if an
 expiry has passed.

@@ -1,4 +1,144 @@
 {
+  "contracts/src/CashEscrow.sol:CashEscrow": {
+    "storage": [
+      {
+        "astId": 1863,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "consumedVaa",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_bool)"
+      },
+      {
+        "astId": 8,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 156,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 1240,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "_legs",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_bytes32,t_struct(CashLeg)1235_storage)"
+      },
+      {
+        "astId": 1243,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "totalEscrowed",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1246,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "preparationsPaused",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_bool"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_enum(LegState)1223": {
+        "encoding": "inplace",
+        "label": "enum CashEscrow.LegState",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_bytes32,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_bytes32,t_struct(CashLeg)1235_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct CashEscrow.CashLeg)",
+        "numberOfBytes": "32",
+        "value": "t_struct(CashLeg)1235_storage"
+      },
+      "t_struct(CashLeg)1235_storage": {
+        "encoding": "inplace",
+        "label": "struct CashEscrow.CashLeg",
+        "numberOfBytes": "160",
+        "members": [
+          {
+            "astId": 1225,
+            "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+            "label": "payer",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address"
+          },
+          {
+            "astId": 1227,
+            "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+            "label": "receiver",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address"
+          },
+          {
+            "astId": 1229,
+            "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+            "label": "amount",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 1231,
+            "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+            "label": "intentHash",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 1234,
+            "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+            "label": "state",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_enum(LegState)1223"
+          }
+        ]
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  },
   "contracts/src/ConduitRWACVA.sol:ConduitRWACVA": {
     "storage": [
       {
