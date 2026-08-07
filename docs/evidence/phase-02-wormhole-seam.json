@@ -1,0 +1,45 @@
+{
+  "capturedAt": "2026-08-07T19:19:06.993Z",
+  "emitter": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "consistencyLevel": 200,
+  "consistencyNote": "Instant (200). Base Sepolia finality is 512 blocks at ~2s, so a finalized-level message there is roughly seventeen minutes from publish to availability. Production settlement selects the level per chain from these measurements.",
+  "directions": [
+    {
+      "direction": "Monad Testnet → Base Sepolia",
+      "sourceWormholeChainId": 10009,
+      "destinationWormholeChainId": 10004,
+      "txHash": "0x0de96ea098a7b7206c2451d145c7f23b35d788a5d75abe13c238f2a4faba81c8",
+      "sequence": "0",
+      "messageFeeWei": "0",
+      "vaaBytes": 151,
+      "guardianSignatures": 1,
+      "guardianSetIndex": 0,
+      "vaaAvailableAfterMs": 3461,
+      "verifiedOnDestination": true,
+      "reason": "",
+      "emitterChainIdInVaa": 10009,
+      "emitterMatches": true,
+      "payloadIntact": true,
+      "vaaHash": "0x9a0eedbc88c1d23ebc7445df4c3c6b4d429b503470436e7e37bf5313e782d459"
+    },
+    {
+      "direction": "Base Sepolia → Monad Testnet",
+      "sourceWormholeChainId": 10004,
+      "destinationWormholeChainId": 10009,
+      "txHash": "0x523aff0aed58dc41f5236f4b94e9dd324437bc9e99e60ba3f7139dc700c590be",
+      "sequence": "0",
+      "messageFeeWei": "0",
+      "vaaBytes": 151,
+      "guardianSignatures": 1,
+      "guardianSetIndex": 0,
+      "vaaAvailableAfterMs": 2621,
+      "verifiedOnDestination": true,
+      "reason": "",
+      "emitterChainIdInVaa": 10004,
+      "emitterMatches": true,
+      "payloadIntact": true,
+      "vaaHash": "0xdfd7c3e99b2c4eac611f419dfea3479df041c875a1bddceb5ceef4c0e078b2e2"
+    }
+  ],
+  "allVerified": true
+}

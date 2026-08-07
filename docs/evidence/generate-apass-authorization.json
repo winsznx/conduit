@@ -1,0 +1,49 @@
+{
+  "classification": "SANDBOX_AUTHORIZATION_MISMATCH",
+  "notClassifiedAs": "FEATURE_UNAVAILABLE",
+  "rationale": "Organiser guidance states hackathon accounts are Issue Members and may generate controlled test A-Passes without kycSource or kycId. A 403 against that guidance is more consistent with provisioning or UAT configuration drift than with an absent capability. Recording it as unsupported would be a conclusion the evidence does not support.",
+  "capturedAt": "2026-08-07T19:17:28.282Z",
+  "endpoint": "https://uatapi.cleanverse.com/api/cooperate/generate_apass",
+  "attempts": [
+    {
+      "chain": "monad",
+      "requestId": "772bed34-eee9-4af9-afbf-d7f6369a1069",
+      "httpStatus": 403,
+      "cleanverseCode": null,
+      "message": "Forbidden.Data decryption failed.",
+      "envelopeReturned": false,
+      "requestShape": {
+        "transport": "AES-CBC/PKCS5, zero IV, base64, body {\"data\": \"<ciphertext>\"}",
+        "headers": ["content-type", "api-id", "X-Request-ID"],
+        "plaintextFields": ["chain", "wallet", "customerId", "expirationTime"],
+        "kycSourceSupplied": false,
+        "kycIdSupplied": false
+      },
+      "probeWalletAddress": "0x13538884422845D3dc2d91c3d201F65800Cf5DFA"
+    },
+    {
+      "chain": "base",
+      "requestId": "83a68d89-d5fc-4ae0-8725-4d6ed98582ec",
+      "httpStatus": 403,
+      "cleanverseCode": null,
+      "message": "Forbidden.Data decryption failed.",
+      "envelopeReturned": false,
+      "requestShape": {
+        "transport": "AES-CBC/PKCS5, zero IV, base64, body {\"data\": \"<ciphertext>\"}",
+        "headers": ["content-type", "api-id", "X-Request-ID"],
+        "plaintextFields": ["chain", "wallet", "customerId", "expirationTime"],
+        "kycSourceSupplied": false,
+        "kycIdSupplied": false
+      },
+      "probeWalletAddress": "0xdAF1D0212Bc2Eb92E0A6bEf5D0162dd7a328B72c"
+    }
+  ],
+  "control": {
+    "endpoint": "https://uatapi.cleanverse.com/api/cooperate/query_deposit_atoken_list",
+    "requestId": "2fc6b22c-e6f1-43c2-b238-04668fa71feb",
+    "httpStatus": 200,
+    "cleanverseCode": "0000",
+    "note": "Same api-id, same transport. Authenticates and returns data, so the credential itself is valid."
+  },
+  "impact": "Blocks creation of controlled buyer and seller A-Passes on Base, which the end-to-end CVA settlement proof requires. A-Pass is chain-scoped (ASM-031), so the Monad A-Pass we hold does not satisfy the asset leg."
+}
