@@ -28,10 +28,12 @@ export {
 
 export {
   credentialPresence,
+  REQUIRED_CLEANVERSE_VARS,
   loadCleanverseEnv,
   loadRpcEnv,
   loadRuntimeEnv,
   type CleanverseEnv,
+  type CredentialPresence,
   type EnvSource,
   type RpcEnv,
   type RuntimeEnv,

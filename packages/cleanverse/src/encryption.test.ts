@@ -87,10 +87,28 @@ describe('key validation', () => {
 
   it.each([
     ['contains invalid characters', 'not-base64!!'],
-    ['is not a multiple of four', 'YWJj YQ'],
+    ['contains whitespace', 'YWJj YQ=='],
     ['is empty', ''],
   ])('rejects a key that %s', async (_label, value) => {
     await expect(createCipher(value)).rejects.toThrow(CleanverseEncryptionError);
+  });
+
+  it('accepts an unpadded key, which is how Cleanverse distributes it', async () => {
+    // The real sandbox key is 43 characters: a 32-byte AES-256 key with its
+    // trailing '=' dropped. Requiring a multiple of four rejected the actual
+    // credential, so padding is restored rather than demanded.
+    const unpadded = b64(KEY_256).replace(/=+$/, '');
+    expect(unpadded.length % 4).not.toBe(0);
+
+    const cipher = await createCipher(unpadded);
+    expect(await cipher.decrypt(await cipher.encrypt('{"a":1}'))).toBe('{"a":1}');
+  });
+
+  it('derives the same key with and without padding', async () => {
+    const padded = await createCipher(b64(KEY_256));
+    const unpadded = await createCipher(b64(KEY_256).replace(/=+$/, ''));
+
+    expect(await unpadded.decrypt(await padded.encrypt('probe'))).toBe('probe');
   });
 
   it('never includes key material in the error message', async () => {

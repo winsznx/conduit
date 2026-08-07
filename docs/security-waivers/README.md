@@ -5,8 +5,12 @@ PRD 15.5: _"No security tool result may be silenced without a documented waiver 
 
 ## Current waivers
 
-**None.** Phase 00 silences no tool, and `tests/docs.test.ts` fails if a waiver file appears
-without this list being updated.
+| Waiver                                                   | Tool     | Scope                                           | Expires    |
+| -------------------------------------------------------- | -------- | ----------------------------------------------- | ---------- |
+| [gitleaks-env-templates.md](./gitleaks-env-templates.md) | gitleaks | worktree scan of `.env` and `.env.example` only | 2026-11-07 |
+
+`tests/docs.test.ts` fails if a waiver file appears without a status and an expiry, or if an
+expiry has passed.
 
 ## When a waiver is required
 

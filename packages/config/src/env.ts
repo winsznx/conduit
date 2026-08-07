@@ -82,18 +82,39 @@ export function loadRpcEnv(source: EnvSource = process.env): RpcEnv {
 }
 
 /**
+ * The Cleanverse variables that have no default and must be supplied.
+ *
+ * The other two are tuning values with documented defaults, so reporting them
+ * alongside a genuinely absent credential buries the thing an operator has to
+ * act on.
+ */
+export const REQUIRED_CLEANVERSE_VARS = Object.freeze([
+  'CLEANVERSE_BASE_URL',
+  'CLEANVERSE_API_ID',
+  'CLEANVERSE_API_KEY_BASE64',
+] as const);
+
+export interface CredentialPresence {
+  readonly name: string;
+  readonly required: boolean;
+  readonly configured: boolean;
+  readonly length: number;
+}
+
+/**
  * Presence check for a doctor report or a health endpoint.
  *
  * Returns a boolean and a length, which is what the one-shot brief permits:
  * enough to prove a credential is configured, never enough to reconstruct it.
  */
-export function credentialPresence(
-  source: EnvSource = process.env,
-): { name: string; configured: boolean; length: number }[] {
+export function credentialPresence(source: EnvSource = process.env): CredentialPresence[] {
+  const required = new Set<string>(REQUIRED_CLEANVERSE_VARS);
+
   return Object.keys(cleanverseSchema.shape).map((name) => {
     const value = source[name];
     return {
       name,
+      required: required.has(name),
       configured: value !== undefined && value.length > 0,
       length: value?.length ?? 0,
     };

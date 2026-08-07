@@ -114,7 +114,11 @@ export async function runDoctor(
   // Presence only. A doctor that printed the key to prove it was set would be
   // the single worst place in the repository to leak one.
   const presence = credentialPresence(deps.env);
-  const missing = presence.filter((entry) => !entry.configured).map((entry) => entry.name);
+  // Only variables with no default block the run. The tuning values fall back to
+  // documented defaults, and listing them as missing buries the real gap.
+  const missing = presence
+    .filter((entry) => entry.required && !entry.configured)
+    .map((entry) => entry.name);
 
   checks.push(
     check(
@@ -123,7 +127,10 @@ export async function runDoctor(
       true,
       missing.length === 0 ? 'pass' : 'fail',
       missing.length === 0
-        ? presence.map((e) => `${e.name}=set(${String(e.length)} chars)`).join(', ')
+        ? presence
+            .filter((e) => e.configured)
+            .map((e) => `${e.name}=set(${String(e.length)} chars)`)
+            .join(', ')
         : `missing: ${missing.join(', ')}`,
       ['ASM-004'],
     ),

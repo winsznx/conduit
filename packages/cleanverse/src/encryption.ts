@@ -36,13 +36,29 @@ export interface CleanverseCipher {
   decrypt(ciphertextBase64: string): Promise<string>;
 }
 
+/**
+ * Base64 padding is optional in practice, and Cleanverse omits it.
+ *
+ * The sandbox API key arrives as 43 characters: a 32-byte AES-256 key whose
+ * trailing `=` was dropped. An earlier version of this function required the
+ * length to be a multiple of four and rejected the real credential outright, so
+ * padding is restored here rather than demanded of the operator.
+ *
+ * The charset is still enforced strictly. A value containing whitespace or any
+ * character outside the base64 alphabet is malformed, not merely unpadded.
+ */
 function decodeBase64(value: string, label: string): Uint8Array {
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 !== 0) {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) {
+    throw new CleanverseEncryptionError(`${label} is not valid base64`);
+  }
+
+  const padded = value + '='.repeat((4 - (value.length % 4)) % 4);
+  if (padded.length % 4 !== 0) {
     throw new CleanverseEncryptionError(`${label} is not valid base64`);
   }
 
   try {
-    const binary = atob(value);
+    const binary = atob(padded);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) {
       bytes[i] = binary.charCodeAt(i);

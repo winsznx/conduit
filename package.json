@@ -12,6 +12,7 @@
   },
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
+    "conduit": "node --env-file-if-exists=.env packages/cli/dist/bin.js",
     "verify:toolchain": "node scripts/verify-toolchain.mjs",
     "format": "prettier --write . && forge fmt",
     "format:check": "prettier --check . && forge fmt --check",

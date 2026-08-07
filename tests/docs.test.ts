@@ -162,10 +162,27 @@ describe('security waivers (PRD 15.5)', () => {
     expect(exists('docs/security-waivers/README.md')).toBe(true);
   });
 
-  it('holds no waiver, because phase 00 silences no tool', () => {
+  it('gives every waiver a status, a scope, and an expiry that has not passed', () => {
+    // Asserting zero waivers only held while there were none. What matters is
+    // that each one is bounded: PRD 15.5 permits a documented waiver, and an
+    // undated one is a permanent suppression wearing a document.
     const waivers = listFiles('docs/security-waivers', '.md').filter(
       (file) => !file.endsWith('README.md'),
     );
-    expect(waivers).toEqual([]);
+
+    for (const waiver of waivers) {
+      const body = readText(waiver);
+      expect(body, `${waiver} has no status`).toMatch(/^\*\*Status:\*\* (Active|Expired)$/m);
+      expect(body, `${waiver} has no scope`).toMatch(/^\*\*Scope:\*\*/m);
+
+      const expiry = /^\*\*Expires:\*\* (\d{4}-\d{2}-\d{2})$/m.exec(body)?.[1];
+      expect(expiry, `${waiver} has no expiry date`).toBeDefined();
+      expect(
+        new Date(`${expiry ?? ''}T00:00:00Z`).getTime(),
+        `${waiver} expired on ${expiry ?? ''}`,
+      ).toBeGreaterThan(Date.parse('2026-08-07T00:00:00Z'));
+
+      expect(readText('docs/security-waivers/README.md')).toContain(waiver.split('/').pop() ?? '');
+    }
   });
 });

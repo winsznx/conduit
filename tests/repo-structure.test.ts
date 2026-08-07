@@ -99,6 +99,27 @@ describe('monorepo layout (PRD 11.1)', () => {
     expect(gate).toContain('mountUnreadable');
   });
 
+  // The template drifted once already: `conduit doctor` read two RPC variables
+  // that .env.example never mentioned, so the only way to discover them was to
+  // run the doctor and read the failure.
+  it('documents every environment variable that packages/config reads', () => {
+    const schemaKeys = [
+      ...readText('packages/config/src/env.ts').matchAll(/^ {2}([A-Z][A-Z0-9_]*):/gm),
+    ]
+      .map((match) => match[1] ?? '')
+      .filter((name) => name.length > 0);
+
+    expect(schemaKeys.length).toBeGreaterThan(0);
+
+    const documented = new Set(
+      [...readText('.env.example').matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]),
+    );
+
+    for (const key of schemaKeys) {
+      expect(documented.has(key), `.env.example is missing ${key}`).toBe(true);
+    }
+  });
+
   it('documents every environment variable by name only, with no values', () => {
     const example = readText('.env.example');
     const assignments = example

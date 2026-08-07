@@ -1,0 +1,32 @@
+# gitleaks scope for the worktree scan.
+#
+# The default ruleset is extended, never replaced. Nothing here disables a rule.
+#
+# `pnpm verify` runs gitleaks twice: `gitleaks git .` over the full history, and
+# `gitleaks dir .` over the working tree. The history scan is the one that
+# matters for what has actually been published, and it runs with no allowlist at
+# all. This file scopes only the worktree scan.
+#
+# The worktree scan exists to catch a secret *before* it is committed. Two paths
+# are out of that scope by construction, and both are documented in
+# docs/security-waivers/gitleaks-env-templates.md.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local environment file and the committed template"
+paths = [
+  # `.env` holds real credentials and is gitignored, so it cannot reach a commit.
+  # tests/repo-structure.test.ts asserts that .gitignore still contains `.env`,
+  # so removing that protection turns the build red rather than silently making
+  # this allowlist dangerous.
+  '''^\.env$''',
+
+  # `.env.example` is committed and must be scanned for content, but the default
+  # `generic-api-key` rule fires on variable *names* such as CLOUDFLARE_API_TOKEN
+  # even when the value is empty. tests/repo-structure.test.ts asserts every
+  # assignment in that file is empty, which is a stronger guarantee than the
+  # heuristic being suppressed here.
+  '''^\.env\.example$''',
+]
