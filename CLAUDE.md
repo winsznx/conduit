@@ -57,6 +57,28 @@ During implementation:
 - tests written with or before behavior;
 - no TODO-only implementations;
 - no swallowed errors;
+- an edit is not a fix until the resulting code has been read back. Brittle
+  string replacement against formatted source silently no-ops when a formatter
+  has moved the text: inspect `git diff`, read the changed code path, and run the
+  narrow test or lint that proves the intended code exists, before claiming it
+  does. This has produced a live run carrying a patch that was never applied;
+- a prerequisite transaction is never best-effort. Submit, await the receipt,
+  require success, read the resulting state, assert the delta, then continue.
+  Minting, registration, funding, approval, reservation, preparation, commit and
+  release are protocol steps, not setup;
+- confirmed is not observable. A receipt proves inclusion at block N; the node
+  answering the next call may not have reached N. Require the RPC to report
+  `latest >= N` and the expected state to be present before sending a dependent
+  transaction, and never send against one provider while another says the
+  prerequisite does not exist;
+- a failure after a write is classified before it is explained:
+  `RPC_STATE_LAG`, `RPC_ARCHIVE_UNAVAILABLE`, `CONTRACT_REVERT`,
+  `PREREQUISITE_NOT_MINED`, `PREREQUISITE_STATE_MISMATCH`, `UNKNOWN`. Decode a
+  revert only once state visibility is established. Stale state presented as a
+  protocol revert is a wrong diagnosis, not a partial one;
+- a live run longer than a minute is observable while it runs: line-buffered
+  output, a timestamp per stage, tee to an artifact, and the transaction hash
+  printed at broadcast rather than at completion;
 - no `any` without a written justification;
 - no floating dependency versions;
 - no disabled security check without a waiver;
