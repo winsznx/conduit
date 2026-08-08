@@ -132,6 +132,28 @@ async function fetchVaa(emitterChainId, emitter, sequence, budgetMs = 2_400_000)
   throw new Error(`VAA ${emitterChainId}/${sequence} never became available`);
 }
 
+/**
+ * Waits until a read reflects a write that is already mined.
+ *
+ * Base Sepolia's public endpoint serves reads behind the head, and it is not
+ * archival so pinning to the receipt's block is refused. That cost a run: the
+ * reservation was confirmed, `prepareAsset` was submitted against it, and gas
+ * estimation ran on a node that had not seen the reservation yet — a revert
+ * that looks like a missing reservation and is a stale read. Asserting the
+ * state rather than sleeping means a write that genuinely never landed fails
+ * here instead of one step later wearing the wrong error.
+ */
+async function until(label, read, matches, budgetMs = 120_000) {
+  const deadline = Date.now() + budgetMs;
+  let last;
+  while (Date.now() < deadline) {
+    last = await read();
+    if (matches(last)) return last;
+    await new Promise((r) => setTimeout(r, 3_000));
+  }
+  throw new Error(`${label}: never observed; last read ${String(last)}`);
+}
+
 const padEmitter = (address) => `0x${address.slice(2).toLowerCase().padStart(64, '0')}`;
 
 async function sequenceFrom(chain, hash) {
@@ -386,13 +408,36 @@ step('Base Sepolia: reserve the RWA and publish ASSET_PREPARED');
   }
   note(`seller available ${held - reserved}`);
 }
+const reservedBefore = await base.pub.readContract({
+  address: RWA,
+  abi: RWA_ABI,
+  functionName: 'reservedBalanceOf',
+  args: [SELLER],
+});
 const reserveHash = await base.wallet.writeContract({
   address: RWA,
   abi: RWA_ABI,
   functionName: 'reserveForSettlement',
   args: [settlementId, ASSET_AMOUNT],
 });
-await base.pub.waitForTransactionReceipt({ hash: reserveHash });
+const reserveReceipt = await base.pub.waitForTransactionReceipt({ hash: reserveHash });
+if (reserveReceipt.status !== 'success') throw new Error(`reserve failed: ${reserveHash}`);
+
+// Confirmed is not the same as observable. Base Sepolia's public endpoint serves
+// reads behind the head and is not archival, so the next call's gas estimation
+// can run on a node that has not seen this reservation — a revert that looks
+// like a missing reservation and is a stale read.
+await until(
+  'the reservation to be observable',
+  () =>
+    base.pub.readContract({
+      address: RWA,
+      abi: RWA_ABI,
+      functionName: 'reservedBalanceOf',
+      args: [SELLER],
+    }),
+  (r) => r >= reservedBefore + ASSET_AMOUNT,
+);
 note(`reserved ${ASSET_AMOUNT}  ${reserveHash}`);
 
 const prepareAssetHash = await base.wallet.writeContract({
