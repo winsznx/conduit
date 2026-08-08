@@ -41,7 +41,7 @@ item added upstream fails the build until it appears here.
 | Ineligible RWA CVA transfer fails through CCP policy.               | NOT STARTED | 03         |
 | Reservation prevents seller double-spend.                           | PASS        | 03         |
 | Reservation cannot cancel after COMMIT.                             | PASS        | 04         |
-| Held post-COMMIT RWA can be dispositioned once.                     | IN PROGRESS | 07         |
+| Held post-COMMIT RWA can be dispositioned once.                     | PASS        | 07         |
 | Final demo uses the real registered CVA, not an ERC-3643-only mock. | NOT STARTED | 10         |
 | API compatibility fields are not confused with canonical RuleV2.    | NOT STARTED | 05         |
 | final web matches `design.md`.                                      | NOT STARTED | 06         |
@@ -646,15 +646,17 @@ non-upgradeable, so a new version deploys separately.
    ERC-20 legs are self-transfers with a net wallet delta of zero and
    conservation is proven at the escrow balance and the reservation. A
    credential limitation, not a protocol one.
-2. **The post-COMMIT compliance change is live; the disposition is not.** A real
-   issuer-controlled RuleV2 transition made the buyer ineligible after COMMIT,
-   the live policy answered `TierTooLow(0x83C1…, 21, 20)`, delivery was refused
-   and the bond reached HELD with exact conservation — see
-   [phase-07-held-summary.md](./evidence/phase-07-held-summary.md).
-   `resolveHeldCash` and `resolveHeldAsset` postdate this deployment generation
-   and are proven only in `CrossChainSettlementSeam.t.sol`; the live disposition
-   needs the generation blocked in
-   [phase-07-generation-2-blocked.json](./evidence/phase-07-generation-2-blocked.json).
+2. **The post-COMMIT compliance change and its disposition are both live.** A
+   real issuer-controlled RuleV2 transition made the buyer ineligible after
+   COMMIT, the live policy answered `TierTooLow`, delivery was refused, the bond
+   reached HELD, the issuer restored the rule, and `resolveHeldAsset` delivered
+   it — terminal SETTLED, and an independent verifier derives `SETTLED_FINAL`
+   from the settlement ID alone. See
+   [phase-07-disposition-summary.md](./evidence/phase-07-disposition-summary.md),
+   and [phase-07-held-summary.md](./evidence/phase-07-held-summary.md) for the
+   generation-1 run that reached HELD before a disposition path existed. Only
+   `REVERIFY_AND_RESUME` is reachable; the other five FR-012 order types need
+   the authority registry.
 3. **Six passes over two and a half hours.** Five ended in a defect and four of
    those were in the runner. The protocol refused exactly once, correctly, when
    the runner presented one signer's opinion about one subject twice. The runner

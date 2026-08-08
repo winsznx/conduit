@@ -1,0 +1,230 @@
+{
+  "verifiedAt": "2026-08-08T15:46:10.936Z",
+  "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+  "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+  "canonicalState": "SETTLED",
+  "decision": "COMMIT",
+  "cashOutcome": "RELEASED",
+  "assetOutcome": "RELEASED",
+  "derived": "SETTLED_FINAL",
+  "messages": [
+    {
+      "messageType": "ASSET_PREPARED",
+      "sequence": "0",
+      "producer": {
+        "chainId": 84532,
+        "address": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+      },
+      "producerRole": "RWACVASettlementAdapter",
+      "emitterKey": "wormhole:10004:0x00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a",
+      "consumer": {
+        "chainId": 10143,
+        "address": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86"
+      },
+      "consumerRole": "SettlementCoordinator",
+      "consistencyLevel": 1,
+      "finality": "FINALIZED",
+      "vaaHash": "0x4f6eceacf2ee039e1556a77d77d4e0af6939d3014d84129273913fdd52ede8ad",
+      "consumedAtDestination": true,
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "intentHash": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "destinationChainId": "10143",
+      "problems": []
+    },
+    {
+      "messageType": "ASSET_HELD",
+      "sequence": "1",
+      "producer": {
+        "chainId": 84532,
+        "address": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+      },
+      "producerRole": "RWACVASettlementAdapter",
+      "emitterKey": "wormhole:10004:0x00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a",
+      "consumer": {
+        "chainId": 10143,
+        "address": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86"
+      },
+      "consumerRole": "SettlementCoordinator",
+      "consistencyLevel": 1,
+      "finality": "FINALIZED",
+      "vaaHash": "0xc4ae2bdb10afd26acfc00cbc1f44afd879936145e8ced5f6dba33474094f1c18",
+      "consumedAtDestination": true,
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "intentHash": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "destinationChainId": "10143",
+      "problems": []
+    },
+    {
+      "messageType": "ASSET_RELEASED",
+      "sequence": "2",
+      "producer": {
+        "chainId": 84532,
+        "address": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+      },
+      "producerRole": "RWACVASettlementAdapter",
+      "emitterKey": "wormhole:10004:0x00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a",
+      "consumer": {
+        "chainId": 10143,
+        "address": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86"
+      },
+      "consumerRole": "SettlementCoordinator",
+      "consistencyLevel": 1,
+      "finality": "FINALIZED",
+      "vaaHash": "0xb9865c839fc4d5492bd9b96489b2d6cd2803a19ae2a8b381376d26c3e0ebbb5b",
+      "consumedAtDestination": true,
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "intentHash": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "destinationChainId": "10143",
+      "problems": []
+    },
+    {
+      "messageType": "CASH_PREPARED",
+      "sequence": "0",
+      "producer": {
+        "chainId": 10143,
+        "address": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b"
+      },
+      "producerRole": "CashEscrow",
+      "emitterKey": "wormhole:10009:0x000000000000000000000000ee40c930be5a67e9fc8f6237e9aca2b94a8bd85b",
+      "consistencyLevel": 1,
+      "finality": "FINALIZED",
+      "vaaHash": "0xb6ecd2def375e7d6f671d86854511d82086fc4367bcb65b9f0db1c9082d8119b",
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "intentHash": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "destinationChainId": "84532",
+      "problems": []
+    },
+    {
+      "messageType": "COMMIT",
+      "sequence": "0",
+      "producer": {
+        "chainId": 10143,
+        "address": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86"
+      },
+      "producerRole": "SettlementCoordinator",
+      "emitterKey": "wormhole:10009:0x0000000000000000000000000aebe99a17796325da45e49ef3ba8bd13bbe5c86",
+      "consumer": {
+        "chainId": 84532,
+        "address": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+      },
+      "consumerRole": "RWACVASettlementAdapter",
+      "consistencyLevel": 1,
+      "finality": "FINALIZED",
+      "vaaHash": "0x38fe3f271c75309c0ac711f5ddd30cc0d42c8d6d397520e14a088575fe464b7c",
+      "consumedAtDestination": true,
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "intentHash": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "destinationChainId": "84532",
+      "problems": []
+    }
+  ],
+  "findings": [
+    {
+      "check": "ConduitRWACVA code hash on chain 84532",
+      "ok": true,
+      "detail": "eip155:84532:0x7a78912533b43c483621200b4919806c0b855e5b matches the manifest"
+    },
+    {
+      "check": "RWACVASettlementAdapter code hash on chain 84532",
+      "ok": true,
+      "detail": "eip155:84532:0x51c3d536e94fb5b944c2af8946d6916543bdf93a matches the manifest"
+    },
+    {
+      "check": "SettlementCoordinator code hash on chain 10143",
+      "ok": true,
+      "detail": "eip155:10143:0x0aebe99a17796325da45e49ef3ba8bd13bbe5c86 matches the manifest"
+    },
+    {
+      "check": "CashEscrow code hash on chain 10143",
+      "ok": true,
+      "detail": "eip155:10143:0xee40c930be5a67e9fc8f6237e9aca2b94a8bd85b matches the manifest"
+    },
+    {
+      "check": "ConduitSandboxSettlementCVA code hash on chain 10143",
+      "ok": true,
+      "detail": "eip155:10143:0xe32825bb4bf312688233f68abde3eb6dcbc89caf matches the manifest"
+    },
+    {
+      "check": "ConduitVaultRegistrar code hash on chain 10143",
+      "ok": true,
+      "detail": "eip155:10143:0x3ffd39444ebba2307b34c5f36f96e4e04511eba5 matches the manifest"
+    },
+    {
+      "check": "cross-chain address collisions",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "check": "coordinator knows this settlement",
+      "ok": true,
+      "detail": "SETTLED"
+    },
+    {
+      "check": "both legs were prepared",
+      "ok": true,
+      "detail": "cash true, asset true"
+    },
+    {
+      "check": "the escrow agrees with the coordinator about the cash leg",
+      "ok": true,
+      "detail": "escrow RELEASED, coordinator RELEASED"
+    },
+    {
+      "check": "the cash leg binds the same intent",
+      "ok": true,
+      "detail": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17 vs 0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17"
+    },
+    {
+      "check": "the token agrees with the coordinator about the asset leg",
+      "ok": true,
+      "detail": "released true, cancelled false, coordinator RELEASED"
+    },
+    {
+      "check": "the escrow accounts for exactly what it holds",
+      "ok": true,
+      "detail": "accounted 0, held 0"
+    },
+    {
+      "check": "this settlement holds no reservation open",
+      "ok": true,
+      "detail": "released true, cancelled false; 500000 reserved against 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb across all of its settlements"
+    },
+    {
+      "check": "every block range this settlement could span was actually read",
+      "ok": true,
+      "detail": "no gaps"
+    },
+    {
+      "check": "every message found is authentic, final, and consumed once",
+      "ok": true,
+      "detail": "5 messages, all FINALIZED and consumed"
+    },
+    {
+      "check": "every message the canonical state implies was found",
+      "ok": true,
+      "detail": "found ASSET_PREPARED, ASSET_HELD, ASSET_RELEASED, CASH_PREPARED, COMMIT"
+    },
+    {
+      "check": "derived classification",
+      "ok": true,
+      "detail": "the coordinator says SETTLED and every fact it rests on checks out"
+    }
+  ],
+  "addressCollisions": [],
+  "searchedBlockRanges": {
+    "10143": {
+      "from": "51976000",
+      "to": "51989300"
+    },
+    "84532": {
+      "from": "45215500",
+      "to": "45216850"
+    }
+  },
+  "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database."
+}

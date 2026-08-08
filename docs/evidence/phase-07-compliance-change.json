@@ -3,7 +3,7 @@
   "scenario": "post-COMMIT compliance change, Path B: issuer-controlled RuleV2 transition",
   "resumedFrom": null,
   "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
-  "outcome": "INCOMPLETE",
+  "outcome": "HELD_THEN_DISPOSITIONED_TO_SETTLED",
   "intent": {
     "version": "1",
     "cashChainId": "10143",
@@ -56,7 +56,77 @@
     {
       "stage": "waiting for the finalized ASSET_PREPARED VAA",
       "at": "2026-08-08T14:29:01.788Z",
+      "detail": {
+        "waitSeconds": "1347",
+        "recordAssetPrepared": "0x43d28371070b5b052b7a839841a0a2913c798be5445ae1eb7d076799280bb7ba"
+      }
+    },
+    {
+      "stage": "fresh compliance, then COMMIT — the buyer is still eligible",
+      "at": "2026-08-08T14:51:32.098Z",
+      "detail": {
+        "issueCommit": "0xfa488180761767b274edfc26850c9781ad7b08183099cfc9383c93d9a7b5a0ea",
+        "sequence": "0"
+      }
+    },
+    {
+      "stage": "the cash releases: the seller is paid and cannot be un-paid",
+      "at": "2026-08-08T14:51:40.662Z",
+      "detail": {
+        "releaseCash": "0xd7ce72415cc96f310268fde6b4b8c14598dce0284a1c2ac7b28302bcebac394c"
+      }
+    },
+    {
+      "stage": "RuleV2: restrict — minTier 21 against a tier-20 holder",
+      "at": "2026-08-08T14:51:44.548Z",
+      "detail": {
+        "hash": "0x52b637bb7361e16ccbec8dfb23c6a22b2b6c0f592a5c5e6e6cc567fd82c7835e",
+        "before": "[[0x0000,0x0000,0,0,false,0]]",
+        "after": "[[0x0000,0x0000,21,0,false,0]]"
+      }
+    },
+    {
+      "stage": "the asset leg is asked to deliver, and holds instead",
+      "at": "2026-08-08T14:51:58.020Z",
+      "detail": {
+        "commitVaaWaitSeconds": "2",
+        "releaseAsset": "0x7cb8c88968597a7f72f2a6a1e6f807600d2bed5a719b68ac8eebbd9e88f9aff6"
+      }
+    },
+    {
+      "stage": "what cannot happen now",
+      "at": "2026-08-08T14:52:21.154Z",
       "detail": {}
+    },
+    {
+      "stage": "the asset leg reports what the token did: ASSET_HELD",
+      "at": "2026-08-08T14:52:21.969Z",
+      "detail": {
+        "reportResolution": "0x752ad39e9ceb82918719c80e6205c66ea1657734895b049e340b8ecc7e6ccb2c",
+        "sequence": "1",
+        "reportWaitSeconds": "1093",
+        "recordLegResolved": "0x6afa7b7c77430e719bc1a72bb2adffde3f67ab66aaa1836712cd709262c87afc"
+      }
+    },
+    {
+      "stage": "RuleV2: restore — minTier 0",
+      "at": "2026-08-08T15:10:51.007Z",
+      "detail": {
+        "hash": "0x051467c50b949b16cb9afd72199221b92cea63685e7e3ee2926ee62b889e8e93",
+        "before": "[[0x0000,0x0000,21,0,false,0]]",
+        "after": "[[0x0000,0x0000,0,0,false,0]]"
+      }
+    },
+    {
+      "stage": "disposition",
+      "at": "2026-08-08T15:11:11.145Z",
+      "detail": {
+        "resolveHeldAssetPresentInBytecode": "true",
+        "resolveHeldAsset": "0xd0b20a90f7181f1ddb96e06727b2a0a2d69894e688ec43eb2e6b3d968b44a44a",
+        "reportResolution": "0xd6f100feda2553123e77e2485fb4649b3903e33a91c63e76f1faab36c6abba08",
+        "dispositionReportWaitSeconds": "1483",
+        "recordLegResolved": "0x66f85a623d66fdd13f65b9da6d311108a6b37b2bd88913c7be2a75054c2b1039"
+      }
     }
   ],
   "compliance": [
@@ -76,9 +146,90 @@
       ],
       "onChainCanTransfer": "true",
       "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "at commit time, before the rule change",
+      "at": "2026-08-08T14:51:36.915Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "56ddaf47-e580-4ff2-a550-66593f6eaf40",
+          "answer": "code 4",
+          "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "after the rule change",
+      "at": "2026-08-08T14:51:58.018Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": false,
+      "evidenceHash": "0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "7f223180-d695-42b5-a5ca-0da8414214a8",
+          "answer": "refused by policy: TierTooLow",
+          "responseHash": "0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190"
+        }
+      ],
+      "onChainCanTransfer": "revert The contract function \"canTransfer\" reverted with the following signature:",
+      "ruleV2": "[[0x0000,0x0000,21,0,false,0]]"
+    },
+    {
+      "label": "after the rule is restored",
+      "at": "2026-08-08T15:11:06.963Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "4534e164-2100-4b99-9449-b4d46cdd7ab0",
+          "answer": "code 4",
+          "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "at disposition time",
+      "at": "2026-08-08T15:11:13.635Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "aa11d4e2-6f00-46c7-81ee-abd45a66eb55",
+          "answer": "code 4",
+          "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
     }
   ],
-  "ruleTransitions": [],
+  "ruleTransitions": [
+    {
+      "label": "restrict — minTier 21 against a tier-20 holder",
+      "hash": "0x52b637bb7361e16ccbec8dfb23c6a22b2b6c0f592a5c5e6e6cc567fd82c7835e",
+      "before": "[[0x0000,0x0000,0,0,false,0]]",
+      "after": "[[0x0000,0x0000,21,0,false,0]]"
+    },
+    {
+      "label": "restore — minTier 0",
+      "hash": "0x051467c50b949b16cb9afd72199221b92cea63685e7e3ee2926ee62b889e8e93",
+      "before": "[[0x0000,0x0000,21,0,false,0]]",
+      "after": "[[0x0000,0x0000,0,0,false,0]]"
+    }
+  ],
   "conservation": {
     "before": {
       "at": "2026-08-08T14:28:27.937Z",
@@ -96,12 +247,95 @@
         "receiver": "2000000",
         "totalSupply": "2000000"
       }
+    },
+    "at held": {
+      "at": "2026-08-08T14:52:15.659Z",
+      "cash": {
+        "payer": "725000000",
+        "receiver": "725000000",
+        "escrow": "0",
+        "totalEscrowed": "0",
+        "totalSupply": "1000000000"
+      },
+      "rwa": {
+        "sellerNominal": "2000000",
+        "sellerReserved": "1000000",
+        "sellerAvailable": "1000000",
+        "receiver": "2000000",
+        "totalSupply": "2000000"
+      }
+    },
+    "after": {
+      "at": "2026-08-08T15:11:06.964Z",
+      "cash": {
+        "payer": "725000000",
+        "receiver": "725000000",
+        "escrow": "0",
+        "totalEscrowed": "0",
+        "totalSupply": "1000000000"
+      },
+      "rwa": {
+        "sellerNominal": "2000000",
+        "sellerReserved": "1000000",
+        "sellerAvailable": "1000000",
+        "receiver": "2000000",
+        "totalSupply": "2000000"
+      }
+    },
+    "after disposition": {
+      "at": "2026-08-08T15:36:21.231Z",
+      "cash": {
+        "payer": "725000000",
+        "receiver": "725000000",
+        "escrow": "0",
+        "totalEscrowed": "0",
+        "totalSupply": "1000000000"
+      },
+      "rwa": {
+        "sellerNominal": "2000000",
+        "sellerReserved": "500000",
+        "sellerAvailable": "1500000",
+        "receiver": "2000000",
+        "totalSupply": "2000000"
+      }
     }
   },
-  "adversarial": [],
+  "adversarial": [
+    {
+      "attempt": "a refund to the payer after COMMIT",
+      "refusedWith": "LegNotInState"
+    },
+    {
+      "attempt": "the seller reclaiming the reserved bond",
+      "refusedWith": "ReservationAlreadyCommitted"
+    },
+    {
+      "attempt": "an ABORT after the COMMIT",
+      "refusedWith": "AbortAfterCommitForbidden"
+    }
+  ],
   "assetPrepared": {
     "hash": "0x6c184ac5d7a2adc09f2115ad59f49a7abc2ee083ea983d26a3ce553a1717bf9d",
     "sequence": "0",
     "emitter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
-  }
+  },
+  "commit": {
+    "hash": "0xfa488180761767b274edfc26850c9781ad7b08183099cfc9383c93d9a7b5a0ea",
+    "sequence": "0"
+  },
+  "assetHeld": {
+    "hash": "0x7cb8c88968597a7f72f2a6a1e6f807600d2bed5a719b68ac8eebbd9e88f9aff6"
+  },
+  "held": {
+    "hash": "0x6afa7b7c77430e719bc1a72bb2adffde3f67ab66aaa1836712cd709262c87afc"
+  },
+  "disposition": {
+    "type": "REVERIFY_AND_RESUME",
+    "hash": "0xd0b20a90f7181f1ddb96e06727b2a0a2d69894e688ec43eb2e6b3d968b44a44a"
+  },
+  "settled": {
+    "hash": "0x66f85a623d66fdd13f65b9da6d311108a6b37b2bd88913c7be2a75054c2b1039"
+  },
+  "finishedAt": "2026-08-08T15:36:25.327Z",
+  "artifact": "/Users/mac/conduit/docs/evidence/artifacts/compliance-change-30aa1b738c.log"
 }

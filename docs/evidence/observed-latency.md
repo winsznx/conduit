@@ -12,16 +12,19 @@ Receipt to signed VAA, consistency level 1, classified `FINALIZED`. This is what
 a settlement waits for, because a COMMIT is irreversible and the remote state it
 rests on has to be too.
 
-| Sample | Message        | Seconds | Run                                                  |
-| ------ | -------------- | ------- | ---------------------------------------------------- |
-| 1      | ASSET_PREPARED | 1485    | attempt 3, `phase-06-dvp-attempt-3.json`             |
-| 2      | ASSET_RELEASED | 1223    | attempt 4, `phase-06-dvp-attempt-4.json`             |
-| 3      | ASSET_PREPARED | 1275    | compliance change, `phase-07-compliance-change.json` |
-| 4      | ASSET_HELD     | 999     | compliance change, `phase-07-compliance-change.json` |
+| Sample | Message        | Seconds | Run                                                          |
+| ------ | -------------- | ------- | ------------------------------------------------------------ |
+| 1      | ASSET_PREPARED | 1485    | attempt 3, `phase-06-dvp-attempt-3.json`                     |
+| 2      | ASSET_RELEASED | 1223    | attempt 4, `phase-06-dvp-attempt-4.json`                     |
+| 3      | ASSET_PREPARED | 1275    | compliance change (gen 1), `phase-07-compliance-change.json` |
+| 4      | ASSET_HELD     | 999     | compliance change (gen 1), `phase-07-compliance-change.json` |
+| 5      | ASSET_PREPARED | 1350    | disposition (gen 2), `phase-07-disposition-summary.md`       |
+| 6      | ASSET_HELD     | 1093    | disposition (gen 2), `phase-07-disposition-summary.md`       |
+| 7      | ASSET_RELEASED | 1483    | disposition (gen 2), `phase-07-disposition-summary.md`       |
 
-Four samples: 999, 1223, 1275, 1485 seconds. All are roughly twenty minutes and
-none of them is "the" number. The spread is 486 seconds across four
-observations, which is the honest thing to say about a testnet's finality and
+Seven samples: 999, 1093, 1223, 1275, 1350, 1483, 1485 seconds. All are roughly
+twenty minutes and none of them is "the" number. The spread is 486 seconds
+across seven observations, which is the honest thing to say about a testnet's finality and
 the reason these are listed rather than reduced to one figure. Attempt 4's ASSET_PREPARED wait is deliberately absent: that
 poll ran 2747 seconds without reaching the guardian API at all and the VAA
 existed the whole time, so it measures a transport outage rather than finality

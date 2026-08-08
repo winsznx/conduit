@@ -410,13 +410,27 @@ export async function verifySettlement(
     `accounted ${String(totalEscrowed)}, held ${String(escrowBalance)}`,
   );
 
+  // Per settlement, never per wallet.
+  //
+  // `reservedBalanceOf` aggregates every open reservation the owner has, and one
+  // seller can be party to many settlements at once. Asserting it is zero fails
+  // a settlement that released perfectly because a *different* one is still
+  // held — which is exactly what happened the first time this ran: the
+  // generation-1 bond is legitimately held on the same token and the same
+  // seller, and this settlement had nothing to do with it. It is the address
+  // collision mistake in another costume, keying a claim to the wrong identity.
+  //
+  // What this settlement can be held to is its own reservation being closed.
+  // The aggregate is reported as context, because a reader who sees a non-zero
+  // reserved balance deserves to know it is accounted for elsewhere.
   const stillReserved = (await chain.read(token.identity, 'reservedBalanceOf', [
     reserved.owner,
   ])) as bigint;
   record(
-    'no units remain reserved against a settled leg',
-    assetOutcome === 'NONE' || stillReserved === 0n || !reserved.announced,
-    `${String(stillReserved)} reserved against ${reserved.owner}`,
+    'this settlement holds no reservation open',
+    assetOutcome === 'NONE' || reserved.released || reserved.cancelled,
+    `released ${String(reserved.released)}, cancelled ${String(reserved.cancelled)}; ` +
+      `${String(stillReserved)} reserved against ${reserved.owner} across all of its settlements`,
   );
 
   // ── The messages, found from the producers' own events ────────────────────
