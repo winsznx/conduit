@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-08T00:55:36.569Z",
+  "capturedAt": "2026-08-08T06:46:54.405Z",
   "complianceSigner": "0xEC16Ead9832292fEfc95Bc94C3D536Eed98ED26c",
   "owner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
   "signerIsSeparateFromDeployer": true,
@@ -7,32 +7,32 @@
     {
       "label": "SettlementCoordinator",
       "chain": "monadTestnet",
-      "address": "0xc695F3dC72fa5027bDC000C35995FBE3C5227391",
+      "address": "0x6BfF2fD07c6519F8901307DB82a55a60d08d7d8E",
       "signerRegistered": true,
       "signerCount": 1,
       "quorum": 1,
       "maxAttestationValiditySeconds": 900,
-      "attestationDomainSeparator": "0xdb91e0776ce93f9f6aa050e11b04a23780f9fee4c7439ca32fccf17cdc24030f"
+      "attestationDomainSeparator": "0x79e2f8550f5357baea33192504b885e7c5a83dc91bbf0e6c78468478791801c0"
     },
     {
       "label": "CashEscrow",
       "chain": "monadTestnet",
-      "address": "0xA351EbDc87fa9a6064b3f297caA8D10734022D29",
+      "address": "0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48",
       "signerRegistered": true,
       "signerCount": 1,
       "quorum": 1,
       "maxAttestationValiditySeconds": 900,
-      "attestationDomainSeparator": "0x08770af98caa8292ea00a6cbcde84463e7c947ba52fb3341e8d516d2b5a6e288"
+      "attestationDomainSeparator": "0x07abf430b0c9aafa2f6507c19065b856a4ee0501f99ed8cd4b124a73b465604d"
     },
     {
       "label": "RWACVASettlementAdapter",
       "chain": "baseSepolia",
-      "address": "0xc9F43b168379c2bE7e7AcC0D6696453b76a2EBeE",
+      "address": "0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398",
       "signerRegistered": true,
       "signerCount": 1,
-      "quorum": 1,
+      "quorum": 0,
       "maxAttestationValiditySeconds": 900,
-      "attestationDomainSeparator": "0x523f3c6d447997945fa1921339d9b9f5c09f9ff87f56ae3e71bd6c2d70b215a5"
+      "attestationDomainSeparator": "0xf20f5ca404846ca5c3767714d4ef40a2ccd12fdeec8500bb530c3bcae967b2b8"
     }
   ],
   "limitation": "One signer, so the quorum is 1-of-1 on testnet. Quorum is genuinely enforced and duplicate attestations from one signer are rejected, but a 1-of-1 threshold is a testnet property and is not a threshold guarantee. ASM-036."
