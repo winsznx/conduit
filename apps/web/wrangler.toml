@@ -1,0 +1,28 @@
+# Conduit's read surface: the console, the public proof pages, and the API.
+#
+# There is no secret in this file, and there must never be one. `wrangler.toml`
+# is committed, and a `[vars]` entry is plaintext both here and in the
+# dashboard. `DATABASE_URL` is the whole database, so it is set with
+# `wrangler secret put` and appears below only as a comment saying so.
+#
+# Everything in `[vars]` is public by design: RPC endpoints anybody can call and
+# a deployment ID that is already on chain in every message header.
+
+name = "conduit"
+main = "../../apps/web/dist/worker.bundle.js"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[observability]
+enabled = true
+
+[vars]
+# Public. These are the same endpoints the verifier tells a stranger to use.
+MONAD_RPC_URL = "https://testnet-rpc.monad.xyz"
+BASE_RPC_URL = "https://sepolia.base.org"
+DEPLOYMENT_ID = "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6"
+COMMIT_SHA = "generation-3"
+
+# Secrets, set out of band and never written here:
+#   wrangler secret put DATABASE_URL

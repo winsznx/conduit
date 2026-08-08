@@ -311,7 +311,25 @@ async function mustRefuse(label, chain, request, expected) {
  * only for the legs this process actually watched move, and time-independent
  * invariants for everything else.
  */
-const performed = { cashRelease: false, assetRelease: false };
+const performed = {
+  /**
+   * Whether *this process* deposited the cash, not merely whether it is
+   * deposited.
+   *
+   * The opening snapshot is taken before any transaction. A single-pass run
+   * therefore watches the escrow go 0 → amount → 0 and its net delta is zero; a
+   * resumed run that only releases sees amount → 0. Asserting one shape for both
+   * fails the correct one, which is what happened: a settlement that reached
+   * SETTLED on chain with the escrow empty and its books balanced was reported
+   * as `conservation broken: escrow 0 → 0`.
+   *
+   * The delta is a function of which movements this run performed, so those are
+   * what get tracked.
+   */
+  cashPrepare: false,
+  cashRelease: false,
+  assetRelease: false,
+};
 
 async function main() {
   log.step(`settlement ${settlementId}`);
@@ -609,7 +627,12 @@ async function main() {
             matches: (value) => value === true,
           },
         });
-    if (prepare !== undefined) record(entry, 'prepareCash', prepare.hash);
+    if (prepare !== undefined) {
+      record(entry, 'prepareCash', prepare.hash);
+      // This run put the cash in, so this run's escrow delta is net zero rather
+      // than a withdrawal.
+      performed.cashPrepare = true;
+    }
 
     const leg = cashLeg(
       await monad.pub.readContract({
@@ -1235,8 +1258,14 @@ async function main() {
     // ── Deltas, only where this run watched both ends ───────────────────────
     if (performed.cashRelease) {
       if (closing.cashSupply !== opening.cashSupply) problems.push('cash supply changed');
-      if (closing.escrow !== opening.escrow - terms.cashAmount) {
-        problems.push(`escrow ${opening.escrow} → ${closing.escrow}`);
+
+      const deposited = performed.cashPrepare ? terms.cashAmount : 0n;
+      const expected = opening.escrow + deposited - terms.cashAmount;
+      if (closing.escrow !== expected) {
+        problems.push(
+          `escrow ${opening.escrow} → ${closing.escrow}, expected ${expected} ` +
+            `(${performed.cashPrepare ? 'deposited and released' : 'released only'} this run)`,
+        );
       }
     } else {
       log.step('the cash leg released in an earlier run; its delta is not this run to measure');
