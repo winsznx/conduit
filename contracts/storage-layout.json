@@ -1,8 +1,306 @@
 {
+  "contracts/src/AuthorityRegistry.sol:AuthorityRegistry": {
+    "storage": [
+      {
+        "astId": 8,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 156,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 322,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_authorities",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_address,t_struct(Authority)286_storage)"
+      },
+      {
+        "astId": 327,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_pendingAuthority",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_address,t_struct(PendingGrant)314_storage)"
+      },
+      {
+        "astId": 332,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_policies",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_bytes32,t_struct(AuthorityPolicy)305_storage)"
+      },
+      {
+        "astId": 337,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_identityCommitments",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_mapping(t_address,t_bytes32)"
+      },
+      {
+        "astId": 344,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_approvedSubstitutes",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_mapping(t_address,t_mapping(t_address,t_bool))"
+      },
+      {
+        "astId": 349,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_restrictedCustodians",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 354,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_gatewayAccounts",
+        "offset": 0,
+        "slot": "8",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 359,
+        "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+        "label": "_pendingDestination",
+        "offset": 0,
+        "slot": "9",
+        "type": "t_mapping(t_bytes32,t_struct(PendingGrant)314_storage)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_uint8)6_storage": {
+        "encoding": "inplace",
+        "label": "uint8[6]",
+        "numberOfBytes": "32",
+        "base": "t_uint8"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_enum(AuthorityType)1585": {
+        "encoding": "inplace",
+        "label": "enum DispositionTypes.AuthorityType",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_address,t_bytes32)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bytes32)",
+        "numberOfBytes": "32",
+        "value": "t_bytes32"
+      },
+      "t_mapping(t_address,t_mapping(t_address,t_bool))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(address => bool))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_bool)"
+      },
+      "t_mapping(t_address,t_struct(Authority)286_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct AuthorityRegistry.Authority)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Authority)286_storage"
+      },
+      "t_mapping(t_address,t_struct(PendingGrant)314_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct AuthorityRegistry.PendingGrant)",
+        "numberOfBytes": "32",
+        "value": "t_struct(PendingGrant)314_storage"
+      },
+      "t_mapping(t_bytes32,t_struct(AuthorityPolicy)305_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct AuthorityRegistry.AuthorityPolicy)",
+        "numberOfBytes": "32",
+        "value": "t_struct(AuthorityPolicy)305_storage"
+      },
+      "t_mapping(t_bytes32,t_struct(PendingGrant)314_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct AuthorityRegistry.PendingGrant)",
+        "numberOfBytes": "32",
+        "value": "t_struct(PendingGrant)314_storage"
+      },
+      "t_struct(Authority)286_storage": {
+        "encoding": "inplace",
+        "label": "struct AuthorityRegistry.Authority",
+        "numberOfBytes": "32",
+        "members": [
+          {
+            "astId": 281,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "authorityType",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_enum(AuthorityType)1585"
+          },
+          {
+            "astId": 283,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "active",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 285,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "activatedAt",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_uint64"
+          }
+        ]
+      },
+      "t_struct(AuthorityPolicy)305_storage": {
+        "encoding": "inplace",
+        "label": "struct AuthorityRegistry.AuthorityPolicy",
+        "numberOfBytes": "64",
+        "members": [
+          {
+            "astId": 289,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "active",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 292,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "contestWindow",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_uint32"
+          },
+          {
+            "astId": 295,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "allowedAuthorityTypes",
+            "offset": 5,
+            "slot": "0",
+            "type": "t_uint16"
+          },
+          {
+            "astId": 298,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "resolverAuthorityTypes",
+            "offset": 7,
+            "slot": "0",
+            "type": "t_uint16"
+          },
+          {
+            "astId": 300,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "resolverSignatures",
+            "offset": 9,
+            "slot": "0",
+            "type": "t_uint8"
+          },
+          {
+            "astId": 304,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "requiredSignatures",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint8)6_storage"
+          }
+        ]
+      },
+      "t_struct(PendingGrant)314_storage": {
+        "encoding": "inplace",
+        "label": "struct AuthorityRegistry.PendingGrant",
+        "numberOfBytes": "32",
+        "members": [
+          {
+            "astId": 308,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "exists",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 310,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "effectiveAt",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_uint64"
+          },
+          {
+            "astId": 313,
+            "contract": "contracts/src/AuthorityRegistry.sol:AuthorityRegistry",
+            "label": "authorityType",
+            "offset": 9,
+            "slot": "0",
+            "type": "t_enum(AuthorityType)1585"
+          }
+        ]
+      },
+      "t_uint16": {
+        "encoding": "inplace",
+        "label": "uint16",
+        "numberOfBytes": "2"
+      },
+      "t_uint32": {
+        "encoding": "inplace",
+        "label": "uint32",
+        "numberOfBytes": "4"
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      },
+      "t_uint8": {
+        "encoding": "inplace",
+        "label": "uint8",
+        "numberOfBytes": "1"
+      }
+    }
+  },
   "contracts/src/CashEscrow.sol:CashEscrow": {
     "storage": [
       {
-        "astId": 9502,
+        "astId": 13434,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "remoteEmitter",
         "offset": 0,
@@ -10,7 +308,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 9505,
+        "astId": 13437,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -18,7 +316,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 9518,
+        "astId": 13450,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "consumedVaa",
         "offset": 0,
@@ -26,7 +324,7 @@
         "type": "t_mapping(t_bytes32,t_bool)"
       },
       {
-        "astId": 7291,
+        "astId": 8907,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "_signers",
         "offset": 0,
@@ -34,7 +332,7 @@
         "type": "t_mapping(t_address,t_bool)"
       },
       {
-        "astId": 7293,
+        "astId": 8909,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "_signerCount",
         "offset": 0,
@@ -42,7 +340,7 @@
         "type": "t_uint256"
       },
       {
-        "astId": 7295,
+        "astId": 8911,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "_quorum",
         "offset": 0,
@@ -66,15 +364,15 @@
         "type": "t_address"
       },
       {
-        "astId": 6363,
+        "astId": 7668,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "_legs",
         "offset": 0,
         "slot": "8",
-        "type": "t_mapping(t_bytes32,t_struct(CashLeg)6358_storage)"
+        "type": "t_mapping(t_bytes32,t_struct(CashLeg)7663_storage)"
       },
       {
-        "astId": 6366,
+        "astId": 7671,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "totalEscrowed",
         "offset": 0,
@@ -82,12 +380,20 @@
         "type": "t_uint256"
       },
       {
-        "astId": 6369,
+        "astId": 7674,
         "contract": "contracts/src/CashEscrow.sol:CashEscrow",
         "label": "preparationsPaused",
         "offset": 0,
         "slot": "10",
         "type": "t_bool"
+      },
+      {
+        "astId": 7678,
+        "contract": "contracts/src/CashEscrow.sol:CashEscrow",
+        "label": "dispositionController",
+        "offset": 1,
+        "slot": "10",
+        "type": "t_contract(DispositionController)11839"
       }
     ],
     "types": {
@@ -106,7 +412,12 @@
         "label": "bytes32",
         "numberOfBytes": "32"
       },
-      "t_enum(LegState)6346": {
+      "t_contract(DispositionController)11839": {
+        "encoding": "inplace",
+        "label": "contract DispositionController",
+        "numberOfBytes": "20"
+      },
+      "t_enum(LegState)7651": {
         "encoding": "inplace",
         "label": "enum CashEscrow.LegState",
         "numberOfBytes": "1"
@@ -125,20 +436,20 @@
         "numberOfBytes": "32",
         "value": "t_bool"
       },
-      "t_mapping(t_bytes32,t_struct(CashLeg)6358_storage)": {
+      "t_mapping(t_bytes32,t_struct(CashLeg)7663_storage)": {
         "encoding": "mapping",
         "key": "t_bytes32",
         "label": "mapping(bytes32 => struct CashEscrow.CashLeg)",
         "numberOfBytes": "32",
-        "value": "t_struct(CashLeg)6358_storage"
+        "value": "t_struct(CashLeg)7663_storage"
       },
-      "t_struct(CashLeg)6358_storage": {
+      "t_struct(CashLeg)7663_storage": {
         "encoding": "inplace",
         "label": "struct CashEscrow.CashLeg",
         "numberOfBytes": "160",
         "members": [
           {
-            "astId": 6348,
+            "astId": 7653,
             "contract": "contracts/src/CashEscrow.sol:CashEscrow",
             "label": "payer",
             "offset": 0,
@@ -146,7 +457,7 @@
             "type": "t_address"
           },
           {
-            "astId": 6350,
+            "astId": 7655,
             "contract": "contracts/src/CashEscrow.sol:CashEscrow",
             "label": "receiver",
             "offset": 0,
@@ -154,7 +465,7 @@
             "type": "t_address"
           },
           {
-            "astId": 6352,
+            "astId": 7657,
             "contract": "contracts/src/CashEscrow.sol:CashEscrow",
             "label": "amount",
             "offset": 0,
@@ -162,7 +473,7 @@
             "type": "t_uint256"
           },
           {
-            "astId": 6354,
+            "astId": 7659,
             "contract": "contracts/src/CashEscrow.sol:CashEscrow",
             "label": "intentHash",
             "offset": 0,
@@ -170,12 +481,12 @@
             "type": "t_bytes32"
           },
           {
-            "astId": 6357,
+            "astId": 7662,
             "contract": "contracts/src/CashEscrow.sol:CashEscrow",
             "label": "state",
             "offset": 0,
             "slot": "4",
-            "type": "t_enum(LegState)6346"
+            "type": "t_enum(LegState)7651"
           }
         ]
       },
@@ -458,10 +769,379 @@
       }
     }
   },
+  "contracts/src/DispositionController.sol:DispositionController": {
+    "storage": [
+      {
+        "astId": 8,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 156,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_pendingOwner",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 9681,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_executors",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_enum(Leg)14590,t_contract(IDispositionExecutor)14050)"
+      },
+      {
+        "astId": 9686,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_cases",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_bytes32,t_struct(Case)9668_storage)"
+      },
+      {
+        "astId": 9693,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_filedTerms",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_bytes32,t_mapping(t_bytes32,t_struct(Terms)9633_storage))"
+      },
+      {
+        "astId": 9699,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_filed",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_mapping(t_bytes32,t_mapping(t_bytes32,t_bool))"
+      },
+      {
+        "astId": 9705,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_hasSigned",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_mapping(t_bytes32,t_mapping(t_address,t_bool))"
+      },
+      {
+        "astId": 9711,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_caseAuthorities",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_mapping(t_bytes32,t_array(t_address)dyn_storage)"
+      },
+      {
+        "astId": 9717,
+        "contract": "contracts/src/DispositionController.sol:DispositionController",
+        "label": "_usedNonces",
+        "offset": 0,
+        "slot": "8",
+        "type": "t_mapping(t_address,t_mapping(t_uint256,t_bool))"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_address)dyn_storage": {
+        "encoding": "dynamic_array",
+        "label": "address[]",
+        "numberOfBytes": "32",
+        "base": "t_address"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_contract(IDispositionExecutor)14050": {
+        "encoding": "inplace",
+        "label": "contract IDispositionExecutor",
+        "numberOfBytes": "20"
+      },
+      "t_enum(CaseState)9622": {
+        "encoding": "inplace",
+        "label": "enum DispositionController.CaseState",
+        "numberOfBytes": "1"
+      },
+      "t_enum(DispositionType)14577": {
+        "encoding": "inplace",
+        "label": "enum DispositionTypes.DispositionType",
+        "numberOfBytes": "1"
+      },
+      "t_enum(Leg)14590": {
+        "encoding": "inplace",
+        "label": "enum DispositionTypes.Leg",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_address,t_mapping(t_uint256,t_bool))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(uint256 => bool))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_uint256,t_bool)"
+      },
+      "t_mapping(t_bytes32,t_array(t_address)dyn_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => address[])",
+        "numberOfBytes": "32",
+        "value": "t_array(t_address)dyn_storage"
+      },
+      "t_mapping(t_bytes32,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_address,t_bool))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(address => bool))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_bool)"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_bytes32,t_bool))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(bytes32 => bool))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_bool)"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_bytes32,t_struct(Terms)9633_storage))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(bytes32 => struct DispositionController.Terms))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_struct(Terms)9633_storage)"
+      },
+      "t_mapping(t_bytes32,t_struct(Case)9668_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct DispositionController.Case)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Case)9668_storage"
+      },
+      "t_mapping(t_bytes32,t_struct(Terms)9633_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct DispositionController.Terms)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Terms)9633_storage"
+      },
+      "t_mapping(t_enum(Leg)14590,t_contract(IDispositionExecutor)14050)": {
+        "encoding": "mapping",
+        "key": "t_enum(Leg)14590",
+        "label": "mapping(enum DispositionTypes.Leg => contract IDispositionExecutor)",
+        "numberOfBytes": "32",
+        "value": "t_contract(IDispositionExecutor)14050"
+      },
+      "t_mapping(t_uint256,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_struct(Case)9668_storage": {
+        "encoding": "inplace",
+        "label": "struct DispositionController.Case",
+        "numberOfBytes": "352",
+        "members": [
+          {
+            "astId": 9637,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "state",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_enum(CaseState)9622"
+          },
+          {
+            "astId": 9640,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "leg",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_enum(Leg)14590"
+          },
+          {
+            "astId": 9642,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "settlementId",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 9644,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "policyId",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 9647,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "policyHash",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 9649,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "leadTermsKey",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 9651,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "leadOrderHash",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 9653,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "filedAt",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint64"
+          },
+          {
+            "astId": 9655,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "signatures",
+            "offset": 8,
+            "slot": "6",
+            "type": "t_uint8"
+          },
+          {
+            "astId": 9657,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "executedOrderHash",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 9660,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "executedType",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_enum(DispositionType)14577"
+          },
+          {
+            "astId": 9662,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "executedDestination",
+            "offset": 1,
+            "slot": "8",
+            "type": "t_address"
+          },
+          {
+            "astId": 9664,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "executedAmount",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 9667,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "executedComplianceDigest",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_bytes32"
+          }
+        ]
+      },
+      "t_struct(Terms)9633_storage": {
+        "encoding": "inplace",
+        "label": "struct DispositionController.Terms",
+        "numberOfBytes": "96",
+        "members": [
+          {
+            "astId": 9626,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "dispositionType",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_enum(DispositionType)14577"
+          },
+          {
+            "astId": 9628,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "destination",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_address"
+          },
+          {
+            "astId": 9630,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "amount",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 9632,
+            "contract": "contracts/src/DispositionController.sol:DispositionController",
+            "label": "asset",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address"
+          }
+        ]
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      },
+      "t_uint8": {
+        "encoding": "inplace",
+        "label": "uint8",
+        "numberOfBytes": "1"
+      }
+    }
+  },
   "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter": {
     "storage": [
       {
-        "astId": 4278,
+        "astId": 12870,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "remoteEmitter",
         "offset": 0,
@@ -469,7 +1149,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 4281,
+        "astId": 12873,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -477,7 +1157,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 4294,
+        "astId": 12886,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "consumedVaa",
         "offset": 0,
@@ -485,7 +1165,7 @@
         "type": "t_mapping(t_bytes32,t_bool)"
       },
       {
-        "astId": 2160,
+        "astId": 8109,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "_signers",
         "offset": 0,
@@ -493,7 +1173,7 @@
         "type": "t_mapping(t_address,t_bool)"
       },
       {
-        "astId": 2162,
+        "astId": 8111,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "_signerCount",
         "offset": 0,
@@ -501,7 +1181,7 @@
         "type": "t_uint256"
       },
       {
-        "astId": 2164,
+        "astId": 8113,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "_quorum",
         "offset": 0,
@@ -525,7 +1205,7 @@
         "type": "t_address"
       },
       {
-        "astId": 3637,
+        "astId": 11817,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "intendedReceiver",
         "offset": 0,
@@ -533,12 +1213,28 @@
         "type": "t_mapping(t_bytes32,t_address)"
       },
       {
-        "astId": 3641,
+        "astId": 11821,
         "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
         "label": "boundIntentHash",
         "offset": 0,
         "slot": "9",
         "type": "t_mapping(t_bytes32,t_bytes32)"
+      },
+      {
+        "astId": 11825,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "dispositionController",
+        "offset": 0,
+        "slot": "10",
+        "type": "t_contract(DispositionController)11777"
+      },
+      {
+        "astId": 12440,
+        "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+        "label": "_dispositions",
+        "offset": 0,
+        "slot": "11",
+        "type": "t_mapping(t_bytes32,t_struct(DispositionRecord)12435_storage)"
       }
     ],
     "types": {
@@ -556,6 +1252,16 @@
         "encoding": "inplace",
         "label": "bytes32",
         "numberOfBytes": "32"
+      },
+      "t_contract(DispositionController)11777": {
+        "encoding": "inplace",
+        "label": "contract DispositionController",
+        "numberOfBytes": "20"
+      },
+      "t_enum(DispositionType)14100": {
+        "encoding": "inplace",
+        "label": "enum DispositionTypes.DispositionType",
+        "numberOfBytes": "1"
       },
       "t_mapping(t_address,t_bool)": {
         "encoding": "mapping",
@@ -585,6 +1291,44 @@
         "numberOfBytes": "32",
         "value": "t_bytes32"
       },
+      "t_mapping(t_bytes32,t_struct(DispositionRecord)12435_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct RWACVASettlementAdapter.DispositionRecord)",
+        "numberOfBytes": "32",
+        "value": "t_struct(DispositionRecord)12435_storage"
+      },
+      "t_struct(DispositionRecord)12435_storage": {
+        "encoding": "inplace",
+        "label": "struct RWACVASettlementAdapter.DispositionRecord",
+        "numberOfBytes": "32",
+        "members": [
+          {
+            "astId": 12429,
+            "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+            "label": "executed",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool"
+          },
+          {
+            "astId": 12432,
+            "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+            "label": "dispositionType",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_enum(DispositionType)14100"
+          },
+          {
+            "astId": 12434,
+            "contract": "contracts/src/RWACVASettlementAdapter.sol:RWACVASettlementAdapter",
+            "label": "destination",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_address"
+          }
+        ]
+      },
       "t_uint256": {
         "encoding": "inplace",
         "label": "uint256",
@@ -595,7 +1339,7 @@
   "contracts/src/SettlementCoordinator.sol:SettlementCoordinator": {
     "storage": [
       {
-        "astId": 9502,
+        "astId": 13434,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "remoteEmitter",
         "offset": 0,
@@ -603,7 +1347,7 @@
         "type": "t_bytes32"
       },
       {
-        "astId": 9505,
+        "astId": 13437,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "remotePeerLocked",
         "offset": 0,
@@ -611,7 +1355,7 @@
         "type": "t_bool"
       },
       {
-        "astId": 9518,
+        "astId": 13450,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "consumedVaa",
         "offset": 0,
@@ -619,7 +1363,7 @@
         "type": "t_mapping(t_bytes32,t_bool)"
       },
       {
-        "astId": 7291,
+        "astId": 8907,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "_signers",
         "offset": 0,
@@ -627,7 +1371,7 @@
         "type": "t_mapping(t_address,t_bool)"
       },
       {
-        "astId": 7293,
+        "astId": 8909,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "_signerCount",
         "offset": 0,
@@ -635,7 +1379,7 @@
         "type": "t_uint256"
       },
       {
-        "astId": 7295,
+        "astId": 8911,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "_quorum",
         "offset": 0,
@@ -659,7 +1403,7 @@
         "type": "t_address"
       },
       {
-        "astId": 8043,
+        "astId": 11923,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "cashEscrow",
         "offset": 0,
@@ -667,12 +1411,12 @@
         "type": "t_address"
       },
       {
-        "astId": 8063,
+        "astId": 11943,
         "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
         "label": "_settlements",
         "offset": 0,
         "slot": "9",
-        "type": "t_mapping(t_bytes32,t_struct(Settlement)8038_storage)"
+        "type": "t_mapping(t_bytes32,t_struct(Settlement)11918_storage)"
       }
     ],
     "types": {
@@ -691,17 +1435,17 @@
         "label": "bytes32",
         "numberOfBytes": "32"
       },
-      "t_enum(Decision)8006": {
+      "t_enum(Decision)11885": {
         "encoding": "inplace",
         "label": "enum SettlementCoordinator.Decision",
         "numberOfBytes": "1"
       },
-      "t_enum(LegOutcome)8017": {
+      "t_enum(LegOutcome)11897": {
         "encoding": "inplace",
         "label": "enum SettlementCoordinator.LegOutcome",
         "numberOfBytes": "1"
       },
-      "t_enum(SettlementState)8002": {
+      "t_enum(SettlementState)11881": {
         "encoding": "inplace",
         "label": "enum SettlementCoordinator.SettlementState",
         "numberOfBytes": "1"
@@ -720,36 +1464,36 @@
         "numberOfBytes": "32",
         "value": "t_bool"
       },
-      "t_mapping(t_bytes32,t_struct(Settlement)8038_storage)": {
+      "t_mapping(t_bytes32,t_struct(Settlement)11918_storage)": {
         "encoding": "mapping",
         "key": "t_bytes32",
         "label": "mapping(bytes32 => struct SettlementCoordinator.Settlement)",
         "numberOfBytes": "32",
-        "value": "t_struct(Settlement)8038_storage"
+        "value": "t_struct(Settlement)11918_storage"
       },
-      "t_struct(Settlement)8038_storage": {
+      "t_struct(Settlement)11918_storage": {
         "encoding": "inplace",
         "label": "struct SettlementCoordinator.Settlement",
         "numberOfBytes": "96",
         "members": [
           {
-            "astId": 8020,
+            "astId": 11900,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "state",
             "offset": 0,
             "slot": "0",
-            "type": "t_enum(SettlementState)8002"
+            "type": "t_enum(SettlementState)11881"
           },
           {
-            "astId": 8023,
+            "astId": 11903,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "decision",
             "offset": 1,
             "slot": "0",
-            "type": "t_enum(Decision)8006"
+            "type": "t_enum(Decision)11885"
           },
           {
-            "astId": 8025,
+            "astId": 11905,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "cashPrepared",
             "offset": 2,
@@ -757,7 +1501,7 @@
             "type": "t_bool"
           },
           {
-            "astId": 8027,
+            "astId": 11907,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "assetPrepared",
             "offset": 3,
@@ -765,23 +1509,23 @@
             "type": "t_bool"
           },
           {
-            "astId": 8030,
+            "astId": 11910,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "cashOutcome",
             "offset": 4,
             "slot": "0",
-            "type": "t_enum(LegOutcome)8017"
+            "type": "t_enum(LegOutcome)11897"
           },
           {
-            "astId": 8033,
+            "astId": 11913,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "assetOutcome",
             "offset": 5,
             "slot": "0",
-            "type": "t_enum(LegOutcome)8017"
+            "type": "t_enum(LegOutcome)11897"
           },
           {
-            "astId": 8035,
+            "astId": 11915,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "intentHash",
             "offset": 0,
@@ -789,7 +1533,7 @@
             "type": "t_bytes32"
           },
           {
-            "astId": 8037,
+            "astId": 11917,
             "contract": "contracts/src/SettlementCoordinator.sol:SettlementCoordinator",
             "label": "stateVersion",
             "offset": 0,

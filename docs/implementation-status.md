@@ -664,3 +664,131 @@ non-upgradeable, so a new version deploys separately.
    possible without re-locking funds.
 
 ---
+
+## Phase 07 — Disposition Kernel
+
+**State:** IN PROGRESS — all six order types implemented, tested and
+verifier-supported; not yet deployed or exercised live.
+
+The gate is "every generated held case reaches an allowed terminal state or stays
+safely contested with exact conservation". The state machine that does it is
+complete and green; what is missing is a generation carrying it and a live run.
+
+### Delivered
+
+```text
+contracts/src/AuthorityRegistry.sol           seven authority classes, timelocked
+                                              grants, named policies with content
+                                              hashes, per-type destination lists
+contracts/src/DispositionController.sol       file → contest window → CONTESTED →
+                                              adjudicate → execute
+contracts/src/interfaces/IDispositionExecutor.sol
+contracts/src/libraries/DispositionOrderLib.sol   EIP-712 order and resolution
+contracts/src/libraries/DispositionTypes.sol      PRD FR-012's two enums
+packages/domain/src/disposition.ts            the same order, independently
+packages/verifier/src/disposition.ts          reconstruction from state alone
+packages/verifier/src/refusal.ts              ADR-0019's evidence rule, enforced
+```
+
+`CashEscrow` and `RWACVASettlementAdapter` implement `IDispositionExecutor`;
+`SettlementCoordinator` gains `LegOutcome.DISPOSED` and consumes PRD 7.3's
+`DISPOSITION_RESOLVED`, which existed in the codec and had no producer until now.
+
+### All six FR-012 order types
+
+Each is exercised end to end against a hold reached the way a settlement reaches
+one — reserve, prepare, commit, be refused — with every cross-chain message the
+exact payload a production contract emitted (ADR-0015).
+
+| Type                        | Destination rule                                | Proven by                                                            |
+| --------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
+| `REVERIFY_AND_RESUME`       | must equal the current intended receiver        | `test_ReverifyAndResumeDeliversToThePartyTheIntentNamed`             |
+| `REBIND_RECEIVER`           | same registered identity commitment, new wallet | `test_RebindReceiverDeliversToTheReplacementWalletAndNotTheOriginal` |
+| `RETURN_TO_ELIGIBLE_SENDER` | the original sender, and only after a COMMIT    | `test_ReturnToEligibleSenderSendsCashBackAndTheCommitStaysHistory`   |
+| `AUTHORIZED_SUBSTITUTION`   | an approved substitute _for this receiver_      | `test_AuthorizedSubstitutionDeliversToAnIssuerApprovedSubstitute`    |
+| `OPERATOR_ASSISTED_OFFRAMP` | a registered gateway account                    | `test_OperatorAssistedOfframpMovesCashToTheRegisteredGatewayAccount` |
+| `RESTRICTED_HOLD`           | a registered restricted custodian               | `test_RestrictedHoldMovesValueIntoRegisteredCustodyAndIsTerminal`    |
+
+Every row has a matching negative test proving the destination is permissible for
+that type and for no other.
+
+### Conflict handling
+
+`test_ARelayerRaceCannotDecideTheOutcome` files two valid, disagreeing,
+authorized orders in both arrival orders and asserts the results are identical
+and that nothing moved. That is the property the contest window exists for, and
+[ADR-0020](./adr/0020-the-disposition-kernel-rests-orders-before-it-executes-them.md)
+records why an immediate-execution kernel cannot satisfy PRD FR-012's last line.
+
+### Test counts
+
+```text
+contracts   281 passing   (was 208)
+  DispositionKernel.t.sol            19   the six order types
+  DispositionInvariants.t.sol        26   the ways they must not work
+  DispositionConflicts.t.sol         14   CONTESTED, adjudication, the race
+  DispositionOrderLib.t.sol           9   cross-language digest vectors
+  SettlementScopedAccounting.t.sol    5   one wallet, two settlements
+vitest      604 passing   (was 572)
+  packages/domain/src/disposition.test.ts     10
+  packages/verifier/src/disposition.test.ts   12
+  packages/verifier/src/refusal.test.ts        7
+```
+
+### Protocol defect found and fixed
+
+**D-06.** `ConduitRWACVA._update` subtracted the releasing reservation from
+`_reservedOf` after `releaseReservation` had already decremented it. Unreachable
+with one reservation; with a smaller second one it underflows and the release
+reverts, leaving held value no authority can free. The deployed seller is one
+settlement away from that shape. See the threat register and
+`contracts/test/SettlementScopedAccounting.t.sol`.
+
+### Verifier support
+
+From a settlement ID and two RPC URLs the verifier now reconstructs the
+disposition order that won, the authorities that signed it, their registered
+classes, the policy content those orders bound, the destination, the amount and
+the compliance digest checked at execution — all from contract state, with no log
+range to scan. It classifies:
+
+```text
+SETTLED_FINAL                 the intent's own parties received the value
+DISPOSITION_FINAL             an authority redirected it under PRD FR-012
+RESTRICTED_HOLD_FINAL         it ended in registered restricted custody
+CONTESTED                     two authorities disagree; nothing may move
+HELD_PENDING_DISPOSITION      committed, undelivered, no case resolved it
+SETTLED_PENDING_VERIFICATION  SETTLED on chain, a check did not pass here
+NOT_SETTLED                   the coordinator's own state is not SETTLED
+```
+
+None of those is a Solidity enum. `DispositionController.CaseState` is; the
+settlement-level outcomes are derived, exactly as `SETTLED_FINAL` is under
+[ADR-0017](./adr/0017-settled-is-on-chain-settled-final-is-derived.md).
+
+### ASM-010 resolved
+
+Fiat Ramp is granted for this credential and SELL quoting is live on five
+networks with real quote tokens and real pricing. The hosted widget refuses with
+`RM_003 Unable to verify APass on chain` — PRD 5.5's third precondition, and the
+same blocker as ASM-035. Separately, neither settlement asset is a listed ramp
+asset and Monad is not a ramp network. `docs/evidence/asm-010-fiat-ramp.json`.
+
+### Known limitations
+
+1. **Not deployed.** The executors gained an entry point and the contracts are
+   non-upgradeable, so the kernel needs generation 3. Nothing here has run
+   against a live chain.
+2. **`OPERATOR_ASSISTED_OFFRAMP`'s external half cannot complete.** The on-chain
+   disposition moves the held units to a registered gateway account and is real.
+   The fiat leg after it is blocked on ASM-035 and on the ramp's asset listing,
+   both recorded above. No fiat settlement is claimed anywhere.
+3. **PRD 7.1's `CONTESTED` settlement state is never entered on chain.** Driving
+   it from a remote leg's contested case would need a message PRD 7.3 does not
+   define, and ADR-0015 forbids inventing one. It is a verifier classification;
+   ADR-0020 records the reasoning.
+4. **`REBIND_RECEIVER` and `AUTHORIZED_SUBSTITUTION` are unexercised against a
+   real second identity.** Both work against registered test wallets. A live
+   demonstration needs a second A-Passed identity, which ASM-035 blocks.
+
+---

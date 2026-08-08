@@ -175,6 +175,21 @@ export class DeploymentGeneration {
     return found;
   }
 
+  /**
+   * By role and chain, when the role may legitimately be absent.
+   *
+   * @remarks Generation 1 predates the Disposition Kernel and has no
+   * `DispositionController`; generation 2 as first deployed has none either.
+   * A verifier asked about a settlement on such a generation must report that
+   * there was no kernel, not throw — those are different answers, and only one
+   * of them is a fact about the settlement. `role` still throws, because
+   * asking for a coordinator that should exist and finding none is a broken
+   * manifest rather than an absent capability.
+   */
+  tryRole(chainId: number, role: string): RegisteredContract | undefined {
+    return this.byRole.get(`${String(chainId)}:${role}`);
+  }
+
   at(identity: ChainScopedAddress): RegisteredContract | undefined {
     return this.registry.get(identity);
   }

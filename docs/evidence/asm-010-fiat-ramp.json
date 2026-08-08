@@ -1,0 +1,249 @@
+{
+  "assumption": "ASM-010",
+  "question": "Is Fiat Ramp SELL enabled for the selected test market?",
+  "observedAt": "2026-08-08T16:21:21.835Z",
+  "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "resolution": "RESOLVED",
+  "rampRoleGranted": true,
+  "sellQuoteAvailable": true,
+  "widgetSessionAvailable": false,
+  "widgetRefusals": [
+    {
+      "network": "ethereum",
+      "message": "[RM_003]Unable to verify APass on chain. Please try again later."
+    },
+    {
+      "network": "polygon",
+      "message": "[RM_003]Unable to verify APass on chain. Please try again later."
+    },
+    {
+      "network": "solana",
+      "message": "[CV_503]Solana address format is incorrect"
+    },
+    {
+      "network": "base",
+      "message": "[500]System Error"
+    },
+    {
+      "network": "avalanche",
+      "message": "[RM_003]Unable to verify APass on chain. Please try again later."
+    }
+  ],
+  "blockedByMissingAPassOnRampChain": true,
+  "heldSettlementAssetOfframpable": false,
+  "networks": ["ethereum", "bsc", "polygon", "solana", "base", "avalanche", "arbitrum"],
+  "sellableMarkets": [
+    "USDT@ethereum",
+    "USDC@ethereum",
+    "USDT@polygon",
+    "USDC@polygon",
+    "USDC@solana",
+    "USDC@base",
+    "USDC@avalanche"
+  ],
+  "settlementAssetListing": [
+    {
+      "symbol": "cBOND2",
+      "network": "base",
+      "networkOnRamp": true,
+      "listedOnRamp": false
+    },
+    {
+      "symbol": "cSETTLE",
+      "network": "monad",
+      "networkOnRamp": false,
+      "listedOnRamp": false
+    }
+  ],
+  "quote": {
+    "quoteId": "4062a447-0c67-4281-827a-ef2a242b6f05",
+    "isBuyOrSell": "SELL",
+    "network": "ethereum",
+    "cryptoCurrency": "USDC",
+    "fiatCurrency": "USD",
+    "cryptoAmount": 100,
+    "fiatAmount": 95.99,
+    "totalFee": 4.01,
+    "paymentMethod": "credit_debit_card",
+    "quoteTokenSha256": "0x0373aaeef7e6e6922f196a5dc8e690fc3ee392d91397c2ec2296d90bba6411f3"
+  },
+  "observations": [
+    {
+      "endpoint": "/query_ramp_crypto_currencies",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "892d4ff0-f7c1-409a-a060-8a3b240d42c0",
+      "code": "0000",
+      "message": "success"
+    },
+    {
+      "endpoint": "/query_ramp_fiat_currencies",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "ceaed40a-ab0c-452e-a1be-292af2d9eca9",
+      "code": "0000",
+      "message": "success"
+    },
+    {
+      "endpoint": "/query_ramp_payment_methods",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "a2b5e48e-08a0-49f9-b8aa-57b42e355413",
+      "code": "0000",
+      "message": "success"
+    },
+    {
+      "endpoint": "/query_ramp_quote [ethereum]",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "03741ed1-93ea-4461-9743-c6ba1ecd7bbb",
+      "code": "0000",
+      "message": "success",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "ethereum",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    },
+    {
+      "endpoint": "/create_ramp_widget_url [ethereum]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "3357f746-05eb-4b60-9e81-4d35d4596d9f",
+      "code": "0002",
+      "message": "[RM_003]Unable to verify APass on chain. Please try again later."
+    },
+    {
+      "endpoint": "/query_ramp_quote [bsc]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "a75acb16-8e50-49ff-abb7-e0e4e4759f88",
+      "code": "0002",
+      "message": "[BIZ_068]The amount is too small to process. Please increase your amount and try again.",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "bsc",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    },
+    {
+      "endpoint": "/query_ramp_quote [polygon]",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "064f4ad6-e2a4-499f-8e6f-d18abd3f2503",
+      "code": "0000",
+      "message": "success",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "polygon",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    },
+    {
+      "endpoint": "/create_ramp_widget_url [polygon]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "feb95f17-1901-439a-b959-a7fce9816f89",
+      "code": "0002",
+      "message": "[RM_003]Unable to verify APass on chain. Please try again later."
+    },
+    {
+      "endpoint": "/query_ramp_quote [solana]",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "32a60e35-72ab-4cfe-8f32-8b0b9d02e3ce",
+      "code": "0000",
+      "message": "success",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "solana",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    },
+    {
+      "endpoint": "/create_ramp_widget_url [solana]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "cd428793-2905-437f-aa04-c3128049b8f2",
+      "code": "0002",
+      "message": "[CV_503]Solana address format is incorrect"
+    },
+    {
+      "endpoint": "/query_ramp_quote [base]",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "f009033f-0cb4-4e83-9857-85a5997ee3a3",
+      "code": "0000",
+      "message": "success",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "base",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    },
+    {
+      "endpoint": "/create_ramp_widget_url [base]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "1e7b7efa-1bb3-4bee-a751-54de9e201a66",
+      "code": "0002",
+      "message": "[500]System Error"
+    },
+    {
+      "endpoint": "/query_ramp_quote [avalanche]",
+      "outcome": "ANSWERED",
+      "httpStatus": 200,
+      "requestId": "ca1b36be-f104-4bc8-9c90-ffb591ab652d",
+      "code": "0000",
+      "message": "success",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "avalanche",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    },
+    {
+      "endpoint": "/create_ramp_widget_url [avalanche]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "edd00ca4-9002-435a-8097-3a7e0b99d394",
+      "code": "0002",
+      "message": "[RM_003]Unable to verify APass on chain. Please try again later."
+    },
+    {
+      "endpoint": "/query_ramp_quote [arbitrum]",
+      "outcome": "BUSINESS_REFUSAL",
+      "httpStatus": 200,
+      "requestId": "8865e232-6fc8-4115-ac03-ab7beb27c2d8",
+      "code": "0002",
+      "message": "[BIZ_068]The amount is too small to process. Please increase your amount and try again.",
+      "market": {
+        "isBuyOrSell": "SELL",
+        "network": "arbitrum",
+        "cryptoCurrency": "USDC",
+        "fiatCurrency": "USD",
+        "paymentMethod": "credit_debit_card",
+        "cryptoAmount": 100
+      }
+    }
+  ],
+  "limitation": "Fiat Ramp is granted for this credential and SELL quoting is live: real quote tokens with real pricing are returned for every listed network. Two independent things stop the external fiat leg from completing. First, the hosted widget requires an active A-Pass on the quoted chain (PRD 5.5) and refuses with RM_003; generate_apass is 403 for this credential (ASM-035), so no A-Pass can be provisioned on a ramp chain. Second, the listed markets are Transak-backed mainstream assets: neither the Monad settlement CVA nor the Base RWA CVA is a listed ramp asset, and Monad is not a ramp network at all. The on-chain OPERATOR_ASSISTED_OFFRAMP disposition moves the held units to a registered gateway account and is real. No fiat settlement is claimed."
+}

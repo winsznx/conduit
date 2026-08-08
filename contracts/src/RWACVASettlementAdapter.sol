@@ -6,7 +6,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 import {ComplianceAuthority} from "./ComplianceAuthority.sol";
 import {ConduitRWACVA} from "./ConduitRWACVA.sol";
+import {DispositionController} from "./DispositionController.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
+import {IDispositionExecutor} from "./interfaces/IDispositionExecutor.sol";
+import {DispositionTypes} from "./libraries/DispositionTypes.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
 
 /// @notice The asset leg on Base. PRD v1.1 override sections 5 and 10.
@@ -29,7 +32,8 @@ contract RWACVASettlementAdapter is
     WormholeTransport,
     ComplianceAuthority,
     Ownable2Step,
-    ReentrancyGuard
+    ReentrancyGuard,
+    IDispositionExecutor
 {
     ConduitRWACVA public immutable asset;
 
@@ -37,6 +41,11 @@ contract RWACVASettlementAdapter is
     ///      never named. Set when the seller's reservation is registered.
     mapping(bytes32 settlementId => address) public intendedReceiver;
     mapping(bytes32 settlementId => bytes32) public boundIntentHash;
+
+    /// @notice The Disposition Kernel for this chain. PRD FR-012.
+    ///
+    /// @dev Set once, for the deployment-order reason `setRemotePeer` exists.
+    DispositionController public dispositionController;
 
     event AssetPrepared(
         bytes32 indexed settlementId,
@@ -47,6 +56,13 @@ contract RWACVASettlementAdapter is
     event AssetReleased(bytes32 indexed settlementId, address indexed receiver);
     event AssetHeld(bytes32 indexed settlementId, address indexed intendedReceiver, string reason);
     event AssetReturned(bytes32 indexed settlementId);
+    event AssetDisposed(
+        bytes32 indexed settlementId,
+        address indexed destination,
+        uint256 amount,
+        DispositionTypes.DispositionType dispositionType
+    );
+    event DispositionControllerSet(address indexed controller);
 
     error ReceiverNotRegistered(bytes32 settlementId);
     error ReceiverMismatch(address expected, address provided);
@@ -55,6 +71,12 @@ contract RWACVASettlementAdapter is
     error LegNotResolved(bytes32 settlementId);
     error LegNotHeld(bytes32 settlementId);
     error ZeroAddress();
+    error NotTheDispositionController(address caller, address expected);
+    error DispositionControllerAlreadySet(address current);
+    error LegClaimedByDisposition(bytes32 settlementId);
+    error DestinationNotEligible(bytes32 settlementId, address destination);
+    error AmountMismatch(uint256 provided, uint256 expected);
+    error LegNotDisposed(bytes32 settlementId);
 
     constructor(
         address asset_,
@@ -214,6 +236,17 @@ contract RWACVASettlementAdapter is
         address receiver = intendedReceiver[settlementId];
         if (receiver == address(0)) revert ReceiverNotRegistered(settlementId);
 
+        // Stands down while the kernel has a case open, for the reason the cash
+        // leg's retry does: a rebind resting out its contest window must not be
+        // pre-empted by anyone calling the no-discretion retry and delivering to
+        // the original receiver.
+        if (
+            address(dispositionController) != address(0)
+                && dispositionController.legIsClaimed(settlementId, DispositionTypes.Leg.ASSET)
+        ) {
+            revert LegClaimedByDisposition(settlementId);
+        }
+
         ConduitRWACVA.Reservation memory reservation = asset.reservationOf(settlementId);
         // Committed and still open is exactly the held state: a COMMIT was
         // applied here and the units did not move.
@@ -259,6 +292,125 @@ contract RWACVASettlementAdapter is
         _setRemotePeer(emitter);
     }
 
+    // ── Disposition Kernel ───────────────────────────────────────────────────
+
+    /// @notice What an executed disposition did, kept for the report and the
+    ///         verifier.
+    ///
+    /// @dev The token cannot record this: after `releaseReservation` the
+    ///      reservation reads identically whether it was an ordinary delivery or
+    ///      an authority-directed one, and those are different facts about the
+    ///      settlement. Without this the asset leg would report ASSET_RELEASED
+    ///      for a rebind, and the audit package would say the buyer received the
+    ///      bond when a replacement wallet did.
+    struct DispositionRecord {
+        bool executed;
+        DispositionTypes.DispositionType dispositionType;
+        address destination;
+    }
+
+    mapping(bytes32 settlementId => DispositionRecord) private _dispositions;
+
+    function dispositionOf(bytes32 settlementId) external view returns (DispositionRecord memory) {
+        return _dispositions[settlementId];
+    }
+
+    /// @inheritdoc IDispositionExecutor
+    function heldLegOf(bytes32 settlementId)
+        external
+        view
+        returns (IDispositionExecutor.HeldLeg memory)
+    {
+        ConduitRWACVA.Reservation memory reservation = asset.reservationOf(settlementId);
+        address receiver = intendedReceiver[settlementId];
+
+        // Committed and still open is exactly the held state here: a COMMIT was
+        // applied and the units did not move. There is no separate held flag on
+        // the asset leg because there is no escrow to move them into.
+        bool held = receiver != address(0) && reservation.committed && !reservation.released
+            && !reservation.cancelled;
+
+        return IDispositionExecutor.HeldLeg({
+            held: held,
+            committed: reservation.committed,
+            asset: address(asset),
+            amount: reservation.amount,
+            currentReceiver: receiver,
+            originalSender: reservation.owner
+        });
+    }
+
+    /// @inheritdoc IDispositionExecutor
+    ///
+    /// @dev Derived from the reservation rather than counted in a new storage
+    ///      slot. Every flag it reads is set once and never cleared, so the
+    ///      result only ever increases — which is the whole requirement. A
+    ///      counter would be a second copy of the same information, free to
+    ///      disagree with it.
+    function hostStateVersion(bytes32 settlementId) external view returns (uint64) {
+        ConduitRWACVA.Reservation memory reservation = asset.reservationOf(settlementId);
+        if (reservation.owner == address(0)) return 0;
+        if (_dispositions[settlementId].executed) return 5;
+        if (reservation.released || reservation.cancelled) return 4;
+        if (reservation.committed) return 3;
+        if (reservation.announced) return 2;
+        return 1;
+    }
+
+    /// @notice Performs an authorized disposition of the held bond. PRD FR-012.
+    ///
+    /// Where the value may go is the controller's decision, taken from a signed
+    /// order against the registry. What happens here is custody: the reservation
+    /// must really be held, the amount must really be its amount, and the
+    /// destination must pass this contract's quorum against its own EIP-712
+    /// domain right now — PRD 5.4 step 5's current checks on the replacement.
+    ///
+    /// The token then applies CCP policy at the moment of transfer and can still
+    /// refuse. Unlike `releaseAsset` this is not caught: there is no consumed
+    /// VAA to strand, the leg is already held, and staying held is the correct
+    /// outcome of a disposition the policy will not permit. The revert unwinds
+    /// the controller's case with it, leaving it open to execute later.
+    function executeDisposition(
+        bytes32 settlementId,
+        DispositionTypes.DispositionType dispositionType,
+        address destination,
+        uint256 amount,
+        ComplianceProof calldata compliance
+    ) external nonReentrant {
+        if (msg.sender != address(dispositionController)) {
+            revert NotTheDispositionController(msg.sender, address(dispositionController));
+        }
+        if (destination == address(0)) revert ZeroAddress();
+
+        ConduitRWACVA.Reservation memory reservation = asset.reservationOf(settlementId);
+        if (!reservation.committed || reservation.released || reservation.cancelled) {
+            revert LegNotHeld(settlementId);
+        }
+        if (amount != reservation.amount) revert AmountMismatch(amount, reservation.amount);
+
+        bytes32 intentHash = boundIntentHash[settlementId];
+        if (!_isEligible(settlementId, intentHash, destination, compliance)) {
+            revert DestinationNotEligible(settlementId, destination);
+        }
+
+        _dispositions[settlementId] = DispositionRecord({
+            executed: true, dispositionType: dispositionType, destination: destination
+        });
+
+        asset.releaseReservation(settlementId, destination);
+        emit AssetDisposed(settlementId, destination, amount, dispositionType);
+    }
+
+    /// @notice Fixes the Disposition Kernel. Callable once, by the owner, forever.
+    function setDispositionController(address controller) external onlyOwner {
+        if (address(dispositionController) != address(0)) {
+            revert DispositionControllerAlreadySet(address(dispositionController));
+        }
+        if (controller == address(0)) revert ZeroAddress();
+        dispositionController = DispositionController(controller);
+        emit DispositionControllerSet(controller);
+    }
+
     /// @notice Publishes this leg's terminal state back to the coordinator.
     ///
     /// PRD FR-011: the coordinator is SETTLED only after it consumes final
@@ -294,6 +446,24 @@ contract RWACVASettlementAdapter is
         // Reporting it as held would be a claim about a leg that is still open.
         if (!reservation.committed && !reservation.cancelled) {
             revert LegNotResolved(settlementId);
+        }
+
+        // A disposition is its own report. PRD 7.3 defines DISPOSITION_RESOLVED
+        // as message type 8 and nothing produced it until the kernel existed;
+        // reusing ASSET_RELEASED would tell the coordinator the bond reached the
+        // party the intent named, which for a rebind, a substitution or a
+        // restricted-custody outcome is false.
+        if (_dispositions[settlementId].executed) {
+            return _publish(
+                _header(
+                    MessageCodec.MessageType.DISPOSITION_RESOLVED,
+                    settlementId,
+                    boundIntentHash[settlementId],
+                    destinationChainId,
+                    3
+                ),
+                consistencyLevel
+            );
         }
 
         // PRD 7.3 has no RETURNED type: the wire says delivered or held, and the

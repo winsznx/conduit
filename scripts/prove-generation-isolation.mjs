@@ -30,7 +30,8 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ADAPTER_ABI, COORDINATOR_ABI, RWA_ABI, loadDvpConfig, padEmitter } from './lib/dvp.mjs';
-import { assertChainIdentity, revertName, shortMessage } from './lib/chain.mjs';
+import { proveContractRefusal } from '../packages/verifier/dist/refusal.js';
+import { assertChainIdentity, shortMessage } from './lib/chain.mjs';
 import { createLog, unbufferStdout } from './lib/observe.mjs';
 import { ROOT } from './lib/run.mjs';
 
@@ -48,21 +49,53 @@ const supersededDeploymentId = process.env['SUPERSEDED_DEPLOYMENT_ID'];
 const supersededVaa = process.env['SUPERSEDED_ASSET_PREPARED_VAA'];
 
 const results = [];
+/** Full refusal evidence, so the artifact carries the path and not the verdict. */
+const refusals = [];
 function record(check, ok, detail) {
   results.push({ check, ok, detail });
   (ok ? log.ok : log.fail)(`${check} — ${detail}`);
 }
 
-async function refuses(label, chain, request) {
-  const outcome = await chain.pub
-    .simulateContract({ ...request, account: deployer })
-    .then(() => undefined)
-    .catch((error) => error);
-  if (outcome === undefined) {
-    record(label, false, 'the call succeeded, and it must not');
-    return;
+/**
+ * Proves a refusal rather than inferring one.
+ *
+ * This function used to catch any error from `simulateContract` and record it
+ * as the chain rejecting the caller. It passed once on
+ * `Function "recordCashPrepared" not found on ABI` — viem refused to build the
+ * calldata, nothing reached the chain, and the report claimed an authority
+ * check had held that was never exercised. It would have passed against a
+ * contract with no access control at all.
+ *
+ * `proveContractRefusal` walks the whole path and returns evidence only when
+ * the calldata encoded, the target had code, the call reached it, and the
+ * contract reverted with bytes that decode against its own ABI. Anything else
+ * throws with the outcome named, and this records it as a failed check rather
+ * than a passing one.
+ */
+async function refuses(label, chain, request, expectedError) {
+  try {
+    const evidence = await proveContractRefusal(chain.pub, {
+      label,
+      address: request.address,
+      abi: request.abi,
+      functionName: request.functionName,
+      args: request.args,
+      account: request.account ?? deployer.address ?? deployer,
+      ...(expectedError === undefined ? {} : { expectedError }),
+    });
+    record(label, true, `refused with ${evidence.decodedError ?? evidence.rawRevert}`);
+    refusals.push(evidence);
+  } catch (error) {
+    const evidence = error?.evidence;
+    record(
+      label,
+      false,
+      evidence === undefined
+        ? shortMessage(error)
+        : `${evidence.outcome}: ${evidence.detail} (not a protocol refusal)`,
+    );
+    if (evidence !== undefined) refusals.push(evidence);
   }
-  record(label, true, `refused with ${revertName(outcome) ?? shortMessage(outcome)}`);
 }
 
 await assertChainIdentity(monad);
@@ -264,6 +297,11 @@ writeFileSync(
         adapter: supersededAdapter ?? null,
       },
       checks: results,
+      // The path behind every negative claim, not the verdict alone: the
+      // calldata that encoded, the address it reached, the chain it reached it
+      // on, the raw revert bytes, and the decoded error. A reader can tell a
+      // contract refusal from a client-side failure without rerunning anything.
+      refusalEvidence: refusals,
     },
     null,
     2,

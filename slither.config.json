@@ -7,5 +7,5 @@
   "exclude_high": false,
   "fail_on": "low",
   "solc_disable_warnings": false,
-  "detectors_to_exclude": "timestamp,assembly,reentrancy-events"
+  "detectors_to_exclude": "timestamp,assembly,reentrancy-events,operator-fee-outlier"
 }

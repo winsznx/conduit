@@ -7,8 +7,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {ComplianceAuthority} from "./ComplianceAuthority.sol";
+import {DispositionController} from "./DispositionController.sol";
 import {SettlementCoordinator} from "./SettlementCoordinator.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
+import {IDispositionExecutor} from "./interfaces/IDispositionExecutor.sol";
+import {DispositionTypes} from "./libraries/DispositionTypes.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
 
 /// @notice The CVA cash leg on Monad. PRD FR-004, FR-009, FR-010, FR-011.
@@ -48,7 +51,13 @@ import {MessageCodec} from "./libraries/MessageCodec.sol";
 /// guardian-attested copy of local state is strictly weaker than the state
 /// itself. The coordinator already had `recordLocalCashResolved` for the
 /// return direction, so this closes the loop the design was already assuming.
-contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, ReentrancyGuard {
+contract CashEscrow is
+    WormholeTransport,
+    ComplianceAuthority,
+    Ownable2Step,
+    ReentrancyGuard,
+    IDispositionExecutor
+{
     using SafeERC20 for IERC20;
 
     /// @notice The Cleanverse A-Token, discovered at deploy time and never hardcoded.
@@ -57,13 +66,18 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     /// @notice The canonical decision, on this chain. The only authority here.
     SettlementCoordinator public immutable coordinator;
 
+    /// @dev PRD 7.2's leg states. `DISPOSED` is the terminal state of a leg the
+    ///      Disposition Kernel resolved, and it is distinct from `RELEASED` and
+    ///      `RETURNED` because it records that an authority chose the outcome
+    ///      rather than the intent having named it.
     enum LegState {
         NONE,
         PREPARED,
         COMMITTED,
         RELEASED,
         RETURNED,
-        HELD
+        HELD,
+        DISPOSED
     }
 
     struct CashLeg {
@@ -84,6 +98,25 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     ///         already committed must not be strandable by an admin (PRD 8.2).
     bool public preparationsPaused;
 
+    /// @notice The Disposition Kernel for this chain. PRD FR-012.
+    ///
+    /// @dev Not immutable, for the reason the coordinator's `cashEscrow` is not:
+    ///      the controller must know the executor and the executor must know the
+    ///      controller, so whichever deploys first cannot name the other.
+    ///      Settable once and then fixed.
+    ///
+    ///      Until it is set, `executeDisposition` is unreachable and the
+    ///      permissionless retry is unrestricted, which is exactly the behaviour
+    ///      of a deployment with no kernel.
+    ///
+    ///      Declared last so it appends to the layout rather than displacing
+    ///      `_legs` and the two counters after it. The contracts are
+    ///      non-upgradeable so nothing breaks either way, but a slot that moves
+    ///      between generations is a slot a reader has to know the generation to
+    ///      interpret, and this codebase has already paid for one identity that
+    ///      needed more context than it looked like it did.
+    DispositionController public dispositionController;
+
     event CashPrepared(
         bytes32 indexed settlementId,
         address indexed payer,
@@ -93,6 +126,13 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     event CashReleased(bytes32 indexed settlementId, address indexed receiver, uint256 amount);
     event CashReturned(bytes32 indexed settlementId, address indexed payer, uint256 amount);
     event CashHeld(bytes32 indexed settlementId, address indexed intendedReceiver, uint256 amount);
+    event CashDisposed(
+        bytes32 indexed settlementId,
+        address indexed destination,
+        uint256 amount,
+        DispositionTypes.DispositionType dispositionType
+    );
+    event DispositionControllerSet(address indexed controller);
     event PreparationsPausedSet(bool paused);
 
     error AmountMustBePositive();
@@ -105,6 +145,10 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     error IntentHashMismatch(bytes32 actual, bytes32 expected);
     error ReleaseRequiresCommit(bytes32 settlementId);
     error ReturnRequiresAbort(bytes32 settlementId);
+    error NotTheDispositionController(address caller, address expected);
+    error DispositionControllerAlreadySet(address current);
+    error LegClaimedByDisposition(bytes32 settlementId);
+    error DestinationNotEligible(bytes32 settlementId, address destination);
 
     constructor(
         address cashAsset_,
@@ -365,6 +409,20 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
             revert LegNotInState(settlementId, leg.state, LegState.HELD);
         }
 
+        // The retry stands down while the kernel has a case open. Without this,
+        // a REBIND_RECEIVER resting out its contest window could be pre-empted
+        // by anyone calling this: the value would reach the original receiver
+        // the moment they became eligible again, while an authority was in the
+        // middle of deciding it should go elsewhere. That is the relayer race
+        // the contest window exists to prevent, arriving through the one door
+        // the window does not cover.
+        if (
+            address(dispositionController) != address(0)
+                && dispositionController.legIsClaimed(settlementId, DispositionTypes.Leg.CASH)
+        ) {
+            revert LegClaimedByDisposition(settlementId);
+        }
+
         SettlementCoordinator.Settlement memory settlement = coordinator.settlementOf(settlementId);
         if (settlement.intentHash != leg.intentHash) {
             revert IntentHashMismatch(settlement.intentHash, leg.intentHash);
@@ -402,6 +460,99 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         } else {
             emit CashReturned(settlementId, destination, amount);
         }
+    }
+
+    // ── Disposition Kernel ───────────────────────────────────────────────────
+
+    /// @inheritdoc IDispositionExecutor
+    function heldLegOf(bytes32 settlementId)
+        external
+        view
+        returns (IDispositionExecutor.HeldLeg memory)
+    {
+        CashLeg storage leg = _legs[settlementId];
+        SettlementCoordinator.Settlement memory settlement = coordinator.settlementOf(settlementId);
+        bool committed = settlement.decision == SettlementCoordinator.Decision.COMMIT;
+
+        return IDispositionExecutor.HeldLeg({
+            held: leg.state == LegState.HELD,
+            committed: committed,
+            asset: address(cashAsset),
+            amount: leg.amount,
+            // Where the settlement currently intends the value to go, which is
+            // decided by the canonical decision and not by the kernel. A hold on
+            // an abort path is stuck on its way back to the payer.
+            currentReceiver: committed ? leg.receiver : leg.payer,
+            originalSender: leg.payer
+        });
+    }
+
+    /// @inheritdoc IDispositionExecutor
+    function hostStateVersion(bytes32 settlementId) external view returns (uint64) {
+        return coordinator.settlementOf(settlementId).stateVersion;
+    }
+
+    /// @notice Performs an authorized disposition of held cash. PRD FR-012.
+    ///
+    /// Every destination rule lives in the controller, which is where the signed
+    /// order and the registry are. What lives here is custody: the leg must
+    /// really be held, the amount must really be its amount, and the destination
+    /// must pass this contract's own compliance quorum against this contract's
+    /// own EIP-712 domain at the moment the value moves.
+    ///
+    /// That last check is not a duplicate of anything the controller did. PRD
+    /// 5.4 step 5 requires current Cleanverse checks on the replacement, and the
+    /// authority signed its order minutes or hours earlier: the whole point of
+    /// re-checking is that the answer may have changed since.
+    ///
+    /// @dev This reverts on an ineligible destination rather than holding, which
+    ///      is the opposite of `releaseCash`. The reason the release paths never
+    ///      revert is that reverting would strand a settlement with nowhere to
+    ///      go; here the leg is already held and staying held is the correct
+    ///      outcome, so the revert unwinds the case and leaves it open to be
+    ///      executed again later or re-adjudicated.
+    function executeDisposition(
+        bytes32 settlementId,
+        DispositionTypes.DispositionType dispositionType,
+        address destination,
+        uint256 amount,
+        ComplianceProof calldata compliance
+    ) external nonReentrant {
+        if (msg.sender != address(dispositionController)) {
+            revert NotTheDispositionController(msg.sender, address(dispositionController));
+        }
+
+        CashLeg storage leg = _legs[settlementId];
+        if (leg.state != LegState.HELD) {
+            revert LegNotInState(settlementId, leg.state, LegState.HELD);
+        }
+        // Re-checked against custody rather than trusted from the controller. A
+        // controller pointed at the wrong executor, or a future controller with
+        // a bug, must not be able to move a different sum than the one stuck.
+        if (amount != leg.amount) revert InexactBalanceDelta(leg.amount, amount);
+        if (destination == address(0)) revert ZeroAddress();
+
+        if (!_isEligible(settlementId, leg.intentHash, destination, compliance)) {
+            revert DestinationNotEligible(settlementId, destination);
+        }
+
+        leg.state = LegState.DISPOSED;
+        totalEscrowed -= amount;
+
+        _report(settlementId, SettlementCoordinator.LegOutcome.DISPOSED);
+
+        cashAsset.safeTransfer(destination, amount);
+        emit CashDisposed(settlementId, destination, amount, dispositionType);
+    }
+
+    /// @notice Fixes the Disposition Kernel. Callable once, by the owner, forever.
+    function setDispositionController(address controller) external onlyOwner {
+        if (address(dispositionController) != address(0)) {
+            revert DispositionControllerAlreadySet(address(dispositionController));
+        }
+        if (controller == address(0)) revert ZeroAddress();
+        dispositionController = DispositionController(controller);
+        emit DispositionControllerSet(controller);
     }
 
     // ── Administration ───────────────────────────────────────────────────────

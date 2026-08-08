@@ -69,11 +69,23 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
     /// different events with different authority — a release requires a
     /// canonical COMMIT, a return requires a canonical ABORT — and collapsing
     /// them into one flag made that distinction unrepresentable.
+    /// @dev `DISPOSED` is appended, never inserted. The values are written into
+    ///      cross-chain reports and read by a verifier against two live
+    ///      generations, so renumbering would reinterpret settled history.
+    ///
+    ///      It is its own outcome rather than a flavour of RELEASED because the
+    ///      two are different claims. A release delivered the value to the party
+    ///      the intent named. A disposition delivered it somewhere an authority
+    ///      chose under PRD FR-012 — possibly the same party, possibly a rebound
+    ///      wallet, possibly restricted custody — and an audit that could not
+    ///      tell them apart could not tell whether the settlement did what the
+    ///      counterparties agreed to.
     enum LegOutcome {
         NONE,
         RELEASED,
         RETURNED,
-        HELD
+        HELD,
+        DISPOSED
     }
 
     struct Settlement {
@@ -145,6 +157,7 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
     error CashEscrowAlreadySet(address current);
     error InvalidCancellationSignature(address party);
     error OutcomeDoesNotMatchMessage(LegOutcome outcome, MessageCodec.MessageType messageType);
+    error DispositionRequiresHeldLeg(bytes32 settlementId, bool cash);
 
     constructor(
         address wormhole_,
@@ -458,12 +471,31 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
         bool heldMessage = expectedType == MessageCodec.MessageType.CASH_HELD
             || expectedType == MessageCodec.MessageType.ASSET_HELD;
 
-        // PRD 7.3 has no RETURNED message type, so the wire carries only
-        // "delivered" or "held" and the canonical decision distinguishes a
-        // release from a return. The caller states which it means and the
-        // contract checks that claim against both the message and the decision.
-        if ((outcome == LegOutcome.HELD) != heldMessage) {
-            revert OutcomeDoesNotMatchMessage(outcome, expectedType);
+        if (expectedType == MessageCodec.MessageType.DISPOSITION_RESOLVED) {
+            // PRD 7.3's type 8, which existed in the codec and had no producer
+            // until the kernel. It is only ever published by the remote asset
+            // leg — a cash-leg disposition happens on this chain and reports
+            // through `recordLocalCashResolved`, where a guardian-attested copy
+            // of local state would be strictly weaker than the state itself.
+            if (outcome != LegOutcome.DISPOSED) {
+                revert OutcomeDoesNotMatchMessage(outcome, expectedType);
+            }
+        } else {
+            // PRD 7.3 has no RETURNED message type, so the wire carries only
+            // "delivered" or "held" and the canonical decision distinguishes a
+            // release from a return. The caller states which it means and the
+            // contract checks that claim against both the message and the
+            // decision.
+            if ((outcome == LegOutcome.HELD) != heldMessage) {
+                revert OutcomeDoesNotMatchMessage(outcome, expectedType);
+            }
+            // A disposition is never carried by a release or hold message. Left
+            // out, `ASSET_RELEASED` with `DISPOSED` would let a relayer relabel
+            // an ordinary delivery as an authority-directed one, and the audit
+            // package would report a disposition that no order authorized.
+            if (outcome == LegOutcome.DISPOSED) {
+                revert OutcomeDoesNotMatchMessage(outcome, expectedType);
+            }
         }
 
         MessageCodec.Header memory header = _consume(resolutionVaa, expectedType);
@@ -585,6 +617,16 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
         if (!prepared) revert LegNotPrepared(settlementId, cash);
 
         LegOutcome current = cash ? settlement.cashOutcome : settlement.assetOutcome;
+
+        // A disposition disposes of *held* value. Reporting one against a leg
+        // that was never held is a claim about value that was never stuck, and
+        // it would let a disposition stand in for an ordinary delivery in the
+        // audit package. The executors enforce the same rule from the custody
+        // side; this is the canonical record refusing independently, because a
+        // controller misconfiguration must not be able to rewrite what happened.
+        if (outcome == LegOutcome.DISPOSED && current != LegOutcome.HELD) {
+            revert DispositionRequiresHeldLeg(settlementId, cash);
+        }
 
         // A held leg may resolve again: that is what the Disposition Kernel does,
         // and PRD 7.1 lists HELD -> SETTLED as an allowed transition. But only

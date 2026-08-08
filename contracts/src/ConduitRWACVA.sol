@@ -74,13 +74,6 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
     mapping(bytes32 settlementId => Reservation) private _reservations;
     mapping(address owner => uint256 amount) private _reservedOf;
 
-    /// @dev Transient. Set only for the duration of a release, so the reservation
-    ///      guard in `_update` can distinguish a legitimate settlement transfer
-    ///      from an ordinary one trying to spend reserved units. Transient
-    ///      storage clears at end of transaction, so a reverted release cannot
-    ///      leave the guard open — which a storage bool could.
-    bytes32 private transient _releasingSettlement;
-
     event ReservationCreated(bytes32 indexed settlementId, address indexed owner, uint256 amount);
     event ReservationCommitted(bytes32 indexed settlementId);
     event ReservationReleased(bytes32 indexed settlementId, address indexed to, uint256 amount);
@@ -243,14 +236,16 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
         uint256 amount = reservation.amount;
 
         // Checks-effects-interactions. Closed first, then moved.
+        //
+        // The decrement is what lets `_update`'s guard read `_reservedOf`
+        // literally: by the time the transfer runs, this reservation is no
+        // longer counted and what remains is exactly the owner's *other* open
+        // settlements. Nothing further needs excluding, and excluding anything
+        // would subtract this reservation twice.
         reservation.released = true;
         _reservedOf[owner] -= amount;
 
-        // Opens the reservation guard for exactly this transfer. Transient, so
-        // a revert cannot leave it open for the next call in the transaction.
-        _releasingSettlement = settlementId;
         _transfer(owner, receiver, amount);
-        _releasingSettlement = bytes32(0);
 
         emit ReservationReleased(settlementId, receiver, amount);
     }
@@ -298,18 +293,31 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
         }
 
         // R1. Minting has no source balance to protect.
+        //
+        // `_reservedOf` is read as written. A settlement release decrements it
+        // before it transfers, so the value here is already the owner's *other*
+        // open reservations and the units in flight are not among them.
+        //
+        // This used to subtract the releasing settlement's amount on top of
+        // that, which is the same amount twice. With one reservation the bug is
+        // unreachable: the decrement leaves `_reservedOf` at zero, the guard is
+        // skipped entirely, and nothing ever evaluates the second subtraction.
+        // It needs a seller holding a *second* open settlement to appear, and
+        // then it appears in one of two ways. If the other reservations total
+        // less than the one being released, the subtraction underflows and the
+        // release reverts with a panic — held value that no authority can free,
+        // on a leg that is otherwise perfectly disposable. If they total more,
+        // there is no panic and the guard silently under-counts what is still
+        // reserved, which is invariant R1 relaxed for the duration of the
+        // transfer.
+        //
+        // The deployed seller holds exactly this shape: a generation-1 hold of
+        // 500,000 that has no disposition path, against the same token as every
+        // later settlement. It is the aggregate-versus-settlement mistake once
+        // more, this time inside the contract rather than in a check about it.
         if (from != address(0)) {
             uint256 reserved = _reservedOf[from];
-
-            // A settlement release is spending the very units it reserved, so
-            // its own reservation is excluded from the guard. Every other
-            // movement, including a burn, sees the full reservation.
             if (reserved != 0) {
-                bytes32 releasing = _releasingSettlement;
-                if (releasing != bytes32(0) && _reservations[releasing].owner == from) {
-                    reserved -= _reservations[releasing].amount;
-                }
-
                 uint256 spendable = balanceOf(from) - reserved;
                 if (spendable < value) revert InsufficientAvailableBalance(spendable, value);
             }

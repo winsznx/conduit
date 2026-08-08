@@ -226,3 +226,39 @@ Sepolia, because the deployer's nonce lined up across two chains. Anything
 keying a contract, peer, balance, event, cache entry, idempotency key, explorer
 link, or row by address alone conflates two different contracts with two
 different roles, silently. See ADR-0018.
+
+### D-06 — a second open reservation made the first one unreleasable
+
+**Required invariant.** A per-owner aggregate is never used where a
+per-settlement fact is meant, inside a contract or outside one.
+
+`ConduitRWACVA.releaseReservation` decrements `_reservedOf[owner]` and then
+transfers. `_update` subtracted the releasing reservation's amount from
+`_reservedOf` a second time — the same amount twice. With one reservation the
+subtraction is unreachable: the decrement leaves the mapping at zero, the guard
+is skipped entirely, and nothing evaluates it. Two hundred tests and two live
+settlements never touched it.
+
+It needs a seller holding a second open settlement, and then it appears in one of
+two ways. If the other reservations total less than the one being released, the
+subtraction underflows and the release reverts with a panic — held value that no
+authority can free, on a leg whose disposition was authorized, signed,
+uncontested and rested. If they total more, there is no panic and the guard
+under-counts what is still reserved for the duration of the transfer, which is
+invariant R1 relaxed rather than enforced.
+
+The deployed seller is one settlement away from the first case: generation 1
+holds 500,000 cBOND2 against the same token with no disposition path. Found by
+`contracts/test/SettlementScopedAccounting.t.sol`, which stands one wallet up
+with two settlements — the shape the deployment already has and no earlier test
+had.
+
+The consumer cannot defend against this: the reservation guard is the defence,
+and it was the thing that was wrong. Fixed by deleting the second subtraction and
+the transient flag that enabled it; `_reservedOf` is now read as written, which
+after the decrement is exactly the owner's other open settlements.
+
+**This is ADR-0019's rule inside a contract.** D-05 was one address meaning two
+contracts because the chain was missing from the key. The verifier's false
+negative was one balance meaning two settlements because the settlement was
+missing from the key. This is the same sentence a third time, in Solidity.

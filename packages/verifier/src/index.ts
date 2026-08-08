@@ -20,6 +20,32 @@ export {
 } from './registry.js';
 
 export {
+  AUTHORITY_TYPE,
+  DISPOSITION_CASE_STATE,
+  DISPOSITION_TYPE,
+  LEG_NAME,
+  caseIdFor,
+  outcomeOfCases,
+  reconstructDisposition,
+  type AuthorityTypeName,
+  type DispositionCaseState,
+  type DispositionReader,
+  type DispositionTypeName,
+  type LegName,
+  type ReconstructedAuthority,
+  type ReconstructedDisposition,
+} from './disposition.js';
+
+export {
+  NotARefusalError,
+  proveContractRefusal,
+  RefusalOutcome,
+  type RefusalClient,
+  type RefusalEvidence,
+  type RefusalRequest,
+} from './refusal.js';
+
+export {
   authorizesValue,
   CASH_LEG_STATE,
   DECISION,

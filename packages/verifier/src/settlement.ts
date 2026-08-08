@@ -8,6 +8,9 @@ import {
 import type { ChainScopedAddress, WormholeEmitter } from '@conduit-protocol/domain';
 import type { Address, Hex } from 'viem';
 
+import { outcomeOfCases, reconstructDisposition } from './disposition.js';
+
+import type { ReconstructedDisposition } from './disposition.js';
 import type { DeploymentGeneration, RegisteredContract } from './registry.js';
 
 /**
@@ -63,7 +66,15 @@ export const SETTLEMENT_STATE = [
 ] as const;
 
 export const DECISION = ['NONE', 'COMMIT', 'ABORT'] as const;
-export const LEG_OUTCOME = ['NONE', 'RELEASED', 'RETURNED', 'HELD'] as const;
+/**
+ * `SettlementCoordinator.LegOutcome`. `DISPOSED` is appended, never inserted.
+ *
+ * It is its own outcome rather than a flavour of `RELEASED` because the two are
+ * different claims: a release delivered to the party the intent named, a
+ * disposition delivered where an authority chose under PRD FR-012 — possibly the
+ * same party, possibly a rebound wallet, possibly restricted custody.
+ */
+export const LEG_OUTCOME = ['NONE', 'RELEASED', 'RETURNED', 'HELD', 'DISPOSED'] as const;
 export const CASH_LEG_STATE = [
   'NONE',
   'PREPARED',
@@ -71,6 +82,7 @@ export const CASH_LEG_STATE = [
   'RELEASED',
   'RETURNED',
   'HELD',
+  'DISPOSED',
 ] as const;
 
 export const MESSAGE_TYPE = [
@@ -139,8 +151,36 @@ export interface VerificationResult {
   readonly decision: (typeof DECISION)[number];
   readonly cashOutcome: (typeof LEG_OUTCOME)[number];
   readonly assetOutcome: (typeof LEG_OUTCOME)[number];
-  /** This verifier's classification. Not an on-chain state. */
-  readonly derived: 'SETTLED_FINAL' | 'SETTLED_PENDING_VERIFICATION' | 'NOT_SETTLED';
+  /**
+   * This verifier's classification. None of these is an on-chain state.
+   *
+   * ```text
+   *   SETTLED_FINAL                the intent's own parties received the value
+   *   DISPOSITION_FINAL            an authority redirected it under PRD FR-012
+   *   RESTRICTED_HOLD_FINAL        it ended in registered restricted custody
+   *   CONTESTED                    two authorities disagree; nothing may move
+   *   HELD_PENDING_DISPOSITION     committed, undelivered, no case resolved it
+   *   SETTLED_PENDING_VERIFICATION SETTLED on chain, a check did not pass here
+   *   NOT_SETTLED                  the coordinator's own state is not SETTLED
+   * ```
+   *
+   * `HELD_PENDING_DISPOSITION` and `RESTRICTED_HOLD_FINAL` are deliberately not
+   * collapsed. The first is an unresolved case — value a canonical decision
+   * spoke for that nothing has yet freed. The second is an authorized outcome
+   * that a policy chose and a custodian received. They look alike from a
+   * distance and mean opposite things about whether anyone is still owed an
+   * answer.
+   */
+  readonly derived:
+    | 'SETTLED_FINAL'
+    | 'DISPOSITION_FINAL'
+    | 'RESTRICTED_HOLD_FINAL'
+    | 'CONTESTED'
+    | 'HELD_PENDING_DISPOSITION'
+    | 'SETTLED_PENDING_VERIFICATION'
+    | 'NOT_SETTLED';
+  /** One per leg, absent where the generation has no Disposition Kernel. */
+  readonly dispositions: readonly ReconstructedDisposition[];
   readonly messages: readonly VerifiedMessage[];
   readonly findings: readonly Finding[];
   readonly addressCollisions: readonly (readonly { role: string; key: string }[])[];
@@ -653,24 +693,111 @@ export async function verifySettlement(
           'Widen the search window before concluding these were never published.',
   );
 
+  // ── The Disposition Kernel, one case per leg ──────────────────────────────
+  //
+  // Read before the classification because a contested case outranks everything
+  // else a settlement could be: it means two authorities disagree and nothing
+  // may move until a resolver decides, whatever the coordinator's state says.
+
+  const cashCase = await reconstructDisposition(
+    settlementId,
+    'CASH',
+    coordinator.identity.chainId,
+    generation,
+    chain,
+  );
+  const assetCase = await reconstructDisposition(
+    settlementId,
+    'ASSET',
+    adapter.identity.chainId,
+    generation,
+    chain,
+  );
+  const dispositions = [cashCase, assetCase].filter(
+    (entry): entry is ReconstructedDisposition => entry !== undefined,
+  );
+  const dispositionOutcome = outcomeOfCases([cashCase, assetCase]);
+
+  for (const reconstructed of dispositions) {
+    record(
+      `the ${reconstructed.leg.toLowerCase()} leg's disposition case`,
+      reconstructed.state !== 'CONTESTED',
+      reconstructed.state === 'EXECUTED'
+        ? `${String(reconstructed.executedType)} to ${String(reconstructed.executedDestination)}, ` +
+            `${String(reconstructed.signatures)} signature(s) under policy ${reconstructed.policyId}`
+        : `case is ${reconstructed.state}`,
+    );
+    record(
+      `the ${reconstructed.leg.toLowerCase()} leg's authorities are registered`,
+      reconstructed.authorities.every((authority) => authority.authorityType !== undefined),
+      reconstructed.authorities
+        .map(
+          (authority) =>
+            `${authority.address} as ${authority.authorityType ?? 'UNREGISTERED'}` +
+            (authority.stillActive ? '' : ' (since revoked)'),
+        )
+        .join(', ') || 'none',
+    );
+    record(
+      `the ${reconstructed.leg.toLowerCase()} leg's policy is unchanged since filing`,
+      reconstructed.policyUnchangedSinceFiling,
+      reconstructed.policyUnchangedSinceFiling
+        ? reconstructed.policyHash
+        : `orders bound ${reconstructed.policyHash}; the registry now hashes to something else`,
+    );
+  }
+
+  // A leg the coordinator records as DISPOSED must have a kernel case that
+  // executed. Without this, a coordinator reporting a disposition nobody
+  // authorized would pass every other check in this file.
+  const disposedLegs: string[] = [];
+  if (cashOutcome === 'DISPOSED') disposedLegs.push('CASH');
+  if (assetOutcome === 'DISPOSED') disposedLegs.push('ASSET');
+  for (const legName of disposedLegs) {
+    const reconstructed = dispositions.find((entry) => entry.leg === legName);
+    record(
+      `the ${legName.toLowerCase()} leg's disposition was authorized`,
+      reconstructed?.state === 'EXECUTED',
+      reconstructed === undefined
+        ? 'the coordinator reports DISPOSED and no kernel case exists for it'
+        : `case ${reconstructed.state}, order ${String(reconstructed.executedOrderHash)}`,
+    );
+  }
+
   // ── The classification ────────────────────────────────────────────────────
 
   const allChecksPass = findings.every((finding) => finding.ok);
-  const derived: VerificationResult['derived'] =
-    canonicalState !== 'SETTLED'
-      ? 'NOT_SETTLED'
-      : allChecksPass
-        ? 'SETTLED_FINAL'
-        : 'SETTLED_PENDING_VERIFICATION';
+  const derived: VerificationResult['derived'] = (() => {
+    if (dispositionOutcome === 'CONTESTED') return 'CONTESTED';
+    if (canonicalState === 'HELD') return 'HELD_PENDING_DISPOSITION';
+    if (canonicalState !== 'SETTLED') return 'NOT_SETTLED';
+    if (!allChecksPass) return 'SETTLED_PENDING_VERIFICATION';
+    if (dispositionOutcome === 'RESTRICTED_HOLD_FINAL') return 'RESTRICTED_HOLD_FINAL';
+    if (dispositionOutcome === 'DISPOSITION_FINAL') return 'DISPOSITION_FINAL';
+    return 'SETTLED_FINAL';
+  })();
+
+  const terminal =
+    derived === 'SETTLED_FINAL' ||
+    derived === 'DISPOSITION_FINAL' ||
+    derived === 'RESTRICTED_HOLD_FINAL';
 
   record(
     'derived classification',
-    derived === 'SETTLED_FINAL',
+    terminal,
     derived === 'SETTLED_FINAL'
       ? 'the coordinator says SETTLED and every fact it rests on checks out'
-      : derived === 'NOT_SETTLED'
-        ? `the coordinator's own state is ${canonicalState}`
-        : 'the coordinator says SETTLED but at least one check did not pass',
+      : derived === 'DISPOSITION_FINAL'
+        ? 'terminal through an authorized disposition, not through delivery to the named parties'
+        : derived === 'RESTRICTED_HOLD_FINAL'
+          ? 'terminal in registered restricted custody; no party to the trade received the value'
+          : derived === 'CONTESTED'
+            ? 'two authorized orders disagree; nothing may move until the policy resolves it'
+            : derived === 'HELD_PENDING_DISPOSITION'
+              ? 'committed and undelivered, with no disposition case resolving it'
+              : derived === 'NOT_SETTLED'
+                ? `the coordinator's own state is ${canonicalState}`
+                : 'the coordinator says SETTLED but at least one check did not pass',
   );
 
   return {
@@ -681,6 +808,7 @@ export async function verifySettlement(
     cashOutcome,
     assetOutcome,
     derived,
+    dispositions,
     messages,
     findings,
     addressCollisions: collisions,
@@ -697,6 +825,7 @@ function legAgrees(
   if (outcome === 'RELEASED') return legState === 'RELEASED';
   if (outcome === 'RETURNED') return legState === 'RETURNED';
   if (outcome === 'HELD') return legState === 'HELD';
+  if (outcome === 'DISPOSED') return legState === 'DISPOSED';
   return true;
 }
 
@@ -706,6 +835,10 @@ function reservationAgrees(
 ): boolean {
   if (outcome === 'RELEASED') return reserved.released;
   if (outcome === 'RETURNED') return reserved.cancelled;
+  // A disposition releases the reservation to wherever the order named, so the
+  // token reads the same as an ordinary delivery. What separates them is the
+  // kernel case, which the disposition checks above assert independently.
+  if (outcome === 'DISPOSED') return reserved.released;
   if (outcome === 'HELD') return reserved.committed && !reserved.released && !reserved.cancelled;
   // NONE: the leg has not resolved, and neither should the reservation have.
   return true;

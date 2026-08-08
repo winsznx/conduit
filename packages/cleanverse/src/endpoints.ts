@@ -50,6 +50,11 @@ function write(path: string, awaitsChainConfirmation: boolean): EndpointDefiniti
   return { path, kind: 'write', encrypted: true, awaitsChainConfirmation };
 }
 
+/** A mutation whose plaintext body the sandbox is observed to parse. */
+function writePlain(path: string): EndpointDefinition {
+  return { path, kind: 'write', encrypted: false, awaitsChainConfirmation: false };
+}
+
 export const ENDPOINTS = Object.freeze({
   // Discovery and identity
   queryDepositATokenList: read('/query_deposit_atoken_list'),
@@ -87,14 +92,24 @@ export const ENDPOINTS = Object.freeze({
   faucet: write('/faucet', false),
   updateStatus: write('/update_status', false),
 
-  // Ramp
-  queryRampCountries: readEncrypted('/query_ramp_countries'),
-  queryRampFiatCurrencies: readEncrypted('/query_ramp_fiat_currencies'),
-  queryRampCryptoCurrencies: readEncrypted('/query_ramp_crypto_currencies'),
-  queryRampPaymentMethods: readEncrypted('/query_ramp_payment_methods'),
-  queryRampQuote: readEncrypted('/query_ramp_quote'),
-  createRampWidgetUrl: write('/create_ramp_widget_url', false),
-  queryRampOrder: readEncrypted('/query_ramp_order'),
+  // Ramp. Every one of these is plaintext, verified against the live sandbox on
+  // 2026-08-08 (`docs/evidence/asm-010-fiat-ramp.json`). The assumed-encrypted
+  // marking cost a diagnosis: `query_ramp_quote` reported all five of its
+  // required fields as empty, in both camelCase and snake_case, including
+  // `network` which is spelled identically either way. A field name cannot be
+  // wrong in two conventions at once — that is a body the server never parsed,
+  // and it is the same signature `query_deposit_atoken_list` showed.
+  //
+  // `create_ramp_widget_url` takes `wallet` as an object, not an address. Sent a
+  // string it fails at the framework layer with a bare HTTP 400 and no business
+  // code, which reads like an outage rather than a shape error.
+  queryRampCountries: read('/query_ramp_countries'),
+  queryRampFiatCurrencies: read('/query_ramp_fiat_currencies'),
+  queryRampCryptoCurrencies: read('/query_ramp_crypto_currencies'),
+  queryRampPaymentMethods: read('/query_ramp_payment_methods'),
+  queryRampQuote: read('/query_ramp_quote'),
+  createRampWidgetUrl: writePlain('/create_ramp_widget_url'),
+  queryRampOrder: read('/query_ramp_order'),
 }) satisfies Readonly<Record<string, EndpointDefinition>>;
 
 export type EndpointName = keyof typeof ENDPOINTS;
