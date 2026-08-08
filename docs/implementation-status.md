@@ -646,10 +646,15 @@ non-upgradeable, so a new version deploys separately.
    ERC-20 legs are self-transfers with a net wallet delta of zero and
    conservation is proven at the escrow balance and the reservation. A
    credential limitation, not a protocol one.
-2. **The post-COMMIT compliance-change path is not live.** `resolveHeldCash` and
-   `resolveHeldAsset` exist and are proven in `CrossChainSettlementSeam.t.sol`,
-   and they were written after this stack was deployed, so they are not in the
-   live bytecode. The compliance-failure demo needs one more deployment.
+2. **The post-COMMIT compliance change is live; the disposition is not.** A real
+   issuer-controlled RuleV2 transition made the buyer ineligible after COMMIT,
+   the live policy answered `TierTooLow(0x83C1…, 21, 20)`, delivery was refused
+   and the bond reached HELD with exact conservation — see
+   [phase-07-held-summary.md](./evidence/phase-07-held-summary.md).
+   `resolveHeldCash` and `resolveHeldAsset` postdate this deployment generation
+   and are proven only in `CrossChainSettlementSeam.t.sol`; the live disposition
+   needs the generation blocked in
+   [phase-07-generation-2-blocked.json](./evidence/phase-07-generation-2-blocked.json).
 3. **Six passes over two and a half hours.** Five ended in a defect and four of
    those were in the runner. The protocol refused exactly once, correctly, when
    the runner presented one signer's opinion about one subject twice. The runner

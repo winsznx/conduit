@@ -3,7 +3,7 @@
   "scenario": "post-COMMIT compliance change, Path B: issuer-controlled RuleV2 transition",
   "resumedFrom": null,
   "settlementId": "0x2b8ff0a739d575f9fb680b1df185d65c58ad74aa454de10c4c4f65c9a988e0bd",
-  "outcome": "INCOMPLETE",
+  "outcome": "HELD_ON_REAL_COMPLIANCE_CHANGE",
   "intent": {
     "version": "1",
     "cashChainId": "10143",
@@ -103,7 +103,25 @@
       "at": "2026-08-08T13:56:03.519Z",
       "detail": {
         "reportResolution": "0xc3edd30759278576693e7307cda1b42fdc5b0b18cea756374db34a3c707da86c",
-        "sequence": "3"
+        "sequence": "3",
+        "reportWaitSeconds": "999",
+        "recordLegResolved": "0x2748dd3604fdd6900b67e52fd85194876df86a43653a10a3d502151fbfa11cae"
+      }
+    },
+    {
+      "stage": "RuleV2: restore — minTier 0",
+      "at": "2026-08-08T14:13:06.326Z",
+      "detail": {
+        "hash": "0x1252241f7ceb3085ae2c3142e27ac4b9474bc4220233b80d2128d780ef693202",
+        "before": "[[0x0000,0x0000,21,0,false,0]]",
+        "after": "[[0x0000,0x0000,0,0,false,0]]"
+      }
+    },
+    {
+      "stage": "the disposition this generation cannot perform",
+      "at": "2026-08-08T14:13:26.522Z",
+      "detail": {
+        "resolveHeldAssetPresentInBytecode": "false"
       }
     }
   ],
@@ -158,6 +176,23 @@
       ],
       "onChainCanTransfer": "revert The contract function \"canTransfer\" reverted with the following signature:",
       "ruleV2": "[[0x0000,0x0000,21,0,false,0]]"
+    },
+    {
+      "label": "after the rule is restored",
+      "at": "2026-08-08T14:13:22.628Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "b7d93753-b434-44eb-8057-0e5c27bc50f4",
+          "answer": "code 4",
+          "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
     }
   ],
   "ruleTransitions": [
@@ -166,6 +201,12 @@
       "hash": "0x1fa640cc622897f132de798912fdc946454ffdf01ca2fe01dfa78861110df32f",
       "before": "[[0x0000,0x0000,0,0,false,0]]",
       "after": "[[0x0000,0x0000,21,0,false,0]]"
+    },
+    {
+      "label": "restore — minTier 0",
+      "hash": "0x1252241f7ceb3085ae2c3142e27ac4b9474bc4220233b80d2128d780ef693202",
+      "before": "[[0x0000,0x0000,21,0,false,0]]",
+      "after": "[[0x0000,0x0000,0,0,false,0]]"
     }
   ],
   "conservation": {
@@ -188,6 +229,23 @@
     },
     "at held": {
       "at": "2026-08-08T13:55:46.051Z",
+      "cash": {
+        "payer": "725000000",
+        "receiver": "725000000",
+        "escrow": "0",
+        "totalEscrowed": "0",
+        "totalSupply": "1000000000"
+      },
+      "rwa": {
+        "sellerNominal": "2000000",
+        "sellerReserved": "500000",
+        "sellerAvailable": "1500000",
+        "receiver": "2000000",
+        "totalSupply": "2000000"
+      }
+    },
+    "after": {
+      "at": "2026-08-08T14:13:22.629Z",
       "cash": {
         "payer": "725000000",
         "receiver": "725000000",
@@ -229,5 +287,15 @@
   },
   "assetHeld": {
     "hash": "0x771fe988890f688997555966bf22a182048346c632d868927a5e34320f36f108"
-  }
+  },
+  "held": {
+    "hash": "0x2748dd3604fdd6900b67e52fd85194876df86a43653a10a3d502151fbfa11cae"
+  },
+  "dispositionBlocked": {
+    "reason": "resolveHeldAsset postdates this deployment generation",
+    "provenIn": "contracts/test/CrossChainSettlementSeam.t.sol test_12",
+    "blockedBy": "docs/evidence/phase-07-generation-2-blocked.json"
+  },
+  "finishedAt": "2026-08-08T14:13:27.194Z",
+  "artifact": "/Users/mac/conduit/docs/evidence/artifacts/compliance-change-2b8ff0a739.log"
 }

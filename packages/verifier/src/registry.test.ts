@@ -44,7 +44,7 @@ function manifest(
       ]),
     ),
     bytecodeHashes: Object.fromEntries(
-      Object.keys(contracts).map((role) => [role, `0x${'11'.repeat(32)}` as `0x${string}`]),
+      Object.keys(contracts).map((role) => [role, `0x${'11'.repeat(32)}`]),
     ),
     wormhole: {
       [chain]: {
@@ -111,9 +111,9 @@ describe('deployment generations', () => {
   });
 
   it('answers for the coordinator of the generation it was asked about', () => {
-    const [gen1, gen2] = DeploymentGeneration.allFrom([...generation1, ...generation2]).sort((a) =>
-      a.deploymentId === GEN1 ? -1 : 1,
-    );
+    const generations = DeploymentGeneration.allFrom([...generation1, ...generation2]);
+    const gen1 = generations.find((g) => g.deploymentId === GEN1);
+    const gen2 = generations.find((g) => g.deploymentId === GEN2);
 
     expect(gen1?.role(10_143, 'SettlementCoordinator').identity.address).toBe(COLLIDING);
     expect(gen2?.role(10_143, 'SettlementCoordinator').identity.address).toBe(
@@ -153,12 +153,10 @@ describe('deployment generations', () => {
     const broken = manifest(GEN1, 'monadTestnet', { CashEscrow: COLLIDING });
     const mutated = {
       ...broken,
-      contracts: { CashEscrow: { chain: 'ethereum', address: COLLIDING } },
+      contracts: { CashEscrow: { chain: 'ethereum', address: COLLIDING as `0x${string}` } },
     };
     expect(() =>
-      DeploymentGeneration.fromManifests([
-        { name: 'broken.json', manifest: mutated as unknown as DeploymentManifest },
-      ]),
+      DeploymentGeneration.fromManifests([{ name: 'broken.json', manifest: mutated }]),
     ).toThrow(/not configured/);
   });
 
