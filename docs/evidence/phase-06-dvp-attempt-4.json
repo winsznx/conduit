@@ -1,0 +1,163 @@
+{
+  "capturedAt": "2026-08-08T11:40:00.000Z",
+  "outcome": "SETTLED_FINAL",
+  "settlementId": "0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858",
+  "note": "Assembled from all six passes over one settlement. `phase-06-dvp.json` is the runner's own record and describes only its final verification pass, because a resumed run reports what it observed rather than what happened before it started. The primary record is the append-only artifact at docs/evidence/artifacts/dvp-940f1c1521.log, which carries every pass. Nothing here is taken from memory: every hash below is in that log or was read back off chain, and the issueCommit hash was recovered from the coordinator's own CommitIssued event after a failed resume overwrote it.",
+  "deployment": {
+    "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
+    "monadTestnet": {
+      "SettlementCoordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+      "CashEscrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+      "ConduitSandboxSettlementCVA": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf"
+    },
+    "baseSepolia": {
+      "ConduitRWACVA": "0x7a78912533b43C483621200b4919806c0B855E5b",
+      "RWACVASettlementAdapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
+    },
+    "note": "The coordinator on Monad and the adapter on Base share an address. Different chains, same deployer nonce; coincidence, and worth stating so a reader does not mistake one for the other."
+  },
+  "amounts": { "cash": "25000000 cSETTLE", "asset": "500000 cBOND2" },
+  "party": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "transactions": [
+    {
+      "stage": "mint the bond to the seller",
+      "chain": "baseSepolia",
+      "hash": "0x377c15da8f1a67a0737867ae57139a9ceafceb2c1fb58c3a07c9df0ce9928fb4",
+      "block": 45205700
+    },
+    {
+      "stage": "reserveForSettlement",
+      "chain": "baseSepolia",
+      "hash": "0xfc6f78733a2a511b984c59fc41d31ff775dbac6f3350c4e127310bb7338c1a8a",
+      "observed": "reservedBalanceOf 500000, confirmed on all three Base providers"
+    },
+    {
+      "stage": "prepareAsset — ASSET_PREPARED published, reservation announced",
+      "chain": "baseSepolia",
+      "hash": "0xd0f77aa566ae21facbab89d3c2c0722217d309167cedd1a508e7dfd110cdf14d",
+      "wormholeSequence": "0",
+      "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+      "emitterChainId": 10004
+    },
+    {
+      "stage": "approve the escrow",
+      "chain": "monadTestnet",
+      "hash": "0x1ca2ee790f30a47f4e4868e72a0433518ffb7fcf82e24aea20a9bacc1ad71f29"
+    },
+    {
+      "stage": "prepareCash — the escrow takes the cash and tells the coordinator in the same transaction",
+      "chain": "monadTestnet",
+      "hash": "0xb6b7e9154f56a8d1eda2bd546a8ab2569bcebd4a55938f9cd55599551fb10239",
+      "observed": "coordinator.settlementOf().cashPrepared true, read back before the next call"
+    },
+    {
+      "stage": "recordAssetPrepared — the coordinator consumes the finalized VAA",
+      "chain": "monadTestnet",
+      "hash": "0x75c632e4c9cc637afb9b2961fc19bf8fd364699c38f8690ac26fa19d7b5d3864",
+      "observed": "READY"
+    },
+    {
+      "stage": "issueCommit",
+      "chain": "monadTestnet",
+      "hash": "0x56731cb9ada806e25c61d67edb313319c63dae6315f6ed0b2b45746933647866",
+      "block": 51935065,
+      "wormholeSequence": "0",
+      "recoveredFrom": "the coordinator's CommitIssued(settlementId, sequence) event, after a failed resume overwrote the runner's own record of it"
+    },
+    {
+      "stage": "releaseCash",
+      "chain": "monadTestnet",
+      "hash": "0x1fa7e514a112761007ab54d7be3ee8892da382a657b9c4fad700a8216d1b6216",
+      "block": 51935417,
+      "observed": "coordinator cashOutcome RELEASED"
+    },
+    {
+      "stage": "releaseAsset — the adapter consumes the COMMIT VAA and delivers",
+      "chain": "baseSepolia",
+      "hash": "0xe0fe0f7a90419368910377917e3af75299d2c37317d1fea0fec5cf3c4ea5a082",
+      "block": 45209327,
+      "observed": "reservation released true, reservedBalanceOf 0"
+    },
+    {
+      "stage": "reportResolution — ASSET_RELEASED derived from the token, not from the caller",
+      "chain": "baseSepolia",
+      "hash": "0x1353a81c985a2fe1b0885e350725c497e0f7c34f81c57af9412cd8580186bb85",
+      "block": 45209639,
+      "wormholeSequence": "1"
+    },
+    {
+      "stage": "recordLegResolved — the settlement becomes terminal",
+      "chain": "monadTestnet",
+      "hash": "0xb384e9baaf9834f823b16dad0212e4e56e5db155b4ddad08fa163160de8b2ae7",
+      "block": 51941525,
+      "observed": "SETTLED"
+    }
+  ],
+  "finality": {
+    "assetPreparedVaa": {
+      "consistencyLevel": 1,
+      "class": "FINALIZED",
+      "note": "The first attempt waited 2747s without reaching wormholescan at all and gave up; the VAA existed. The wait is therefore not a clean measurement for this message and is reported as a transport outage rather than as a finality number."
+    },
+    "assetReleasedVaa": {
+      "waitSeconds": 1223,
+      "consistencyLevel": 1,
+      "class": "FINALIZED",
+      "note": "A clean measurement of Base Sepolia economic finality on this run: 1223s from the reportResolution receipt to the signed VAA. Attempt 3 measured 1485s for the same class. Both are consistent with roughly twenty minutes and neither was shortened."
+    },
+    "commitVaa": {
+      "waitSeconds": 0,
+      "class": "FINALIZED",
+      "note": "Monad finality is roughly a block, so the finalized COMMIT VAA was already available when it was first requested. Same enforcement, different chain."
+    }
+  },
+  "commitTimeCompliance": {
+    "queriedAfterFinality": true,
+    "endpoints": [
+      "POST /verify_apass  {chain, address, atoken} → code 4",
+      "POST /validator/verify  {chain, contract_address: CashEscrow, user_address} → valid true"
+    ],
+    "note": "Both cash-side sources answered live immediately before issueCommit, and the asset side answered from verify_apass immediately before releaseAsset. The attestations were signed over those answers and each was put to the verifying contract's own verifyEligible before the transaction that spent it. maxAttestationValidity is an immutable 900s and Base finality is over 1200s, so a prepare-time answer could not have reached this commit even if the runner had tried."
+  },
+  "refusals": {
+    "observedAtThePostCommitMoment": [
+      { "attempt": "returnCash after COMMIT", "refusedWith": "ReturnRequiresAbort" },
+      {
+        "attempt": "the seller cancelling the reservation before the COMMIT VAA reached Base",
+        "refusedWith": "ReservationAlreadyAnnounced"
+      },
+      { "attempt": "replaying the ASSET_PREPARED VAA", "refusedWith": "VaaAlreadyConsumed" }
+    ],
+    "observedAgainAfterSettlement": [
+      { "attempt": "returnCash", "refusedWith": "LegNotInState" },
+      { "attempt": "cancelReservation", "refusedWith": "ReservationClosed" },
+      { "attempt": "replaying the ASSET_PREPARED VAA", "refusedWith": "VaaAlreadyConsumed" },
+      { "attempt": "replaying the COMMIT VAA at the adapter", "refusedWith": "VaaAlreadyConsumed" }
+    ],
+    "note": "The first set is the one that proves the invariants, because it was taken while the settlement was committed and unreleased. The second set is the same attempts refused for different and equally correct reasons once the legs had moved on, and is kept so a reader can see that a resumed run reports what it saw rather than what it wanted to see."
+  },
+  "conservation": {
+    "cashEscrowBalance": "0",
+    "cashEscrowAccounted": "0",
+    "sellerReservedBalance": "0",
+    "reservation": { "announced": true, "committed": true, "released": true, "cancelled": false },
+    "note": "The escrow's books equal its balance and nothing is reserved. Both are time-independent statements an independent verifier can check without having watched the run."
+  },
+  "independentVerification": {
+    "source": "deployed contract state only, no application database",
+    "coordinatorState": "SETTLED",
+    "coordinatorDecision": "COMMIT",
+    "cashOutcome": "RELEASED",
+    "assetOutcome": "RELEASED",
+    "boundIntentHash": "0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858",
+    "escrowLegState": "RELEASED"
+  },
+  "limitations": [
+    "The buyer and the seller are one key. `generate_apass` returns 403 for this credential on both chains (ASM-035), so no second A-Passed EOA can exist and both intent signatures have to come from one wallet. Each leg moves value into and out of a settlement contract rather than between two wallets, so conservation is proven at the escrow balance and at the reservation and the two ERC-20 legs are self-transfers with a net wallet delta of zero. This is a credential limitation, not a protocol one, and the contracts do not know or care whether the parties differ.",
+    "The quorum is 1-of-1 (ASM-036). Quorum is genuinely enforced and a signer attesting twice is refused — that refusal happened live on this settlement — but a one-signer threshold is a testnet property.",
+    "The asset chain has no registered Cleanverse validator pool (ASM-037), so the asset leg's commit-time eligibility rests on verify_apass plus the on-chain CCP policy rather than on two independent sources.",
+    "The settlement took six passes over roughly two and a half hours. Five of them ended in a defect, four of those in the runner rather than the protocol. The protocol refused exactly once, correctly, when the runner presented one signer's opinion about one subject twice.",
+    "The post-COMMIT compliance-change path is not run here. `resolveHeldCash` and `resolveHeldAsset` exist and are proven in CrossChainSettlementSeam.t.sol, but they were written after this stack was deployed and are not in the live bytecode."
+  ],
+  "artifact": "docs/evidence/artifacts/dvp-940f1c1521.log"
+}

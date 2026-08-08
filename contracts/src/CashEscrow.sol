@@ -337,6 +337,73 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         emit CashReturned(settlementId, leg.payer, amount);
     }
 
+    /// @notice Retries a held cash leg against a fresh compliance answer.
+    ///
+    /// PRD FR-012's `REVERIFY_AND_RESUME`, and only that one. PRD 7.1 lists
+    /// HELD -> SETTLED as an allowed transition and the coordinator already
+    /// permits a held leg to resolve forward, but nothing could reach it:
+    /// `releaseCash` requires PREPARED, so the moment a leg was held it was held
+    /// permanently. Invariant I9 says held value remains claimable *through* the
+    /// Disposition Kernel; with no entry point it was not claimable at all.
+    ///
+    /// The destination is the one the intent named and the decision implies. It
+    /// is not a parameter, so this cannot rebind a receiver, substitute an
+    /// asset, or send anywhere the original settlement did not. Those are the
+    /// other five order types and they need the authority registry phase 07
+    /// delivers; this one needs nothing beyond the quorum that already decides
+    /// every release, which is why it is the one that can exist now.
+    ///
+    /// Permissionless and non-reverting on a shortfall, for the same reason the
+    /// release paths are: after COMMIT there is no refund, so a retry that
+    /// cannot proceed leaves the leg held rather than reverting.
+    function resolveHeldCash(bytes32 settlementId, ComplianceProof calldata compliance)
+        external
+        nonReentrant
+    {
+        CashLeg storage leg = _legs[settlementId];
+        if (leg.state != LegState.HELD) {
+            revert LegNotInState(settlementId, leg.state, LegState.HELD);
+        }
+
+        SettlementCoordinator.Settlement memory settlement = coordinator.settlementOf(settlementId);
+        if (settlement.intentHash != leg.intentHash) {
+            revert IntentHashMismatch(settlement.intentHash, leg.intentHash);
+        }
+
+        // A hold is reachable from either decision, and which one it was decides
+        // where the value belongs. Neither is chosen here.
+        bool committed = settlement.decision == SettlementCoordinator.Decision.COMMIT;
+        if (!committed && settlement.decision != SettlementCoordinator.Decision.ABORT) {
+            revert ReleaseRequiresCommit(settlementId);
+        }
+        address destination = committed ? leg.receiver : leg.payer;
+        uint256 amount = leg.amount;
+
+        if (!_isEligible(settlementId, leg.intentHash, destination, compliance)) {
+            // Still held, and still reported as held. Emitting again rather than
+            // reverting keeps a failed disposition attempt in the audit trail.
+            emit CashHeld(settlementId, destination, amount);
+            return;
+        }
+
+        leg.state = committed ? LegState.RELEASED : LegState.RETURNED;
+        totalEscrowed -= amount;
+
+        _report(
+            settlementId,
+            committed
+                ? SettlementCoordinator.LegOutcome.RELEASED
+                : SettlementCoordinator.LegOutcome.RETURNED
+        );
+
+        cashAsset.safeTransfer(destination, amount);
+        if (committed) {
+            emit CashReleased(settlementId, destination, amount);
+        } else {
+            emit CashReturned(settlementId, destination, amount);
+        }
+    }
+
     // ── Administration ───────────────────────────────────────────────────────
 
     /// @notice Fixes the cross-chain peer. Callable once, by the owner, forever.

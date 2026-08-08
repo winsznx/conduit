@@ -15,7 +15,7 @@
  *     you cannot see until the call returns is useless during the wait, which
  *     is exactly when you want it.
  */
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 const RESET = '[0m';
@@ -28,7 +28,11 @@ const YELLOW = '[33m';
 export function createLog(artifactPath) {
   const started = Date.now();
   mkdirSync(dirname(artifactPath), { recursive: true });
-  writeFileSync(artifactPath, '');
+  // Appended, not truncated. A resumed run writes to the artifact its own first
+  // attempt produced, and truncating it destroys the record of the attempt that
+  // made the state the resume is picking up from.
+  if (!existsSync(artifactPath)) writeFileSync(artifactPath, '');
+  appendFileSync(artifactPath, `\n=== run started ${new Date(started).toISOString()} ===\n`);
 
   const emit = (colour, marker, message) => {
     const now = new Date();

@@ -623,6 +623,118 @@ contract CrossChainSettlementSeamTest is ComplianceFixture {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // 12. A held settlement reaching a terminal state
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice Both legs held after COMMIT, then both resolved, then SETTLED.
+    ///
+    /// @dev PRD 7.1 lists HELD -> SETTLED and invariant I9 says held value stays
+    ///      claimable through the Disposition Kernel. Neither was reachable: the
+    ///      escrow's release path requires PREPARED, and the adapter's requires a
+    ///      COMMIT VAA that `_consume` has already burned. A leg that was held was
+    ///      held forever, which is not "claimable through the kernel", it is not
+    ///      claimable.
+    ///
+    ///      This is `REVERIFY_AND_RESUME` and nothing else. The destination is the
+    ///      one the intent named, in both contracts, and is not a parameter — so
+    ///      the five order types that change where value goes stay unreachable
+    ///      until the authority registry exists. That is why this one can ship now
+    ///      and they cannot.
+    function test_12_AHeldSettlementReachesTerminalThroughDisposition() public {
+        (bytes32 settlementId,) = _ready();
+        uint256 commitIndex = _issueCommit(settlementId);
+
+        // Both legs refused at release time. Nothing refunds; both hold.
+        vm.prank(RELAYER);
+        escrow.releaseCash(settlementId, _proof(escrowDomain, settlementId, seller, false));
+
+        vm.chainId(BASE);
+        vm.prank(RELAYER);
+        adapter.releaseAsset(
+            _fromMonad(commitIndex), _proof(adapterDomain, settlementId, buyer, false)
+        );
+
+        vm.chainId(MONAD);
+        assertEq(
+            uint8(coordinator.settlementOf(settlementId).state),
+            uint8(SettlementCoordinator.SettlementState.HELD)
+        );
+        assertEq(cash.balanceOf(address(escrow)), CASH_AMOUNT, "the cash is still here");
+        vm.chainId(BASE);
+        assertEq(rwa.reservedBalanceOf(seller), ASSET_AMOUNT, "and so is the bond");
+
+        // The authority revises its answer. Nothing else changes.
+        vm.chainId(MONAD);
+        vm.prank(RELAYER);
+        escrow.resolveHeldCash(settlementId, _proof(escrowDomain, settlementId, seller, true));
+        assertEq(cash.balanceOf(seller), CASH_AMOUNT, "the receiver is paid");
+        assertEq(escrow.totalEscrowed(), 0);
+
+        vm.chainId(BASE);
+        vm.prank(RELAYER);
+        adapter.resolveHeldAsset(settlementId, _proof(adapterDomain, settlementId, buyer, true));
+        assertEq(rwa.balanceOf(buyer), ASSET_AMOUNT, "the buyer holds the bond");
+        assertEq(rwa.reservedBalanceOf(seller), 0);
+
+        // And the asset leg reports its new state, which is what makes the
+        // settlement terminal rather than merely resolved locally.
+        uint256 reportIndex = baseCore.publishedCount();
+        vm.prank(RELAYER);
+        adapter.reportResolution(settlementId, MONAD, 1);
+
+        vm.chainId(MONAD);
+        vm.prank(RELAYER);
+        coordinator.recordLegResolved(
+            _fromBase(reportIndex),
+            MessageCodec.MessageType.ASSET_RELEASED,
+            SettlementCoordinator.LegOutcome.RELEASED
+        );
+
+        SettlementCoordinator.Settlement memory state = coordinator.settlementOf(settlementId);
+        assertEq(uint8(state.state), uint8(SettlementCoordinator.SettlementState.SETTLED));
+        assertEq(uint8(state.cashOutcome), uint8(SettlementCoordinator.LegOutcome.RELEASED));
+        assertEq(uint8(state.assetOutcome), uint8(SettlementCoordinator.LegOutcome.RELEASED));
+
+        vm.chainId(BASE);
+        assertEq(rwa.totalSupply(), ASSET_SUPPLY, "conservation across the hold and the recovery");
+        assertEq(rwa.balanceOf(seller) + rwa.balanceOf(buyer), ASSET_SUPPLY);
+    }
+
+    function test_12b_ADispositionThatStillFailsLeavesTheLegHeld() public {
+        (bytes32 settlementId,) = _ready();
+        uint256 commitIndex = _issueCommit(settlementId);
+
+        vm.prank(RELAYER);
+        escrow.releaseCash(settlementId, _proof(escrowDomain, settlementId, seller, false));
+
+        // The authority has not changed its mind. Retrying must not move value
+        // and must not revert either: reverting would strand a committed leg.
+        vm.prank(RELAYER);
+        escrow.resolveHeldCash(settlementId, _proof(escrowDomain, settlementId, seller, false));
+        assertEq(cash.balanceOf(seller), 0, "still nothing delivered");
+        assertEq(cash.balanceOf(address(escrow)), CASH_AMOUNT, "and still nothing lost");
+        assertEq(uint8(escrow.legOf(settlementId).state), uint8(CashEscrow.LegState.HELD));
+
+        commitIndex; // the asset leg is not part of this case
+    }
+
+    function test_12c_ADispositionCannotTouchALegThatWasNeverHeld() public {
+        (bytes32 settlementId,) = _ready();
+        _issueCommit(settlementId);
+
+        vm.prank(ATTACKER);
+        vm.expectRevert();
+        escrow.resolveHeldCash(settlementId, _proof(escrowDomain, settlementId, seller, true));
+
+        vm.chainId(BASE);
+        vm.prank(ATTACKER);
+        vm.expectRevert(
+            abi.encodeWithSelector(RWACVASettlementAdapter.LegNotHeld.selector, settlementId)
+        );
+        adapter.resolveHeldAsset(settlementId, _proof(adapterDomain, settlementId, buyer, true));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // 13–15. Hostile input. Constructed deliberately, and named as such.
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -713,6 +825,100 @@ contract CrossChainSettlementSeamTest is ComplianceFixture {
         vm.chainId(BASE);
         assertTrue(rwa.reservationOf(settlementId).committed);
         assertEq(rwa.reservedBalanceOf(seller), ASSET_AMOUNT);
+    }
+
+    /// @notice One party on both sides of the cash leg commits with one
+    ///         attestation, and refuses two copies of it.
+    ///
+    /// @dev `issueCommit` asks about `cashPayer` and `cashReceiver` separately,
+    ///      and a caller that builds one attestation per *party* rather than per
+    ///      *subject* presents one signer's opinion about one address twice when
+    ///      they are the same address. `_countAttestations` refuses that, which
+    ///      is right — two copies of one opinion are not a quorum of two — and
+    ///      the live deployment has exactly that shape, because the demo buyer
+    ///      and seller are one key.
+    ///
+    ///      Every other test here uses distinct parties, so none of them can see
+    ///      it. It cost a resumed live run at the commit, with both Cleanverse
+    ///      queries answering eligible and the contract still refusing.
+    function test_OneAttestationCoversAPartyOnBothSidesAndTwoDoNot() public {
+        bytes32 settlementId = _selfSettlementId();
+        _prepareAssetLeg(settlementId);
+        vm.chainId(MONAD);
+        vm.prank(buyer);
+        escrow.prepareCash(settlementId, settlementId, buyer, CASH_AMOUNT, BASE, 1);
+        vm.prank(RELAYER);
+        coordinator.recordAssetPrepared(_fromBase(baseCore.publishedCount() - 1));
+
+        (
+            ComplianceAttestationLib.ComplianceAttestation[] memory doubled,
+            bytes[] memory doubledSignatures
+        ) = _attestAll(
+            coordinatorDomain,
+            _keys(SIGNER_A_KEY),
+            settlementId,
+            settlementId,
+            _subjects(buyer, buyer),
+            true
+        );
+
+        vm.prank(RELAYER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ComplianceAuthority.AttestationSignersNotDistinct.selector, _signerA()
+            )
+        );
+        coordinator.issueCommit(
+            _selfIntent(),
+            settlementId,
+            _sign(BUYER_KEY, settlementId),
+            _sign(SELLER_KEY, settlementId),
+            ComplianceAuthority.ComplianceProof(doubled, doubledSignatures),
+            1
+        );
+
+        (
+            ComplianceAttestationLib.ComplianceAttestation[] memory single,
+            bytes[] memory singleSignature
+        ) = _attestAll(
+            coordinatorDomain,
+            _keys(SIGNER_A_KEY),
+            settlementId,
+            settlementId,
+            _subjects(buyer),
+            true
+        );
+
+        vm.prank(RELAYER);
+        coordinator.issueCommit(
+            _selfIntent(),
+            settlementId,
+            _sign(BUYER_KEY, settlementId),
+            _sign(SELLER_KEY, settlementId),
+            ComplianceAuthority.ComplianceProof(single, singleSignature),
+            1
+        );
+
+        assertEq(
+            uint8(coordinator.settlementOf(settlementId).decision),
+            uint8(SettlementCoordinator.Decision.COMMIT),
+            "one attestation answers for a party on both sides"
+        );
+    }
+
+    /// @dev The demo's shape: the same key pays and is paid, sells and receives.
+    function _selfIntent() private view returns (SettlementIntentLib.SettlementIntent memory) {
+        SettlementIntentLib.SettlementIntent memory intent = _intent();
+        intent.cashPayer = buyer;
+        intent.cashReceiver = buyer;
+        intent.assetSeller = seller;
+        intent.assetReceiver = buyer;
+        intent.nonce = 8;
+        return intent;
+    }
+
+    function _selfSettlementId() private view returns (bytes32) {
+        return SettlementIntentLib.digest(_selfIntent(), coordinator.domainSeparator());
     }
 
     // ─────────────────────────────────────────────────────────────────────────

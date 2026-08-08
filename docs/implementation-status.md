@@ -4,7 +4,7 @@ Maintained per CLAUDE.md after every phase. PRD 19 defines the phases; a phase i
 when its PRD gate has real evidence, never because code compiles.
 
 **Source of truth date:** 2026-08-05 (PRD v1.0), amended 2026-08-07 (v1.1 override)
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-08
 
 `CONDUIT_PRD_v1.1_OVERRIDE.md` arrived during phase 00 and wins wherever it conflicts with v1.0.
 Its adoption is recorded in [ADR-0004](./adr/0004-prd-v1-1-override-adoption.md). The phase
@@ -20,7 +20,7 @@ structure below is unchanged; what each phase must deliver is amended.
 | Phase 03 | restricted RWA fixture                   | IN PROGRESS | eligible transfer succeeds, ineligible transfer fails, AssetEscrow locks and releases exact amount |
 | Phase 04 | settlement contracts and reference model | PASS        | reference model and contracts produce identical outcomes for generated traces                      |
 | Phase 05 | Cleanverse Validator integration         | IN PROGRESS | real Cleanverse eligibility result changes commit outcome on-chain                                 |
-| Phase 06 | full happy-path DvP                      | NOT STARTED | CVA cash and restricted RWA settle under one intent, both chains publicly verifiable               |
+| Phase 06 | full happy-path DvP                      | PASS        | CVA cash and restricted RWA settle under one intent, both chains publicly verifiable               |
 | Phase 07 | Disposition Kernel                       | NOT STARTED | every generated held case reaches an allowed terminal state or stays safely contested              |
 | Phase 08 | evidence and verifier                    | NOT STARTED | new machine with only a settlement ID independently verifies the complete proof                    |
 | Phase 09 | hardening                                | NOT STARTED | all security, recovery, and chaos gates pass with no undisclosed critical issue                    |
@@ -35,11 +35,11 @@ item added upstream fails the build until it appears here.
 | Acceptance addition                                                 | State       | Gate phase |
 | ------------------------------------------------------------------- | ----------- | ---------- |
 | `ConduitRWACVA` is deployed on Arbitrum Sepolia.                    | IN PROGRESS | 03         |
-| It is registered/issued as a Cleanverse CVA.                        | NOT STARTED | 03         |
+| It is registered/issued as a Cleanverse CVA.                        | PASS        | 03         |
 | RuleV2 is configured and independently queryable.                   | IN PROGRESS | 03         |
-| Eligible RWA CVA transfer succeeds.                                 | NOT STARTED | 03         |
+| Eligible RWA CVA transfer succeeds.                                 | PASS        | 03         |
 | Ineligible RWA CVA transfer fails through CCP policy.               | NOT STARTED | 03         |
-| Reservation prevents seller double-spend.                           | NOT STARTED | 03         |
+| Reservation prevents seller double-spend.                           | PASS        | 03         |
 | Reservation cannot cancel after COMMIT.                             | PASS        | 04         |
 | Held post-COMMIT RWA can be dispositioned once.                     | NOT STARTED | 07         |
 | Final demo uses the real registered CVA, not an ERC-3643-only mock. | NOT STARTED | 10         |
@@ -560,8 +560,100 @@ compliance signer 0xEC16Ead9832292fEfc95Bc94C3D536Eed98ED26c, separate from the 
 1. **The quorum is 1-of-1** (ASM-036). Quorum is genuinely enforced and a signer attesting twice
    is rejected, but a one-signer threshold is a testnet property and is not a threshold
    guarantee.
-2. **The gate is not met.** "Real Cleanverse eligibility result changes commit outcome on-chain"
-   needs a settlement to run, and that needs aUSDC (ASM-035). The service calls
-   `validator/verify` for real and signs what it answers; what is missing is a settlement to
-   attach it to.
+2. **Half the gate is met.** "Real Cleanverse eligibility result changes commit outcome
+   on-chain" now has a settlement attached to it: phase 06 committed against live
+   `verify_apass` (result code 4) and `validator/verify` (`valid: true`) answers queried after
+   the finality wait, signed, and accepted by the coordinator's own `verifyEligible`. What is
+   still missing is the other direction — an answer of _not eligible_ changing the outcome on
+   chain. That needs a controlled Cleanverse state transition on a live settlement, and it is
+   the next piece of work rather than a demonstrated property.
 3. **The escrow pool rule is still the placeholder** (ASM-034).
+
+---
+
+## Phase 06 — full happy-path DvP
+
+**State:** PASS
+
+### Gate evidence
+
+The gate is "CVA cash and restricted RWA settle under one intent, both chains
+publicly verifiable". Settlement
+`0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858`, terminal
+state `SETTLED`, read back from the deployed coordinator.
+
+```text
+Base Sepolia   reserveForSettlement    0xfc6f78733a2a511b984c59fc41d31ff775dbac6f3350c4e127310bb7338c1a8a
+               prepareAsset            0xd0f77aa566ae21facbab89d3c2c0722217d309167cedd1a508e7dfd110cdf14d  seq 0
+Monad Testnet  prepareCash             0xb6b7e9154f56a8d1eda2bd546a8ab2569bcebd4a55938f9cd55599551fb10239
+               recordAssetPrepared     0x75c632e4c9cc637afb9b2961fc19bf8fd364699c38f8690ac26fa19d7b5d3864  READY
+               issueCommit             0x56731cb9ada806e25c61d67edb313319c63dae6315f6ed0b2b45746933647866  seq 0
+               releaseCash             0x1fa7e514a112761007ab54d7be3ee8892da382a657b9c4fad700a8216d1b6216
+Base Sepolia   releaseAsset            0xe0fe0f7a90419368910377917e3af75299d2c37317d1fea0fec5cf3c4ea5a082
+               reportResolution        0x1353a81c985a2fe1b0885e350725c497e0f7c34f81c57af9412cd8580186bb85  seq 1
+Monad Testnet  recordLegResolved       0xb384e9baaf9834f823b16dad0212e4e56e5db155b4ddad08fa163160de8b2ae7  SETTLED
+```
+
+Both cross-chain messages were consumed at `FINALIZED`. The clean measurement is
+the ASSET_RELEASED VAA: 1223 seconds from receipt to signature, against 1485 for
+the same class in attempt 3. Neither was shortened, and an instant VAA would have
+been refused by `_consume`.
+
+Commit-time compliance was queried live after the finality wait, from
+`verify_apass` (result code 4) and `validator/verify` (`valid: true`) on the cash
+side and `verify_apass` on the asset side, and each signed attestation was put to
+the verifying contract's own `verifyEligible` before the transaction that spent
+it. `maxAttestationValidity` is an immutable 900 seconds and the finality wait is
+longer than that, so a prepare-time answer could not have reached the commit.
+
+Refusals, observed while the settlement was committed and unreleased:
+
+```text
+returnCash after COMMIT                              ReturnRequiresAbort
+cancelReservation before the COMMIT VAA reached Base ReservationAlreadyAnnounced
+replaying the ASSET_PREPARED VAA                     VaaAlreadyConsumed
+replaying the COMMIT VAA at the adapter              VaaAlreadyConsumed
+```
+
+Conservation, and both statements hold whenever they are read rather than only
+at the end of a run: the escrow's `totalEscrowed` equals its token balance, both
+zero, and the seller's reserved balance is zero with the reservation
+`committed` and `released`.
+
+`docs/evidence/phase-06-dvp-attempt-4.json` assembles the settlement from all six
+passes; `docs/evidence/artifacts/dvp-940f1c1521.log` is the append-only primary
+record.
+
+### Live deployment
+
+```text
+Monad Testnet   SettlementCoordinator    0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE
+                CashEscrow               0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB
+Base Sepolia    ConduitRWACVA            0x7a78912533b43C483621200b4919806c0B855E5b  (cBOND2, registered, ISSUED)
+                RWACVASettlementAdapter  0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE
+```
+
+The previous stack was replaced because [ADR-0016](./adr/0016-the-asset-seam-had-the-same-defects-and-two-worse-ones.md)
+changed a struct, two signatures, and added a verifier view. Core contracts are
+non-upgradeable, so a new version deploys separately.
+
+### Known limitations
+
+1. **The buyer and the seller are one key.** `generate_apass` returns 403 for
+   this credential on both chains (ASM-035), so no second A-Passed EOA can exist
+   and both intent signatures come from one wallet. Each leg moves value into and
+   out of a settlement contract rather than between two wallets, so the two
+   ERC-20 legs are self-transfers with a net wallet delta of zero and
+   conservation is proven at the escrow balance and the reservation. A
+   credential limitation, not a protocol one.
+2. **The post-COMMIT compliance-change path is not live.** `resolveHeldCash` and
+   `resolveHeldAsset` exist and are proven in `CrossChainSettlementSeam.t.sol`,
+   and they were written after this stack was deployed, so they are not in the
+   live bytecode. The compliance-failure demo needs one more deployment.
+3. **Six passes over two and a half hours.** Five ended in a defect and four of
+   those were in the runner. The protocol refused exactly once, correctly, when
+   the runner presented one signer's opinion about one subject twice. The runner
+   is now resumable and each pass repeats nothing, which is what made finishing
+   possible without re-locking funds.
+
+---

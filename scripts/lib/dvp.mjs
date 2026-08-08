@@ -133,6 +133,7 @@ const CONDUIT_ERRORS = [
   'error ReceiverMismatch(address expected, address provided)',
   'error NotReservationOwner()',
   'error LegNotResolved(bytes32 settlementId)',
+  'error LegNotHeld(bytes32 settlementId)',
   // ConduitRWACVA
   'error ReservationExists(bytes32 settlementId)',
   'error ReservationUnknown(bytes32 settlementId)',
@@ -432,6 +433,59 @@ export function buildIntent(config, { buyer, seller, now = Math.floor(Date.now()
   return { terms, deployment, settlementId: hashSettlementIntent(terms, deployment) };
 }
 
+/**
+ * Rebuilds an intent from a previous run's evidence, and proves it is the same.
+ *
+ * The deadlines come from the clock at the start of a run, so a rerun derives a
+ * different settlement ID and abandons the funded one. That is the correct
+ * behaviour for a fresh run and the wrong behaviour after a transport outage
+ * forty minutes in, with cash in escrow and a bond reserved.
+ *
+ * The reconstruction is checked against the recorded ID rather than trusted. A
+ * field that round-tripped through JSON as the wrong type would otherwise
+ * produce a plausible intent for a settlement that does not exist, and the first
+ * symptom would be `IntentDoesNotMatchSettlementId` at the commit.
+ */
+export function resumeIntent(config, record) {
+  const raw = record.intent;
+  const terms = {
+    version: Number(raw.version),
+    cashChainId: BigInt(raw.cashChainId),
+    cashEscrow: raw.cashEscrow,
+    cashAsset: raw.cashAsset,
+    cashAmount: BigInt(raw.cashAmount),
+    cashPayer: raw.cashPayer,
+    cashReceiver: raw.cashReceiver,
+    assetChainId: BigInt(raw.assetChainId),
+    assetEscrow: raw.assetEscrow,
+    assetToken: raw.assetToken,
+    assetAmount: BigInt(raw.assetAmount),
+    assetSeller: raw.assetSeller,
+    assetReceiver: raw.assetReceiver,
+    cashPolicyHash: raw.cashPolicyHash,
+    assetPolicyHash: raw.assetPolicyHash,
+    prepareDeadline: BigInt(raw.prepareDeadline),
+    commitDeadline: BigInt(raw.commitDeadline),
+    releaseDeadline: BigInt(raw.releaseDeadline),
+    nonce: BigInt(raw.nonce),
+  };
+
+  const deployment = {
+    name: DOMAIN_NAME,
+    version: DOMAIN_VERSION,
+    chainId: terms.cashChainId,
+    verifyingContract: config.addresses.coordinator,
+  };
+  const settlementId = hashSettlementIntent(terms, deployment);
+  if (settlementId !== record.settlementId) {
+    throw new Error(
+      `resumed intent hashes to ${settlementId}, but the record says ${record.settlementId}`,
+    );
+  }
+
+  return { terms, deployment, settlementId };
+}
+
 /** Ordered exactly as `SettlementIntentLib.SettlementIntent`. */
 export function intentTuple(terms) {
   return [
@@ -528,6 +582,8 @@ export async function fetchVaa(
   const url = `${WORMHOLESCAN}/v1/signed_vaa/${emitterChainId}/${emitterAddress.slice(2).toLowerCase()}/${sequence}`;
   const started = Date.now();
   let polls = 0;
+  let failures = 0;
+  let lastFailure;
 
   while (Date.now() - started < budgetMs) {
     polls += 1;
@@ -535,12 +591,19 @@ export async function fetchVaa(
     try {
       response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
     } catch (error) {
-      if (polls % 8 === 0) log?.step(`${label}: wormholescan unreachable (${String(error)})`);
+      // `TypeError: fetch failed` on its own names no cause, and a forty-five
+      // minute outage that prints only that is indistinguishable from a wrong
+      // URL. The cause carries the DNS or socket code that says which.
+      failures += 1;
+      const cause = error?.cause;
+      lastFailure = `${String(error)}${cause === undefined ? '' : ` (${cause.code ?? String(cause)})`}`;
+      if (polls % 8 === 0) log?.step(`${label}: ${lastFailure} — ${failures} consecutive`);
       response = undefined;
     }
 
     if (response !== undefined && response.ok) {
       const body = await response.json();
+      failures = 0;
       if (typeof body.vaaBytes === 'string') {
         const waited = Math.round((Date.now() - started) / 1000);
         log?.ok(`${label} available after ${waited}s`);
@@ -557,7 +620,11 @@ export async function fetchVaa(
     await new Promise((resolve) => setTimeout(resolve, 15_000));
   }
 
-  throw new Error(`${label} ${emitterChainId}/${sequence} never became available`);
+  throw new Error(
+    `${label} ${emitterChainId}/${sequence} never became available after ${polls} polls` +
+      `${lastFailure === undefined ? '' : `; last transport failure ${lastFailure}`}` +
+      `. The VAA may exist: check ${url} and resume with DVP_RESUME.`,
+  );
 }
 
 /** Reads the consistency level out of a signed VAA's header. */

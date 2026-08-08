@@ -53,6 +53,7 @@ contract RWACVASettlementAdapter is
     error IntentHashMismatch(bytes32 actual, bytes32 expected);
     error NotReservationOwner();
     error LegNotResolved(bytes32 settlementId);
+    error LegNotHeld(bytes32 settlementId);
     error ZeroAddress();
 
     constructor(
@@ -188,6 +189,49 @@ contract RWACVASettlementAdapter is
             emit AssetReleased(header.settlementId, receiver);
         } catch {
             emit AssetHeld(header.settlementId, receiver, "policy refused the transfer");
+        }
+    }
+
+    /// @notice Retries a held asset leg against a fresh compliance answer.
+    ///
+    /// PRD FR-012's `REVERIFY_AND_RESUME`, and only that one. A hold leaves the
+    /// reservation committed and unreleased, and the COMMIT VAA that authorized
+    /// it is spent — `_consume` marks it before the release is attempted, which
+    /// is correct, because a release that reverted must not leave the message
+    /// replayable. The consequence was that a held asset leg could never move
+    /// again. Invariant I9 says held value remains claimable *through* the
+    /// Disposition Kernel; with no entry point it was not claimable at all.
+    ///
+    /// No VAA is needed here and none would help: the canonical decision is
+    /// already recorded in the reservation, and `committed` is only ever set by
+    /// a `releaseAsset` that verified one. The receiver is the one the intent
+    /// named and is not a parameter, so this cannot rebind a destination or
+    /// substitute an asset. Those need the authority registry phase 07 delivers.
+    function resolveHeldAsset(bytes32 settlementId, ComplianceProof calldata compliance)
+        external
+        nonReentrant
+    {
+        address receiver = intendedReceiver[settlementId];
+        if (receiver == address(0)) revert ReceiverNotRegistered(settlementId);
+
+        ConduitRWACVA.Reservation memory reservation = asset.reservationOf(settlementId);
+        // Committed and still open is exactly the held state: a COMMIT was
+        // applied here and the units did not move.
+        if (!reservation.committed || reservation.released || reservation.cancelled) {
+            revert LegNotHeld(settlementId);
+        }
+
+        bytes32 intentHash = boundIntentHash[settlementId];
+
+        if (!_isEligible(settlementId, intentHash, receiver, compliance)) {
+            emit AssetHeld(settlementId, receiver, "receiver still ineligible");
+            return;
+        }
+
+        try asset.releaseReservation(settlementId, receiver) {
+            emit AssetReleased(settlementId, receiver);
+        } catch {
+            emit AssetHeld(settlementId, receiver, "policy still refuses the transfer");
         }
     }
 

@@ -36,7 +36,7 @@
  * as it is written. A twenty-five minute run that prints at the end is a
  * twenty-five minute run you cannot debug.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
@@ -56,6 +56,7 @@ import {
   loadDvpConfig,
   padEmitter,
   reservation,
+  resumeIntent,
   sequenceFrom,
   settlement,
   vaaEmitter,
@@ -79,7 +80,26 @@ unbufferStdout();
 
 const config = loadDvpConfig();
 const { monad, base, addresses, deployer, complianceSigner } = config;
-const { terms, settlementId } = buildIntent(config);
+
+/**
+ * A run that dies mid-flight leaves cash in escrow and a bond reserved.
+ *
+ * The intent's deadlines come from the clock, so a plain rerun derives a
+ * different settlement ID and abandons the funded one — correct for a fresh
+ * run, wrong after a transport outage forty minutes in. `DVP_RESUME` points at
+ * a previous run's evidence and continues that settlement instead, and every
+ * stage below reads its own post-state first so a resumed run repeats nothing.
+ *
+ *   DVP_RESUME=docs/evidence/phase-06-dvp.json pnpm dvp:run
+ */
+const resumePath = process.env['DVP_RESUME'];
+const resumed =
+  resumePath === undefined || resumePath === ''
+    ? undefined
+    : JSON.parse(readFileSync(join(ROOT, resumePath), 'utf8'));
+
+const { terms, settlementId } =
+  resumed === undefined ? buildIntent(config) : resumeIntent(config, resumed);
 
 const log = createLog(
   join(ROOT, 'docs', 'evidence', 'artifacts', `dvp-${settlementId.slice(2, 12)}.log`),
@@ -87,6 +107,7 @@ const log = createLog(
 
 const evidence = {
   startedAt: new Date().toISOString(),
+  resumedFrom: resumed === undefined ? null : resumePath,
   settlementId,
   outcome: 'INCOMPLETE',
   intent: Object.fromEntries(Object.entries(terms).map(([key, value]) => [key, stringify(value)])),
@@ -94,8 +115,32 @@ const evidence = {
   addresses,
   stages: [],
   compliance: [],
+  limitations: [
+    'The buyer and the seller are the same key. `generate_apass` returns 403 for this ' +
+      'credential on both chains (ASM-035), so no second A-Passed EOA can exist and both ' +
+      'intent signatures have to come from one wallet. Each leg therefore moves value into ' +
+      'and out of a settlement contract rather than between two wallets: conservation is ' +
+      'proven at the escrow balance and at the reservation, and the two ERC-20 legs are ' +
+      'self-transfers whose net wallet delta is zero by arithmetic.',
+  ],
   conservation: {},
   adversarial: [],
+  // Carried forward from the record being resumed, before anything overwrites
+  // it. A resumed run writes to the same file it read, so a failure early in the
+  // resume erased the COMMIT sequence the *next* resume needed — and Wormhole
+  // keeps a sequence in an event rather than in contract state, so nothing on
+  // chain could give it back. Seeding these first means the file only ever gains
+  // facts.
+  ...(resumed === undefined
+    ? {}
+    : {
+        assetPrepared: resumed.assetPrepared,
+        commit: resumed.commit,
+        cashReleased: resumed.cashReleased,
+        assetReleased: resumed.assetReleased,
+        settled: resumed.settled,
+        baseFinalitySeconds: resumed.baseFinalitySeconds,
+      }),
 };
 
 function stage(name) {
@@ -107,6 +152,36 @@ function stage(name) {
 
 function record(entry, key, value) {
   entry.detail[key] = stringify(value);
+  persist();
+}
+
+const evidencePath = join(ROOT, 'docs', 'evidence', 'phase-06-dvp.json');
+
+/**
+ * Written after every stage, not at the end.
+ *
+ * A run that dies at minute forty has to leave behind enough to resume, and an
+ * evidence file produced only on success is an evidence file that never exists
+ * for the runs you most need to read.
+ */
+function persist() {
+  writeFileSync(
+    evidencePath,
+    `${JSON.stringify(evidence, (_key, value) => (typeof value === 'bigint' ? String(value) : value), 2)}\n`,
+  );
+}
+
+/**
+ * Whether a step's effect is already on chain.
+ *
+ * Every write below is guarded by one of these rather than by a flag in the
+ * evidence file, because the chain is the thing that decides and a record of
+ * intent is not a record of outcome.
+ */
+async function already(label, read) {
+  const done = await read();
+  if (done) log.step(`${label} — already done`);
+  return done;
 }
 
 /** A live compliance answer and a signature over it, minted at the point of use. */
@@ -162,9 +237,26 @@ async function freshProof({ chain, verifying, subject, cleanverseChain, atoken, 
   return { decision, signed, domain };
 }
 
-/** Merges per-subject proofs into the one `ComplianceProof` the ABI takes. */
+/**
+ * Merges per-subject proofs into the one `ComplianceProof` the ABI takes.
+ *
+ * Deduplicated by subject, and that is not a convenience. `issueCommit` asks
+ * about the payer and the receiver separately, and in this deployment they are
+ * the same key. Passing an attestation per party meant one signer's opinion
+ * about one subject appearing twice, and `_countAttestations` refuses that with
+ * `AttestationSignersNotDistinct` — correctly, because two copies of one opinion
+ * are not a quorum of two. The contract is right and the caller was wrong, and
+ * the cash seam test never saw it because its buyer and receiver differ.
+ */
 function proofOf(...signed) {
-  return [signed.map((s) => attestationTuple(s.attestation)), signed.map((s) => s.signature)];
+  const seen = new Set();
+  const unique = signed.filter((entry) => {
+    const key = `${entry.attestation.subject.toLowerCase()}:${entry.recovered.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return [unique.map((s) => attestationTuple(s.attestation)), unique.map((s) => s.signature)];
 }
 
 /**
@@ -199,14 +291,27 @@ async function mustRefuse(label, chain, request, expected) {
   }
   const name = revertName(outcome);
   evidence.adversarial.push({ attempt: label, refusedWith: name ?? shortMessage(outcome) });
-  if (expected !== undefined && name !== expected) {
+  // A set rather than one name: the same attempt is refused for a different and
+  // equally correct reason once the leg has moved on, and a resumed run must
+  // record which refusal it actually got rather than insisting on the first one.
+  if (expected !== undefined && !expected.includes(name)) {
     throw new Error(
-      `${label}: expected ${expected}, refused with ${name ?? shortMessage(outcome)}`,
+      `${label}: expected one of ${expected.join(', ')}, refused with ${name ?? shortMessage(outcome)}`,
     );
   }
   log.ok(`${label} — refused with ${name ?? shortMessage(outcome)}`);
   return name;
 }
+
+/**
+ * Which value-moving steps this run performed itself.
+ *
+ * A resumed run's opening balances are a mid-flight snapshot, so a delta
+ * measured against them is meaningless. The conservation block asserts deltas
+ * only for the legs this process actually watched move, and time-independent
+ * invariants for everything else.
+ */
+const performed = { cashRelease: false, assetRelease: false };
 
 async function main() {
   log.step(`settlement ${settlementId}`);
@@ -308,52 +413,82 @@ async function main() {
       args: [terms.assetSeller],
     });
 
-    const reserve = await submit(base, {
-      label: 'reserveForSettlement',
-      log,
-      request: {
-        address: addresses.rwa,
-        abi: RWA_ABI,
-        functionName: 'reserveForSettlement',
-        args: [settlementId, terms.assetAmount],
-      },
-      postState: {
-        describe: 'the reservation is observable on every provider',
-        read: (client) =>
-          client.readContract({
+    const alreadyReserved = await already(
+      'reserveForSettlement',
+      async () =>
+        reservation(
+          await base.pub.readContract({
             address: addresses.rwa,
             abi: RWA_ABI,
-            functionName: 'reservedBalanceOf',
-            args: [terms.assetSeller],
-          }),
-        matches: (value) => value >= reservedBefore + terms.assetAmount,
-      },
-    });
-    record(entry, 'reserve', reserve.hash);
-    record(entry, 'reservedBefore', reservedBefore);
-    record(entry, 'reservedAfter', reserve.observed);
-
-    const prepare = await submit(base, {
-      label: 'prepareAsset',
-      log,
-      request: {
-        address: addresses.adapter,
-        abi: ADAPTER_ABI,
-        functionName: 'prepareAsset',
-        args: [settlementId, settlementId, terms.assetReceiver, BigInt(MONAD_EVM_CHAIN_ID), 1],
-      },
-      postState: {
-        describe: 'the adapter recorded the intended receiver',
-        read: (client) =>
-          client.readContract({
-            address: addresses.adapter,
-            abi: ADAPTER_ABI,
-            functionName: 'intendedReceiver',
+            functionName: 'reservationOf',
             args: [settlementId],
           }),
-        matches: (value) => value.toLowerCase() === terms.assetReceiver.toLowerCase(),
-      },
-    });
+        ).owner !== '0x0000000000000000000000000000000000000000',
+    );
+
+    const reserve = alreadyReserved
+      ? undefined
+      : await submit(base, {
+          label: 'reserveForSettlement',
+          log,
+          request: {
+            address: addresses.rwa,
+            abi: RWA_ABI,
+            functionName: 'reserveForSettlement',
+            args: [settlementId, terms.assetAmount],
+          },
+          postState: {
+            describe: 'the reservation is observable on every provider',
+            read: (client) =>
+              client.readContract({
+                address: addresses.rwa,
+                abi: RWA_ABI,
+                functionName: 'reservedBalanceOf',
+                args: [terms.assetSeller],
+              }),
+            matches: (value) => value >= reservedBefore + terms.assetAmount,
+          },
+        });
+    if (reserve !== undefined) {
+      record(entry, 'reserve', reserve.hash);
+      record(entry, 'reservedBefore', reservedBefore);
+      record(entry, 'reservedAfter', reserve.observed);
+    }
+
+    const alreadyPrepared = await already(
+      'prepareAsset',
+      async () =>
+        (await base.pub.readContract({
+          address: addresses.adapter,
+          abi: ADAPTER_ABI,
+          functionName: 'intendedReceiver',
+          args: [settlementId],
+        })) !== '0x0000000000000000000000000000000000000000',
+    );
+
+    const prepare = alreadyPrepared
+      ? undefined
+      : await submit(base, {
+          label: 'prepareAsset',
+          log,
+          request: {
+            address: addresses.adapter,
+            abi: ADAPTER_ABI,
+            functionName: 'prepareAsset',
+            args: [settlementId, settlementId, terms.assetReceiver, BigInt(MONAD_EVM_CHAIN_ID), 1],
+          },
+          postState: {
+            describe: 'the adapter recorded the intended receiver',
+            read: (client) =>
+              client.readContract({
+                address: addresses.adapter,
+                abi: ADAPTER_ABI,
+                functionName: 'intendedReceiver',
+                args: [settlementId],
+              }),
+            matches: (value) => value.toLowerCase() === terms.assetReceiver.toLowerCase(),
+          },
+        });
 
     const announced = reservation(
       await base.pub.readContract({
@@ -368,16 +503,29 @@ async function main() {
     }
     log.ok('the reservation is announced, so only a canonical ABORT can free it');
 
-    const published = sequenceFrom(prepare.receipt);
-    record(entry, 'prepareAsset', prepare.hash);
-    record(entry, 'assetPreparedSequence', published.sequence);
-    record(entry, 'publishedConsistencyLevel', published.consistencyLevel);
-    evidence.assetPrepared = {
-      hash: prepare.hash,
-      sequence: String(published.sequence),
-      emitter: addresses.adapter,
-      emitterChainId: base.wormholeChainId,
-    };
+    if (prepare === undefined) {
+      // The sequence is the one thing a resumed run cannot read back: Wormhole
+      // records it in an event, not in contract state. It comes from the record
+      // that produced the reservation, and the VAA fetched with it is verified
+      // against this settlement before anything acts on it.
+      if (resumed?.assetPrepared === undefined) {
+        throw new Error('the asset leg is prepared but no record carries its sequence');
+      }
+      evidence.assetPrepared = resumed.assetPrepared;
+      record(entry, 'assetPreparedSequence', resumed.assetPrepared.sequence);
+      record(entry, 'resumedFromRecord', true);
+    } else {
+      const published = sequenceFrom(prepare.receipt);
+      record(entry, 'prepareAsset', prepare.hash);
+      record(entry, 'assetPreparedSequence', published.sequence);
+      record(entry, 'publishedConsistencyLevel', published.consistencyLevel);
+      evidence.assetPrepared = {
+        hash: prepare.hash,
+        sequence: String(published.sequence),
+        emitter: addresses.adapter,
+        emitterChainId: base.wormholeChainId,
+      };
+    }
   }
 
   // ── 2. The cash leg, on Monad ─────────────────────────────────────────────
@@ -416,37 +564,52 @@ async function main() {
       record(entry, 'approve', approve.hash);
     }
 
-    const prepare = await submit(monad, {
-      label: 'prepareCash',
-      log,
-      request: {
-        address: addresses.escrow,
-        abi: ESCROW_ABI,
-        functionName: 'prepareCash',
-        args: [
-          settlementId,
-          settlementId,
-          terms.cashReceiver,
-          terms.cashAmount,
-          BigInt(BASE_EVM_CHAIN_ID),
-          1,
-        ],
-      },
-      postState: {
-        describe: 'the coordinator heard it from the escrow',
-        read: async (client) =>
-          settlement(
-            await client.readContract({
-              address: addresses.coordinator,
-              abi: COORDINATOR_ABI,
-              functionName: 'settlementOf',
-              args: [settlementId],
-            }),
-          ).cashPrepared,
-        matches: (value) => value === true,
-      },
-    });
-    record(entry, 'prepareCash', prepare.hash);
+    const alreadyFunded = await already(
+      'prepareCash',
+      async () =>
+        cashLeg(
+          await monad.pub.readContract({
+            address: addresses.escrow,
+            abi: ESCROW_ABI,
+            functionName: 'legOf',
+            args: [settlementId],
+          }),
+        ).state !== 'NONE',
+    );
+
+    const prepare = alreadyFunded
+      ? undefined
+      : await submit(monad, {
+          label: 'prepareCash',
+          log,
+          request: {
+            address: addresses.escrow,
+            abi: ESCROW_ABI,
+            functionName: 'prepareCash',
+            args: [
+              settlementId,
+              settlementId,
+              terms.cashReceiver,
+              terms.cashAmount,
+              BigInt(BASE_EVM_CHAIN_ID),
+              1,
+            ],
+          },
+          postState: {
+            describe: 'the coordinator heard it from the escrow',
+            read: async (client) =>
+              settlement(
+                await client.readContract({
+                  address: addresses.coordinator,
+                  abi: COORDINATOR_ABI,
+                  functionName: 'settlementOf',
+                  args: [settlementId],
+                }),
+              ).cashPrepared,
+            matches: (value) => value === true,
+          },
+        });
+    if (prepare !== undefined) record(entry, 'prepareCash', prepare.hash);
 
     const leg = cashLeg(
       await monad.pub.readContract({
@@ -456,11 +619,18 @@ async function main() {
         args: [settlementId],
       }),
     );
-    if (leg.state !== 'PREPARED' || leg.amount !== terms.cashAmount) {
-      throw new Error(`escrow leg is ${leg.state} holding ${leg.amount}`);
+    // The terms are what this asserts, not the state. A resumed run reaches
+    // here with the leg already RELEASED, and refusing that would make the
+    // resume path unusable exactly when it is needed.
+    if (leg.amount !== terms.cashAmount) {
+      throw new Error(`escrow leg holds ${leg.amount}, the intent says ${terms.cashAmount}`);
     }
-    log.ok(`escrow holds ${leg.amount} for ${leg.receiver}`);
+    if (leg.receiver.toLowerCase() !== terms.cashReceiver.toLowerCase()) {
+      throw new Error(`escrow leg pays ${leg.receiver}, the intent says ${terms.cashReceiver}`);
+    }
+    log.ok(`escrow leg ${leg.state}: ${leg.amount} for ${leg.receiver}`);
     record(entry, 'escrowedAmount', leg.amount);
+    record(entry, 'escrowLegState', leg.state);
   }
 
   // ── 3. The wait that cannot be shortened ──────────────────────────────────
@@ -490,30 +660,47 @@ async function main() {
 
   {
     const entry = stage('Monad Testnet: the coordinator consumes the finalized VAA');
-    const result = await submit(monad, {
-      label: 'recordAssetPrepared',
-      log,
-      request: {
-        address: addresses.coordinator,
-        abi: COORDINATOR_ABI,
-        functionName: 'recordAssetPrepared',
-        args: [assetVaa],
-      },
-      postState: {
-        describe: 'both legs prepared, the settlement is READY',
-        read: async (client) =>
+    if (
+      await already(
+        'recordAssetPrepared',
+        async () =>
           settlement(
-            await client.readContract({
+            await monad.pub.readContract({
               address: addresses.coordinator,
               abi: COORDINATOR_ABI,
               functionName: 'settlementOf',
               args: [settlementId],
             }),
-          ).state,
-        matches: (value) => value === 'READY',
-      },
-    });
-    record(entry, 'recordAssetPrepared', result.hash);
+          ).assetPrepared,
+      )
+    ) {
+      record(entry, 'recordAssetPrepared', 'already consumed');
+    } else {
+      const result = await submit(monad, {
+        label: 'recordAssetPrepared',
+        log,
+        request: {
+          address: addresses.coordinator,
+          abi: COORDINATOR_ABI,
+          functionName: 'recordAssetPrepared',
+          args: [assetVaa],
+        },
+        postState: {
+          describe: 'both legs prepared, the settlement is READY',
+          read: async (client) =>
+            settlement(
+              await client.readContract({
+                address: addresses.coordinator,
+                abi: COORDINATOR_ABI,
+                functionName: 'settlementOf',
+                args: [settlementId],
+              }),
+            ).state,
+          matches: (value) => value === 'READY',
+        },
+      });
+      record(entry, 'recordAssetPrepared', result.hash);
+    }
   }
 
   // ── 4. Fresh compliance, then the canonical decision ──────────────────────
@@ -521,28 +708,52 @@ async function main() {
   const commit = await (async () => {
     const entry = stage('Monad Testnet: fresh compliance, then COMMIT');
 
-    const payer = await freshProof({
-      chain: monad,
-      verifying: addresses.coordinator,
-      subject: terms.cashPayer,
-      cleanverseChain: config.cleanverseChain.cash,
-      atoken: addresses.cash,
-      poolAddress: addresses.escrow,
-    });
-    const receiver = await freshProof({
-      chain: monad,
-      verifying: addresses.coordinator,
-      subject: terms.cashReceiver,
-      cleanverseChain: config.cleanverseChain.cash,
-      atoken: addresses.cash,
-      poolAddress: addresses.escrow,
-    });
-
-    if (!payer.decision.eligible || !receiver.decision.eligible) {
-      throw new Error('a party is not eligible at commit time; this is the compliance-change path');
+    if (
+      await already(
+        'issueCommit',
+        async () =>
+          settlement(
+            await monad.pub.readContract({
+              address: addresses.coordinator,
+              abi: COORDINATOR_ABI,
+              functionName: 'settlementOf',
+              args: [settlementId],
+            }),
+          ).decision === 'COMMIT',
+      )
+    ) {
+      if (resumed?.commit === undefined) {
+        throw new Error('the settlement is committed but no record carries the COMMIT sequence');
+      }
+      evidence.commit = resumed.commit;
+      record(entry, 'commitSequence', resumed.commit.sequence);
+      record(entry, 'resumedFromRecord', true);
+      return { hash: resumed.commit.hash, sequence: BigInt(resumed.commit.sequence) };
     }
 
-    const proof = proofOf(payer.signed, receiver.signed);
+    // One live query per distinct party. Asking twice about one address would
+    // be two Cleanverse calls for one answer and two attestations the quorum
+    // then refuses as indistinct.
+    const parties = [...new Set([terms.cashPayer, terms.cashReceiver])];
+    const attested = [];
+    for (const party of parties) {
+      const result = await freshProof({
+        chain: monad,
+        verifying: addresses.coordinator,
+        subject: party,
+        cleanverseChain: config.cleanverseChain.cash,
+        atoken: addresses.cash,
+        poolAddress: addresses.escrow,
+      });
+      if (!result.decision.eligible) {
+        throw new Error(
+          `${party} is not eligible at commit time; this is the compliance-change path`,
+        );
+      }
+      attested.push(result);
+    }
+
+    const proof = proofOf(...attested.map((entry) => entry.signed));
     await requireContractAccepts(
       monad,
       addresses.coordinator,
@@ -588,8 +799,11 @@ async function main() {
     const published = sequenceFrom(result.receipt);
     record(entry, 'issueCommit', result.hash);
     record(entry, 'commitSequence', published.sequence);
-    record(entry, 'payerEvidence', payer.decision.evidenceHash);
-    record(entry, 'receiverEvidence', receiver.decision.evidenceHash);
+    record(
+      entry,
+      'evidenceHashes',
+      attested.map((a) => `${a.signed.attestation.subject}=${a.decision.evidenceHash}`).join(' '),
+    );
     record(entry, 'attestationAgeSeconds', log.elapsedSeconds());
     evidence.commit = { hash: result.hash, sequence: String(published.sequence) };
     return { hash: result.hash, sequence: published.sequence };
@@ -609,7 +823,7 @@ async function main() {
         functionName: 'returnCash',
         args: [settlementId, [[], []]],
       },
-      'ReturnRequiresAbort',
+      ['ReturnRequiresAbort', 'LegNotInState'],
     );
 
     // Base has not seen the COMMIT yet, and that is precisely the window the
@@ -624,7 +838,7 @@ async function main() {
         functionName: 'cancelReservation',
         args: [settlementId],
       },
-      'ReservationAlreadyAnnounced',
+      ['ReservationAlreadyAnnounced', 'ReservationAlreadyCommitted', 'ReservationClosed'],
     );
 
     await mustRefuse('replaying the ASSET_PREPARED VAA', monad, {
@@ -640,42 +854,60 @@ async function main() {
   {
     const entry = stage('Monad Testnet: the escrow reads the decision and pays');
 
-    const receiver = await freshProof({
-      chain: monad,
-      verifying: addresses.escrow,
-      subject: terms.cashReceiver,
-      cleanverseChain: config.cleanverseChain.cash,
-      atoken: addresses.cash,
-      poolAddress: addresses.escrow,
-    });
-    const proof = proofOf(receiver.signed);
-    await requireContractAccepts(monad, addresses.escrow, ESCROW_ABI, terms.cashReceiver, proof);
-
-    const result = await submit(monad, {
-      label: 'releaseCash',
-      log,
-      request: {
-        address: addresses.escrow,
-        abi: ESCROW_ABI,
-        functionName: 'releaseCash',
-        args: [settlementId, proof],
-      },
-      postState: {
-        describe: 'the coordinator records the cash leg released',
-        read: async (client) =>
+    if (
+      await already(
+        'releaseCash',
+        async () =>
           settlement(
-            await client.readContract({
+            await monad.pub.readContract({
               address: addresses.coordinator,
               abi: COORDINATOR_ABI,
               functionName: 'settlementOf',
               args: [settlementId],
             }),
-          ).cashOutcome,
-        matches: (value) => value === 'RELEASED',
-      },
-    });
-    record(entry, 'releaseCash', result.hash);
-    evidence.cashReleased = { hash: result.hash };
+          ).cashOutcome !== 'NONE',
+      )
+    ) {
+      record(entry, 'releaseCash', 'already resolved');
+    } else {
+      const receiver = await freshProof({
+        chain: monad,
+        verifying: addresses.escrow,
+        subject: terms.cashReceiver,
+        cleanverseChain: config.cleanverseChain.cash,
+        atoken: addresses.cash,
+        poolAddress: addresses.escrow,
+      });
+      const proof = proofOf(receiver.signed);
+      await requireContractAccepts(monad, addresses.escrow, ESCROW_ABI, terms.cashReceiver, proof);
+
+      const result = await submit(monad, {
+        label: 'releaseCash',
+        log,
+        request: {
+          address: addresses.escrow,
+          abi: ESCROW_ABI,
+          functionName: 'releaseCash',
+          args: [settlementId, proof],
+        },
+        postState: {
+          describe: 'the coordinator records the cash leg released',
+          read: async (client) =>
+            settlement(
+              await client.readContract({
+                address: addresses.coordinator,
+                abi: COORDINATOR_ABI,
+                functionName: 'settlementOf',
+                args: [settlementId],
+              }),
+            ).cashOutcome,
+          matches: (value) => value === 'RELEASED',
+        },
+      });
+      record(entry, 'releaseCash', result.hash);
+      evidence.cashReleased = { hash: result.hash };
+      performed.cashRelease = true;
+    }
   }
 
   // ── 7. The asset leg releases ─────────────────────────────────────────────
@@ -697,39 +929,79 @@ async function main() {
   {
     const entry = stage('Base Sepolia: the adapter consumes COMMIT and delivers');
 
-    const receiver = await freshProof({
-      chain: base,
-      verifying: addresses.adapter,
-      subject: terms.assetReceiver,
-      cleanverseChain: config.cleanverseChain.asset,
-      atoken: addresses.rwa,
-      poolAddress: undefined,
-    });
-    const proof = proofOf(receiver.signed);
-    await requireContractAccepts(base, addresses.adapter, ADAPTER_ABI, terms.assetReceiver, proof);
+    const delivered = await already(
+      'releaseAsset',
+      async () =>
+        reservation(
+          await base.pub.readContract({
+            address: addresses.rwa,
+            abi: RWA_ABI,
+            functionName: 'reservationOf',
+            args: [settlementId],
+          }),
+        ).released,
+    );
 
-    const result = await submit(base, {
-      label: 'releaseAsset',
-      log,
-      request: {
+    if (!delivered) {
+      const receiver = await freshProof({
+        chain: base,
+        verifying: addresses.adapter,
+        subject: terms.assetReceiver,
+        cleanverseChain: config.cleanverseChain.asset,
+        atoken: addresses.rwa,
+        poolAddress: undefined,
+      });
+      const proof = proofOf(receiver.signed);
+      await requireContractAccepts(
+        base,
+        addresses.adapter,
+        ADAPTER_ABI,
+        terms.assetReceiver,
+        proof,
+      );
+
+      const result = await submit(base, {
+        label: 'releaseAsset',
+        log,
+        request: {
+          address: addresses.adapter,
+          abi: ADAPTER_ABI,
+          functionName: 'releaseAsset',
+          args: [commitVaa, proof],
+        },
+        postState: {
+          // The reservation, not the receiver's balance. `generate_apass`
+          // returns 403 for this credential (ASM-035), so no second A-Passed
+          // EOA can exist and the demo's buyer and seller are one key — which
+          // makes the delivery a self-transfer whose balance is unchanged by
+          // arithmetic rather than by failure. The run spent three minutes
+          // waiting for a number that was never going to move. The reservation
+          // closing is what actually happened, and it reads the same whether or
+          // not the two parties are distinct.
+          describe: 'the reservation is released',
+          read: async (client) =>
+            reservation(
+              await client.readContract({
+                address: addresses.rwa,
+                abi: RWA_ABI,
+                functionName: 'reservationOf',
+                args: [settlementId],
+              }),
+            ).released,
+          matches: (value) => value === true,
+        },
+      });
+      record(entry, 'releaseAsset', result.hash);
+      evidence.assetReleased = { hash: result.hash };
+      performed.assetRelease = true;
+
+      await mustRefuse('replaying the COMMIT VAA at the adapter', base, {
         address: addresses.adapter,
         abi: ADAPTER_ABI,
         functionName: 'releaseAsset',
         args: [commitVaa, proof],
-      },
-      postState: {
-        describe: 'the buyer holds the bond',
-        read: (client) =>
-          client.readContract({
-            address: addresses.rwa,
-            abi: RWA_ABI,
-            functionName: 'balanceOf',
-            args: [terms.assetReceiver],
-          }),
-        matches: (value) => value >= opening.assetBuyer + terms.assetAmount,
-      },
-    });
-    record(entry, 'releaseAsset', result.hash);
+      });
+    }
 
     const state = reservation(
       await base.pub.readContract({
@@ -742,14 +1014,28 @@ async function main() {
     if (!state.released || !state.committed) {
       throw new Error(`reservation is committed=${state.committed} released=${state.released}`);
     }
-    evidence.assetReleased = { hash: result.hash };
 
-    await mustRefuse('replaying the COMMIT VAA at the adapter', base, {
-      address: addresses.adapter,
-      abi: ADAPTER_ABI,
-      functionName: 'releaseAsset',
-      args: [commitVaa, proof],
+    const distinctParties = terms.assetSeller.toLowerCase() !== terms.assetReceiver.toLowerCase();
+    const held = await base.pub.readContract({
+      address: addresses.rwa,
+      abi: RWA_ABI,
+      functionName: 'balanceOf',
+      args: [terms.assetReceiver],
     });
+    if (distinctParties && held < opening.assetBuyer + terms.assetAmount) {
+      throw new Error(
+        `the receiver holds ${held}, expected ${opening.assetBuyer + terms.assetAmount}`,
+      );
+    }
+    record(entry, 'receiverBalance', held);
+    record(entry, 'distinctParties', distinctParties);
+    if (!distinctParties) {
+      log.warn(
+        'seller and receiver are one key, so the delivery is a self-transfer and no balance ' +
+          'moves between wallets — the reservation closing is the evidence',
+      );
+    }
+    log.ok('the bond is delivered and the reservation is closed');
   }
 
   // ── 8. The asset leg reports, and the settlement finishes ─────────────────
@@ -757,53 +1043,85 @@ async function main() {
   {
     const entry = stage('Base Sepolia: the asset leg reports what the token did');
 
-    const report = await submit(base, {
-      label: 'reportResolution',
-      log,
-      request: {
-        address: addresses.adapter,
-        abi: ADAPTER_ABI,
-        functionName: 'reportResolution',
-        args: [settlementId, BigInt(MONAD_EVM_CHAIN_ID), 1],
-      },
-    });
-    const published = sequenceFrom(report.receipt);
-    record(entry, 'reportResolution', report.hash);
-    record(entry, 'assetReleasedSequence', published.sequence);
-
-    const { vaa, waitSeconds } = await fetchVaa(
-      base.wormholeChainId,
-      padEmitter(addresses.adapter),
-      published.sequence,
-      { log, label: 'finalized ASSET_RELEASED' },
+    const settledAlready = await already(
+      'the asset leg resolution',
+      async () =>
+        settlement(
+          await monad.pub.readContract({
+            address: addresses.coordinator,
+            abi: COORDINATOR_ABI,
+            functionName: 'settlementOf',
+            args: [settlementId],
+          }),
+        ).assetOutcome !== 'NONE',
     );
-    record(entry, 'reportWaitSeconds', waitSeconds);
 
-    const resolved = await submit(monad, {
-      label: 'recordLegResolved',
-      log,
-      request: {
-        address: addresses.coordinator,
-        abi: COORDINATOR_ABI,
-        functionName: 'recordLegResolved',
-        args: [vaa, MessageType.ASSET_RELEASED, LegOutcome.RELEASED],
-      },
-      postState: {
-        describe: 'the settlement is terminal',
-        read: async (client) =>
-          settlement(
-            await client.readContract({
-              address: addresses.coordinator,
-              abi: COORDINATOR_ABI,
-              functionName: 'settlementOf',
-              args: [settlementId],
-            }),
-          ).state,
-        matches: (value) => value === 'SETTLED',
-      },
-    });
-    record(entry, 'recordLegResolved', resolved.hash);
-    evidence.settled = { hash: resolved.hash };
+    if (!settledAlready) {
+      const report = await submit(base, {
+        label: 'reportResolution',
+        log,
+        request: {
+          address: addresses.adapter,
+          abi: ADAPTER_ABI,
+          functionName: 'reportResolution',
+          args: [settlementId, BigInt(MONAD_EVM_CHAIN_ID), 1],
+        },
+      });
+      const published = sequenceFrom(report.receipt);
+      record(entry, 'reportResolution', report.hash);
+      record(entry, 'assetReleasedSequence', published.sequence);
+
+      const { vaa, waitSeconds } = await fetchVaa(
+        base.wormholeChainId,
+        padEmitter(addresses.adapter),
+        published.sequence,
+        { log, label: 'finalized ASSET_RELEASED' },
+      );
+      record(entry, 'reportWaitSeconds', waitSeconds);
+
+      if (
+        await already(
+          'recordLegResolved',
+          async () =>
+            settlement(
+              await monad.pub.readContract({
+                address: addresses.coordinator,
+                abi: COORDINATOR_ABI,
+                functionName: 'settlementOf',
+                args: [settlementId],
+              }),
+            ).assetOutcome !== 'NONE',
+        )
+      ) {
+        record(entry, 'recordLegResolved', 'already resolved');
+      } else {
+        const resolved = await submit(monad, {
+          label: 'recordLegResolved',
+          log,
+          request: {
+            address: addresses.coordinator,
+            abi: COORDINATOR_ABI,
+            functionName: 'recordLegResolved',
+            args: [vaa, MessageType.ASSET_RELEASED, LegOutcome.RELEASED],
+          },
+          postState: {
+            describe: 'the settlement is terminal',
+            read: async (client) =>
+              settlement(
+                await client.readContract({
+                  address: addresses.coordinator,
+                  abi: COORDINATOR_ABI,
+                  functionName: 'settlementOf',
+                  args: [settlementId],
+                }),
+              ).state,
+            matches: (value) => value === 'SETTLED',
+          },
+        });
+        record(entry, 'recordLegResolved', resolved.hash);
+        evidence.settled = { hash: resolved.hash };
+      }
+    }
   }
 
   // ── 9. Conservation, read from the chain ──────────────────────────────────
@@ -895,28 +1213,50 @@ async function main() {
       Object.entries(closing).map(([key, value]) => [key, stringify(value)]),
     );
 
-    // The buyer and the seller are the same key in this deployment, so the cash
-    // nets to zero across the pair and the escrow must be the thing that emptied.
     const problems = [];
-    if (closing.cashSupply !== opening.cashSupply) problems.push('cash supply changed');
-    if (closing.escrow !== opening.escrow - terms.cashAmount) {
-      problems.push(`escrow ${opening.escrow} → ${closing.escrow}`);
+
+    // ── Time-independent, and therefore the ones that mean something ────────
+    //
+    // A resumed run's "opening" is a snapshot taken halfway through, so every
+    // delta measured against it is wrong: this check failed a settlement that
+    // had in fact settled perfectly, reporting `escrow 0 → 0`. The invariants
+    // that hold whenever they are read are the ones worth asserting, and they
+    // are also the ones an independent verifier can check without having
+    // watched the run.
+    if (closing.escrowAccounted !== closing.escrow) {
+      problems.push(
+        `the escrow accounts for ${closing.escrowAccounted} and holds ${closing.escrow}`,
+      );
     }
-    if (closing.assetSupply !== opening.assetSupply) {
-      // A mint at the start of the run is legitimate and accounted for.
-      const minted = closing.assetSupply - opening.assetSupply;
-      log.step(`asset supply grew by ${minted} from the pre-run mint`);
+    if (closing.assetReserved !== 0n) {
+      problems.push(`${closing.assetReserved} still reserved against the seller`);
     }
-    if (closing.assetBuyer !== opening.assetBuyer + terms.assetAmount) {
-      problems.push(`buyer ${opening.assetBuyer} → ${closing.assetBuyer}`);
+
+    // ── Deltas, only where this run watched both ends ───────────────────────
+    if (performed.cashRelease) {
+      if (closing.cashSupply !== opening.cashSupply) problems.push('cash supply changed');
+      if (closing.escrow !== opening.escrow - terms.cashAmount) {
+        problems.push(`escrow ${opening.escrow} → ${closing.escrow}`);
+      }
+    } else {
+      log.step('the cash leg released in an earlier run; its delta is not this run to measure');
     }
-    if (closing.assetReserved !== 0n) problems.push(`${closing.assetReserved} still reserved`);
-    if (closing.escrowAccounted !== 0n) {
-      log.step(`escrow still accounts for ${closing.escrowAccounted} from other settlements`);
+
+    const twoParties = terms.assetSeller.toLowerCase() !== terms.assetReceiver.toLowerCase();
+    if (performed.assetRelease && twoParties) {
+      if (closing.assetBuyer !== opening.assetBuyer + terms.assetAmount) {
+        problems.push(`buyer ${opening.assetBuyer} → ${closing.assetBuyer}`);
+      }
+    }
+    if (performed.assetRelease && closing.assetSupply !== opening.assetSupply) {
+      log.step(`asset supply grew by ${closing.assetSupply - opening.assetSupply} from the mint`);
     }
 
     if (problems.length > 0) throw new Error(`conservation broken: ${problems.join('; ')}`);
-    log.ok('cash and asset both conserved exactly');
+    log.ok(
+      `cash and asset both conserved: the escrow holds ${closing.escrow} and accounts for ` +
+        `${closing.escrowAccounted}, and nothing is reserved`,
+    );
     record(entry, 'cashMoved', terms.cashAmount);
     record(entry, 'assetMoved', terms.assetAmount);
   }

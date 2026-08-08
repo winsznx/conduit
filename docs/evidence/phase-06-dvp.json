@@ -1,0 +1,210 @@
+{
+  "startedAt": "2026-08-08T11:35:50.479Z",
+  "resumedFrom": "docs/evidence/phase-06-dvp.json",
+  "settlementId": "0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858",
+  "outcome": "SETTLED_FINAL",
+  "intent": {
+    "version": "1",
+    "cashChainId": "10143",
+    "cashEscrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "cashAsset": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "cashAmount": "25000000",
+    "cashPayer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "cashReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "assetChainId": "84532",
+    "assetEscrow": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "assetToken": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "assetAmount": "500000",
+    "assetSeller": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "assetReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "cashPolicyHash": "0xf03ae622483beb58cec471b5013bba399164b26ffd13f91cb8b32098c7b3fc2e",
+    "assetPolicyHash": "0x2d19ad738cb6b4bd7b6097eb701fcbe3a1a15f52ddf9e9535291551c16d98c79",
+    "prepareDeadline": "1786183277",
+    "commitDeadline": "1786190477",
+    "releaseDeadline": "1786194077",
+    "nonce": "1"
+  },
+  "providers": {
+    "monadTestnet": ["testnet-rpc.monad.xyz"],
+    "baseSepolia": ["sepolia.base.org", "base-sepolia-rpc.publicnode.com", "base-sepolia.drpc.org"]
+  },
+  "addresses": {
+    "coordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "cash": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "rwa": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "adapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+    "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+    "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+    "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
+  },
+  "stages": [
+    {
+      "stage": "Base Sepolia: reserve the bond and announce the leg",
+      "startedAt": "2026-08-08T11:35:55.103Z",
+      "detail": {
+        "assetPreparedSequence": "0",
+        "resumedFromRecord": "true"
+      }
+    },
+    {
+      "stage": "Monad Testnet: the cash enters escrow and the escrow reports it",
+      "startedAt": "2026-08-08T11:35:57.414Z",
+      "detail": {
+        "escrowedAmount": "25000000",
+        "escrowLegState": "RELEASED"
+      }
+    },
+    {
+      "stage": "waiting for the finalized ASSET_PREPARED VAA (Base economic finality)",
+      "startedAt": "2026-08-08T11:35:58.048Z",
+      "detail": {
+        "waitSeconds": "3",
+        "consistencyLevel": "1",
+        "emitterChainId": "10004",
+        "sequence": "0"
+      }
+    },
+    {
+      "stage": "Monad Testnet: the coordinator consumes the finalized VAA",
+      "startedAt": "2026-08-08T11:36:01.533Z",
+      "detail": {
+        "recordAssetPrepared": "already consumed"
+      }
+    },
+    {
+      "stage": "Monad Testnet: fresh compliance, then COMMIT",
+      "startedAt": "2026-08-08T11:36:01.713Z",
+      "detail": {
+        "commitSequence": "0",
+        "resumedFromRecord": "true"
+      }
+    },
+    {
+      "stage": "the refusals that make COMMIT irreversible",
+      "startedAt": "2026-08-08T11:36:01.911Z",
+      "detail": {}
+    },
+    {
+      "stage": "Monad Testnet: the escrow reads the decision and pays",
+      "startedAt": "2026-08-08T11:36:02.953Z",
+      "detail": {
+        "releaseCash": "already resolved"
+      }
+    },
+    {
+      "stage": "waiting for the finalized COMMIT VAA (Monad finality)",
+      "startedAt": "2026-08-08T11:36:03.594Z",
+      "detail": {
+        "waitSeconds": "0",
+        "consistencyLevel": "1"
+      }
+    },
+    {
+      "stage": "Base Sepolia: the adapter consumes COMMIT and delivers",
+      "startedAt": "2026-08-08T11:36:03.903Z",
+      "detail": {
+        "receiverBalance": "2000000",
+        "distinctParties": "false"
+      }
+    },
+    {
+      "stage": "Base Sepolia: the asset leg reports what the token did",
+      "startedAt": "2026-08-08T11:36:04.747Z",
+      "detail": {}
+    },
+    {
+      "stage": "conservation",
+      "startedAt": "2026-08-08T11:36:04.948Z",
+      "detail": {
+        "cashMoved": "25000000",
+        "assetMoved": "500000"
+      }
+    },
+    {
+      "stage": "independent verification, from chain state alone",
+      "startedAt": "2026-08-08T11:36:10.233Z",
+      "detail": {
+        "settlementState": "SETTLED"
+      }
+    }
+  ],
+  "compliance": [],
+  "limitations": [
+    "The buyer and the seller are the same key. `generate_apass` returns 403 for this credential on both chains (ASM-035), so no second A-Passed EOA can exist and both intent signatures have to come from one wallet. Each leg therefore moves value into and out of a settlement contract rather than between two wallets: conservation is proven at the escrow balance and at the reservation, and the two ERC-20 legs are self-transfers whose net wallet delta is zero by arithmetic."
+  ],
+  "conservation": {
+    "opening": {
+      "cashPayer": "725000000",
+      "cashReceiver": "725000000",
+      "cashSupply": "1000000000",
+      "escrow": "0",
+      "assetSeller": "2000000",
+      "assetBuyer": "2000000",
+      "assetSupply": "2000000"
+    },
+    "closing": {
+      "cashPayer": "725000000",
+      "cashSupply": "1000000000",
+      "escrow": "0",
+      "escrowAccounted": "0",
+      "assetSeller": "2000000",
+      "assetBuyer": "2000000",
+      "assetSupply": "2000000",
+      "assetReserved": "0"
+    }
+  },
+  "adversarial": [
+    {
+      "attempt": "a refund after COMMIT",
+      "refusedWith": "LegNotInState"
+    },
+    {
+      "attempt": "the seller cancelling before the COMMIT VAA arrives",
+      "refusedWith": "ReservationClosed"
+    },
+    {
+      "attempt": "replaying the ASSET_PREPARED VAA",
+      "refusedWith": "VaaAlreadyConsumed"
+    }
+  ],
+  "assetPrepared": {
+    "hash": "0xd0f77aa566ae21facbab89d3c2c0722217d309167cedd1a508e7dfd110cdf14d",
+    "sequence": "0",
+    "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "emitterChainId": 10004
+  },
+  "commit": {
+    "hash": "0x56731cb9ada806e25c61d67edb313319c63dae6315f6ed0b2b45746933647866",
+    "sequence": "0",
+    "block": 51935065,
+    "recoveredFrom": "the coordinator's CommitIssued event, after a failed resume overwrote the runner's own record"
+  },
+  "cashReleased": {
+    "hash": "0x1fa7e514a112761007ab54d7be3ee8892da382a657b9c4fad700a8216d1b6216"
+  },
+  "assetReleased": {
+    "hash": "0xe0fe0f7a90419368910377917e3af75299d2c37317d1fea0fec5cf3c4ea5a082"
+  },
+  "settled": {
+    "hash": "0xb384e9baaf9834f823b16dad0212e4e56e5db155b4ddad08fa163160de8b2ae7"
+  },
+  "baseFinalitySeconds": 3,
+  "monadFinalitySeconds": 0,
+  "verification": {
+    "coordinator state": "SETTLED",
+    "coordinator decision": "COMMIT",
+    "cash outcome": "RELEASED",
+    "asset outcome": "RELEASED",
+    "bound intent hash": "0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858",
+    "escrow leg": "RELEASED",
+    "reservation released": "true",
+    "reservation committed": "true",
+    "reservation cancelled": "false"
+  },
+  "finishedAt": "2026-08-08T11:36:11.244Z",
+  "elapsedSeconds": 21,
+  "artifact": "/Users/mac/conduit/docs/evidence/artifacts/dvp-940f1c1521.log",
+  "scope": "This is the runner's own record of its final pass. A resumed run reports what it observed, so the timings and the compliance queries here are that pass's and not the settlement's. docs/evidence/phase-06-dvp-attempt-4.json assembles the whole settlement from all six passes, and docs/evidence/artifacts/dvp-940f1c1521.log is the append-only primary record."
+}
