@@ -46,7 +46,8 @@ const browser = await chromium.launch({ headless: process.env['HEADFUL'] !== '1'
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await context.newPage();
 
-let outcome = 'UNKNOWN';
+/** Overwritten on every path below; declared here so `finally` can report it. */
+let outcome;
 let blockedBy = null;
 
 try {
@@ -80,7 +81,9 @@ try {
     )
   ) {
     await consent.click({ timeout: 10_000 });
-    await consent.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
+    await consent
+      .waitFor({ state: 'hidden', timeout: 15_000 })
+      .catch(() => record('the consent banner did not disappear; continuing'));
     record('dismissed the consent banner');
   } else {
     record('no consent banner appeared');
@@ -146,7 +149,7 @@ try {
       await candidate
         .first()
         .click({ timeout: 10_000 })
-        .catch(() => {});
+        .catch((error) => record('consent click failed', String(error).split('\n')[0]));
       record('dismissed the consent banner');
       await page.waitForTimeout(2_000);
       break;
@@ -229,7 +232,7 @@ try {
   record('error', blockedBy);
   await page
     .screenshot({ path: join(OUT, 'circle-faucet-error.png'), fullPage: true })
-    .catch(() => {});
+    .catch(() => record('could not capture an error screenshot'));
 } finally {
   await browser.close();
 }
