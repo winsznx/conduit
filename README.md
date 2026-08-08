@@ -1,122 +1,220 @@
 # Conduit
 
-Compliance-preserved cross-chain delivery-versus-payment.
+**Delivery-versus-payment between Cleanverse-native assets on different chains. The assets never bridge. Authenticated settlement state does.**
 
-Conduit coordinates delivery-versus-payment between two Cleanverse-native assets on different
-chains. CVA cash settles on Monad Testnet while a RuleV2-gated RWA CVA changes ownership on
-Arbitrum Sepolia. Tokens never bridge; authenticated settlement state does.
+A restricted RWA sits on Base Sepolia. A Cleanverse settlement unit sits on Monad Testnet. Neither is wrapped, minted elsewhere, or moved across a chain. What crosses is a Wormhole message carrying the settlement's own state, and the commitment it authorises becomes irreversible only after economic finality and a fresh compliance answer.
 
-> Two chains. Two regulated assets. One settlement commitment. Both legs reach a policy-valid
-> terminal state, or neither party receives an unaccounted economic advantage.
+The interesting part is not the happy path. It is what happens when the buyer stops being eligible _after_ the point of no return.
 
-Conduit does not claim simultaneous cross-chain block execution. It provides an atomic
-settlement _decision_ with asynchronous, permissionless execution, and deterministic restricted
-custody when a recipient becomes ineligible after commit.
+---
 
-## Status
-
-**Phase 00 of 11 — repository and truth lock.** No product logic exists yet. Nothing here
-contacts a chain, a Cleanverse endpoint, or a Wormhole guardian.
-
-The architecture is `CONDUIT_PRD_v1.0.md` as amended by `CONDUIT_PRD_v1.1_OVERRIDE.md`, which
-makes the Arbitrum leg a real Cleanverse CVA with a token-native reservation instead of an
-ERC-3643-style fixture in escrow, and names Cloudflare Workers plus Supabase as the runtime. The
-override is adopted in [ADR-0004](./docs/adr/0004-prd-v1-1-override-adoption.md); none of it is
-implemented yet.
-
-See [docs/implementation-status.md](./docs/implementation-status.md) for the phase table and
-[docs/assumptions.md](./docs/assumptions.md) for everything still unresolved. Assumptions stay
-visibly unresolved until live evidence settles them.
-
-## Getting started
-
-Requires the exact toolchain in [`toolchain.json`](./toolchain.json): Node 24.14.1,
-pnpm 10.33.0, Foundry 1.7.1, plus Slither, gitleaks, and Docker for the security steps.
-
-```bash
-git clone <repo> conduit && cd conduit
-pnpm bootstrap
-```
-
-`pnpm bootstrap` verifies your toolchain, installs from the frozen lockfile, restores Solidity
-dependencies at locked revisions, builds contracts with warnings as errors, and runs the full
-gate. A mismatched tool fails with the command that fixes it.
-
-Afterwards, `pnpm verify` re-runs the gate. `pnpm verify --only=lint,unit` runs a subset.
-
-## Layout
+## The mechanism
 
 ```text
-apps/        web · api · worker · indexer
-contracts/   Foundry project — src, test, script, deployments
-packages/    domain · sdk · cleanverse · wormhole · verifier · db · config · observability · ui
-docs/        adr · threat-model · runbooks · evidence · security-waivers
-infra/       docker · terraform
-scripts/     bootstrap, gate, and toolchain automation
+  Base Sepolia                          Monad Testnet
+  ────────────                          ─────────────
+  RWA reserved inside the token         settlement CVA locked in escrow
+  seller keeps nominal ownership        exact balance delta enforced
+          │                                     │
+          └───── ASSET_PREPARED (FINALIZED) ────┤
+                                                │
+                            fresh Cleanverse compliance, at commit time
+                                                │
+                                            COMMIT ──── the point of no return
+                                                │
+          ┌───────────── COMMIT VAA ────────────┘
+          │                                     │
+     bond delivered                       cash released
 ```
 
-Fixed by PRD 11.1 and asserted by `tests/repo-structure.test.ts`.
+Both legs answer to one canonical decision on Monad. Neither decides for itself, so neither can decide differently.
 
-## Sources of truth
+### And the path that matters
 
-CLAUDE.md fixes the order and the v1.1 override amends it for CVA and RuleV2 semantics. The
-effective ranking is deployed contract state and verified transactions, then the Cleanverse CCP
-CVA Integration Guide, then Cleanverse API V5.6, then the v1.1 override, then v1.0, then
-accepted ADRs. Code comments, tests, and this README rank last.
+```text
+                                            COMMIT
+                                                │
+                                       cash released to the seller
+                                                │
+                    ── the issuer raises minTier on the RWA's RuleV2 ──
+                                                │
+                              the live policy now refuses the buyer
+                                                │
+                                        NO REFUND EXISTS
+                                                │
+                                              HELD
+                                                │
+                          an authorised disposition, under a policy
+                                                │
+                                    terminal resolution
+```
 
-When sources conflict, work stops and an ADR records the conflict. Nothing is silently chosen.
-[ADR-0004](./docs/adr/0004-prd-v1-1-override-adoption.md) is that record for the v1.1 override.
+A settlement that has committed and cannot deliver does not unwind. The seller has been paid; reversing that would be theft from one side to protect the other. The value is held, accounted for exactly, and moves only through the Disposition Kernel.
+
+**This is live, not a diagram.** A real issuer-controlled RuleV2 change made the buyer ineligible after COMMIT, the deployed CCP policy answered `TierTooLow`, delivery was refused, the bond reached HELD, the rule was restored, and an authorised disposition delivered it.
+
+---
+
+## Why this is not a bridge
+
+A bridge moves an asset by locking it on one chain and minting a representation on another. The representation is a new liability, backed by the bridge, and it is what gets stolen in every bridge hack.
+
+Conduit mints nothing and locks nothing across a boundary. The RWA never leaves Base — it is reserved _inside_ the token, so the seller keeps nominal ownership and the units simply stop being spendable. The settlement unit never leaves Monad. A Wormhole VAA carries one authenticated fact: _the coordinator on Monad decided COMMIT for this settlement._ Each escrow verifies that fact against the guardian set, checks the emitter chain, emitter address, deployment generation, protocol version, message type, settlement ID and intent hash, marks the VAA consumed, and only then moves its own local asset.
+
+The consequence: a compromised relayer delays a settlement and cannot forge one. There is no wrapped supply to attack because there is no wrapped supply.
+
+## Why compliance has to be checked at commit time
+
+A restricted security's eligibility is a fact about _now_, not about when the trade was agreed. Checking at preparation and committing an hour later means committing on a stale answer.
+
+The gap is not hypothetical here. Base Sepolia economic finality on this deployment has been observed at:
+
+```text
+999   1093   1223   1275   1350   1483   1485    seconds
+```
+
+Attestation validity is **900 seconds**, immutable in the deployed bytecode — a compliance signer cannot widen its own window. Every one of those finality observations is longer than the attestation lifetime, so a prepare-time answer _cannot_ reach the commit. The compliance query happens after the finality wait, by construction rather than by discipline.
+
+Those are seven individual observations. They are not averaged, because the tail is the thing that breaks you and a mean of 1272s would hide the 1485.
+
+---
+
+## Live deployment
+
+Generation 3, the canonical deployment.
+
+|                        | Monad Testnet (10143)                                    | Base Sepolia (84532)                                 |
+| ---------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| token                  | `0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16` cSETTLE3    | `0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B` cBOND3  |
+| settlement             | `0xb08bC7F285dd3fC1047798b661E93AB7427a7A61` coordinator | `0xb08bC7F285dd3fC1047798b661E93AB7427a7A61` adapter |
+| escrow                 | `0x8151D682836f5B7106181bc8e48DC899ab538930`             | —                                                    |
+| authority registry     | `0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7`             | `0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45`         |
+| disposition controller | `0x3c4060D402675A25CAd836247CFA0B95614efe81`             | `0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7`         |
+
+Both tokens are registered Cleanverse CVAs, ISSUED, with RuleV2 configured and readable from the policy.
+
+Look at that table twice. `0xb08bC7F2…` is the **coordinator on Monad and the adapter on Base**. `0xEa92410a…` is the **Monad registry and the Base controller**. Same deployer, same nonce sequence, two chains — and it has now happened four times across three generations. Identity in this system is `(chainId, address)` everywhere, never an address alone, and there is a test that fails the build if a unique key on a bare address appears in the schema. See [ADR-0018](docs/adr/0018-identity-is-a-pair-never-an-address.md).
+
+---
+
+## The seam defects
+
+Six defects were found in this codebase's own contracts, all by tests that drive messages a production contract actually emitted rather than messages a test invented. Each is preserved as a permanent regression that proves the _original vulnerable behaviour_, not merely that the repair works.
+
+**D-01 — phantom cash preparation.** `recordCashPrepared` was permissionless and the escrow never called it, so the coordinator learned that cash had arrived from whoever sent the next transaction. A buyer who funded nothing could declare the cash leg prepared against a genuinely prepared asset leg, reach READY, and commit. Every signature is real, every attestation is real, and the bond is delivered against an empty escrow. This one moved value.
+
+**D-02 — cancellation knowledge race.** The COMMIT exists on Monad the moment it is issued, and the cash releases against it immediately. Base only learns when a relayer delivers the VAA — minutes later, on an untrusted schedule. In that window the seller could cancel the reservation, take the cash, and keep the bond.
+
+**D-03 — caller-supplied resolution truth.** `reportResolution(bool released)` let anyone publish a false ASSET_RELEASED after a genuine hold. Every transport check passes; the coordinator reads SETTLED while the bond sits undelivered, and the true report is then locked out by `LegAlreadyResolved`. Nobody's balance moves, which is why it reads as harmless — what it destroys is the correspondence between canonical state and where the value is, and every conservation claim rests on that.
+
+**D-04 — unreachable HELD.** Invariant I9 says held value remains claimable through the Disposition Kernel. There was no entry point, so it was not claimable at all.
+
+**D-05 — cross-chain address collision.** One address, two chains, two different contracts with two different roles. Anything keyed by address alone conflates them silently.
+
+**D-06 — double reservation decrement.** `releaseReservation` decrements `_reservedOf` and then transfers; `_update` subtracted the releasing reservation _again_. With one reservation the subtraction is unreachable — the decrement leaves the mapping at zero and the guard is skipped — which is why two hundred tests and two live settlements never touched it. With a second, smaller reservation it underflows and the release reverts: held value that no authority can free, on a leg whose disposition was authorised, signed, uncontested and rested. The deployed seller was one settlement away from that shape.
+
+D-06 is why generation 3 redeployed **both** CVAs rather than just the settlement contracts. The Monad settlement unit is also a `ConduitRWACVA`, so the fix changed its code too, and "unreachable today" is not "absent" in a non-upgradeable contract.
+
+---
+
+## The Disposition Kernel
+
+PRD FR-012 admits six order types. All six are implemented, tested against producer-originated messages, authority-checked, conflict-tested and verifier-supported.
+
+| Type                        | Where value may go                                    | Status               |
+| --------------------------- | ----------------------------------------------------- | -------------------- |
+| `REVERIFY_AND_RESUME`       | the current intended receiver, and nowhere else       | live demonstrated    |
+| `RESTRICTED_HOLD`           | a registered restricted custodian; terminal           | live demonstrated    |
+| `RETURN_TO_ELIGIBLE_SENDER` | the original sender, and only after a COMMIT          | implemented + tested |
+| `REBIND_RECEIVER`           | a wallet with the same registered identity commitment | implemented + tested |
+| `AUTHORIZED_SUBSTITUTION`   | an approved substitute _for this receiver_            | implemented + tested |
+| `OPERATOR_ASSISTED_OFFRAMP` | a registered gateway account                          | implemented + tested |
+
+That column is the honest one. "Implemented + tested" means it works against a real hold in a two-chain harness with real authority signatures; it does not mean it has run on a public chain. The two that have are marked as such and nothing else is.
+
+### A filed order rests before it executes
+
+FR-012 says conflicting valid orders produce `CONTESTED` and no funds move until the policy resolves it. Against an immediate-execution design that sentence is unenforceable: the first order executes on arrival, the second authority's equally valid order finds a settled case, and the outcome was decided by whichever relayer paid more gas.
+
+So an order rests for the policy's contest window, anyone may file during it, and an incompatible filing contests the case. `test_ARelayerRaceCannotDecideTheOutcome` files the same two disagreeing orders in both arrival orders and asserts the results are identical and that nothing moved.
+
+Each redirecting type answers to its own registry list under its own authority class, so an issuer's substitution power is not a gateway operator's off-ramp power, and neither is a power to send value anywhere they like. Authority grants are timelocked; revocations are immediate.
+
+`RETURN_TO_ELIGIBLE_SENDER` is **not a refund**. A refund is a pre-COMMIT unwind that FR-008 permanently disables. This is an authorised post-COMMIT disposition that happens to send value back the way it came: the COMMIT stays on chain as historical fact, the settlement never becomes ABORTED, and the leg records DISPOSED rather than RETURNED.
+
+---
+
+## The verifier
+
+From a settlement ID and two RPC URLs — no database, no Conduit service — it reconstructs the deployment generation, code hashes, intent, signatures, prepared legs, producer VAAs, emitter identities, finality levels, VAA consumption, compliance attestations, the authorised COMMIT, releases or holds, any disposition order with its signers and policy hash, conservation, and the terminal canonical state.
+
+It classifies:
+
+```text
+SETTLED_FINAL                 the intent's own parties received the value
+DISPOSITION_FINAL             an authority redirected it under FR-012
+RESTRICTED_HOLD_FINAL         it ended in registered restricted custody
+CONTESTED                     two authorities disagree; nothing may move
+HELD_PENDING_DISPOSITION      committed, undelivered, no case resolved it
+SETTLED_PENDING_VERIFICATION  SETTLED on chain, a check here did not pass
+NOT_SETTLED                   the coordinator's own state is not SETTLED
+```
+
+**None of those is a Solidity enum.** `SETTLED` is; `SETTLED_FINAL` is a conclusion this software drew from facts on two chains. They are stored in separate columns, served as separate fields, and rendered as separate badges, because collapsing them would erase the difference for every reader downstream ([ADR-0017](docs/adr/0017-settled-is-on-chain-settled-final-is-derived.md)).
+
+An RPC scan gap is a verification failure, never a green result. The first version of this verifier scanned in fixed 9000-block windows against endpoints that cap at a thousand and a hundred, logged the refusals as warnings, and certified a terminal state having read one message of three.
+
+---
+
+## Evidence rules this codebase enforces
+
+**A negative proof must reach the layer it blames** ([ADR-0019](docs/adr/0019-a-negative-proof-must-reach-the-layer-it-blames.md)). A check once passed on `Function "recordCashPrepared" not found on ABI` — viem refused to build the calldata, nothing reached the chain, and the report claimed an authority check had held that was never exercised. `proveContractRefusal` now walks calldata, code presence, the call, raw revert bytes and the decode, and returns evidence only for a real `CONTRACT_REVERT`.
+
+```text
+CLIENT_ENCODING_FAILURE  !=  CONTRACT_REVERT
+RPC_FAILURE              !=  POLICY_REFUSAL
+AGGREGATE_STATE          !=  SETTLEMENT_STATE
+```
+
+**Seam tests use producer-originated messages** ([ADR-0015](docs/adr/0015-seam-tests-use-producer-originated-messages.md)). A unit test's fixture is written by the same person with the same wrong belief about what the other side emits, so the class of defect where two contracts each behave correctly against an imagined counterparty is invisible to it by construction. Every cross-chain message in the seam suites is the exact payload a production contract published.
+
+---
+
+## Running it
+
+```bash
+pnpm install
+pnpm verify              # the full local gate: format, lint, types, tests, slither, secrets
+pnpm conduit doctor      # environment, both chains, every Cleanverse capability
+pnpm conduit verify <settlementId>
+```
+
+Contracts are Foundry, exact-pinned to Solc 0.8.36. Everything else is TypeScript strict.
+
+---
+
+## Known limitations
+
+These are stated here rather than buried, because a submission that hides them is worth less than one that does not.
+
+**One controlled identity.** `generate_apass` returns 403 for this credential, so no second A-Passed wallet can exist. Buyer and seller are the same key. Each leg still moves value into and out of a settlement contract, and conservation is proven at the escrow balance and the reservation rather than at a wallet delta — but this is not a demonstration of two counterparties. It is the reason `REBIND_RECEIVER` and `AUTHORIZED_SUBSTITUTION` are not live-demonstrated: there is no second eligible destination for them to reach.
+
+**Not aUSDC.** The Monad cash leg settles in a sandbox CVA that we issued and registered ourselves. It calls the live CCP policy on every transfer and holders need real CVI, so the architecture is preserved — but it is not aUSDC, it is not fiat-backed, and it is not backed by anything. Cleanverse's aUSDC faucet reverts on its own empty source wallet and direct deposits are refunded as non-whitelisted.
+
+**Fiat off-ramp does not complete.** Fiat Ramp is granted for this credential and SELL quoting is live on five networks with real quote tokens and real pricing. The hosted widget refuses with `RM_003 Unable to verify APass on chain` — PRD 5.5's third precondition, and the same blocker as the identity limitation above. Separately, neither settlement asset is a listed ramp asset and Monad is not a ramp network. The on-chain `OPERATOR_ASSISTED_OFFRAMP` disposition is real; no fiat settlement is claimed.
+
+**Public testnet guardian configuration.** Wormhole's testnet guardian set is 1-of-1. That is a property of the network, not of this design, and it is not mainnet-grade quorum.
+
+**No CCP validator pool on the asset chain.** `validator/grant` on Base was refused for this credential, so commit-time eligibility on the asset leg rests on `verify_apass` plus the on-chain CCP policy rather than on both sources.
+
+**`CONTESTED` is a verifier classification, not an on-chain settlement state.** Driving the coordinator's enum from a remote leg's contested case would require a cross-chain message PRD 7.3 does not define, and ADR-0015 forbids inventing one.
+
+---
 
 ## Documentation
 
-| Document                                                         | Contents                                              |
-| ---------------------------------------------------------------- | ----------------------------------------------------- |
-| [CONDUIT_PRD_v1.0.md](./CONDUIT_PRD_v1.0.md)                     | The build-locked product requirements                 |
-| [CONDUIT_PRD_v1.1_OVERRIDE.md](./CONDUIT_PRD_v1.1_OVERRIDE.md)   | Architecture override; wins where it conflicts        |
-| [CLAUDE.md](./CLAUDE.md)                                         | Working rules, invariants, and stop conditions        |
-| [CLAUDE_ONESHOT_CONDUIT.md](./CLAUDE_ONESHOT_CONDUIT.md)         | Execution mode and human gates                        |
-| [docs/implementation-status.md](./docs/implementation-status.md) | Phase state and gate evidence                         |
-| [docs/assumptions.md](./docs/assumptions.md)                     | Everything unresolved, and what will resolve it       |
-| [docs/adr](./docs/adr/README.md)                                 | Architecture decisions                                |
-| [docs/threat-model](./docs/threat-model/README.md)               | Trust boundaries, 37 PRD threats, 11 override threats |
-| [docs/runbooks](./docs/runbooks/README.md)                       | Key rotation, emergency revocation, incident response |
-
-## Honest limits
-
-Three of these bound what the live demo can show, and they are stated first
-because a reader who skips the rest should still leave with them.
-
-- **The buyer and the seller are the same key** (ASM-035). `generate_apass`
-  returns HTTP 403 for this credential on both chains, the sandbox faucet's own
-  reservoir is empty, and a deposit executes and is refunded by policy about
-  forty blocks later. No second A-Passed identity can be created, so both intent
-  signatures come from one wallet and each leg moves value into and out of a
-  settlement contract rather than between two wallets. The protocol path is
-  real — reservation, escrow, authenticated cross-chain state, COMMIT, both
-  releases, exact conservation — and the two ERC-20 legs are self-transfers
-  whose net wallet delta is zero by arithmetic. This does **not** demonstrate a
-  counterparty ownership change, and nothing in this repository may say it does.
-- **The Monad leg settles in a project-issued sandbox CVA**, not aUSDC. It is a
-  real Cleanverse CVA, registered and issued, enforcing the same live CCP
-  policy, and nobody backs it with currency. Permitted description:
-  "Cleanverse-native sandbox settlement CVA on Monad".
-  `tests/settlement-asset-naming.test.ts` fails the build on the alternatives.
-- **The compliance quorum is 1-of-1** (ASM-036). Quorum is genuinely enforced
-  and a signer attesting twice is refused — that refusal happened live during
-  the phase 06 settlement — but a one-signer threshold is a testnet property and
-  is not a threshold guarantee.
-
-- Cleanverse V5.6 documents no generic cross-chain Travel Rule endpoint. Conduit generates its
-  own compliance envelope and anchors Cleanverse response hashes. No part of this project may
-  claim otherwise (PRD 2.3).
-- A Cleanverse HTTP 200 is not business success, and `validator/verify` returning `valid:false`
-  is a legitimate non-eligibility rather than an API failure.
-- Whether a Validator-registered contract can hold the selected A-Token is unproven. It is a
-  mandatory seam test recorded in [ADR-0001](./docs/adr/0001-cash-custody-mode.md).
-- The Cleanverse CCP CVA Integration Guide that the override ranks second is not in this
-  repository yet. RuleV2 country-bit positions come from it and must not be guessed
-  (ASM-018, ASM-020).
-
-## Licence
-
-UNLICENSED. Not yet released for redistribution.
+- [`docs/implementation-status.md`](docs/implementation-status.md) — phase gates and their evidence
+- [`docs/adr/`](docs/adr/) — every decision that changed the design, and why
+- [`docs/threat-model/threat-register.md`](docs/threat-model/threat-register.md) — the six defects, as permanent invariants
+- [`docs/assumptions.md`](docs/assumptions.md) — every open question, and what would close it
+- [`docs/evidence/`](docs/evidence/) — machine-readable proof for every live claim above
