@@ -1,0 +1,50 @@
+{
+  "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+  "protocolVersion": 1,
+  "gitCommit": "b23cfb87a86d88248c16d7d3be1e3b9cc79b0787",
+  "solcVersion": "0.8.36",
+  "chainConfigs": {
+    "baseSepolia": {
+      "nativeChainId": 84532,
+      "wormholeChainId": 10004,
+      "rpcUrlEnvVar": "BASE_SEPOLIA_RPC_URL",
+      "finalityBlocks": 512
+    }
+  },
+  "contracts": {
+    "ConduitRWACVA": {
+      "chain": "baseSepolia",
+      "address": "0x7a78912533b43C483621200b4919806c0B855E5b"
+    },
+    "RWACVASettlementAdapter": {
+      "chain": "baseSepolia",
+      "address": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+    }
+  },
+  "bytecodeHashes": {
+    "ConduitRWACVA": "0x7ac7b42358fd8cf1ce1510acb890792dd3a436f7f0fc9e8cdc5719686efe4fd5",
+    "RWACVASettlementAdapter": "0x7ecf114b2e08f0af0dd7ccb185c0b3905621fe7cf6578251c5153836f2eeb715"
+  },
+  "wormhole": {
+    "baseSepolia": {
+      "coreAddress": "0x79A1027a6A159502049F10906D333EC57E95F083",
+      "wormholeChainId": 10004,
+      "consistencyLevel": 1
+    }
+  },
+  "finalityProfile": {
+    "settlement": "FINALIZED",
+    "observation": "INSTANT",
+    "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
+  },
+  "complianceProfile": {
+    "maxAttestationValiditySeconds": 900,
+    "signerCount": 1,
+    "quorum": 1,
+    "snapshotIsLiveState": true,
+    "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
+  },
+  "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
+  "validatorRuleHashes": {},
+  "timestamp": "2026-08-08T14:25:48.128Z"
+}

@@ -173,6 +173,7 @@ export const COORDINATOR_ABI = parseAbi([
   'function wormhole() view returns (address)',
   'function consumedVaa(bytes32) view returns (bool)',
   'function settlementOf(bytes32) view returns ((uint8,uint8,bool,bool,uint8,uint8,bytes32,uint64))',
+  'function recordCashPrepared(bytes32 settlementId, bytes32 intentHash)',
   'function recordAssetPrepared(bytes preparedVaa)',
   'function recordLegResolved(bytes resolutionVaa, uint8 expectedType, uint8 outcome)',
   'function setRemotePeer(bytes32 emitter)',

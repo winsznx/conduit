@@ -1,0 +1,73 @@
+{
+  "capturedAt": "2026-08-08T14:27:11.823Z",
+  "current": {
+    "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+    "coordinator": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
+    "escrow": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
+    "adapter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+    "token": "0x7a78912533b43C483621200b4919806c0B855E5b"
+  },
+  "superseded": {
+    "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
+    "coordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "adapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
+  },
+  "checks": [
+    {
+      "check": "the superseded adapter no longer holds SETTLEMENT_ROLE",
+      "ok": true,
+      "detail": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE hasRole=false"
+    },
+    {
+      "check": "the current adapter does hold it",
+      "ok": true,
+      "detail": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a hasRole=true"
+    },
+    {
+      "check": "the superseded adapter cannot call markCommitted on the token",
+      "ok": true,
+      "detail": "refused with The contract function \"markCommitted\" reverted with the following signature:"
+    },
+    {
+      "check": "the superseded adapter cannot call markAnnounced on the token",
+      "ok": true,
+      "detail": "refused with The contract function \"markAnnounced\" reverted with the following signature:"
+    },
+    {
+      "check": "the superseded adapter cannot call releaseReservation on the token",
+      "ok": true,
+      "detail": "refused with The contract function \"releaseReservation\" reverted with the following signature:"
+    },
+    {
+      "check": "exactly one settlement adapter is authorised against the token",
+      "ok": true,
+      "detail": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+    },
+    {
+      "check": "the current adapter is locked to the current coordinator, not the old one",
+      "ok": true,
+      "detail": "peer 0x0000000000000000000000000aebe99a17796325da45e49ef3ba8bd13bbe5c86, old coordinator would be 0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be"
+    },
+    {
+      "check": "the two coordinators carry different deployment ids",
+      "ok": true,
+      "detail": "old 0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843, current 0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417"
+    },
+    {
+      "check": "the superseded coordinator points at its own escrow, not the current one",
+      "ok": true,
+      "detail": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
+    },
+    {
+      "check": "the superseded escrow cannot report into the current coordinator",
+      "ok": true,
+      "detail": "refused with NotTheCashEscrow"
+    },
+    {
+      "check": "the current coordinator refuses a VAA from the superseded generation",
+      "ok": true,
+      "detail": "refused with UnexpectedEmitter"
+    }
+  ]
+}

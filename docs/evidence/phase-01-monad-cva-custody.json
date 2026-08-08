@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-08T08:56:23.479Z",
+  "capturedAt": "2026-08-08T14:25:41.760Z",
   "question": "Can CashEscrow hold the Monad cash A-Token after CVI registration? (ADR-0001)",
   "chain": {
     "key": "monadTestnet",
@@ -9,7 +9,7 @@
     "registrar": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
     "validator": "0xaC7e5179C2C7f03f209136886c172eb34F161792",
     "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd",
-    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "escrow": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
     "aToken": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf"
   },
   "rule": {
@@ -19,12 +19,12 @@
   },
   "transactions": {
     "registerPool": {
-      "hash": "0x529f13f5a4dff2577a5593e015d9c57dbc46fb3eb9226d4855ff046dda394b3b",
+      "hash": "0x15fd6e610406644eddbff46423275af71ec5eeff5ad885831da37229f2a22526",
       "status": "success",
       "gasUsed": "155548"
     },
     "registerVaultCvi": {
-      "hash": "0xd2d97defce101370e435e56a8b21b740c05c42f3a06e9dd1be18817a53dde039",
+      "hash": "0x7be40ad6f56ddcb69c13c6e1307e9b4944c3285d384ea63fa164e4934ebf526d",
       "status": "success",
       "gasUsed": "353706"
     }
@@ -35,12 +35,12 @@
       "eligibleToEscrow": {
         "allowed": false,
         "refusedWith": "NoAPass(address account)",
-        "refusedAccount": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
+        "refusedAccount": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b"
       },
       "escrowToEligible": {
         "allowed": false,
         "refusedWith": "NoAPass(address account)",
-        "refusedAccount": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
+        "refusedAccount": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b"
       },
       "eligibleToEligible": {
         "allowed": true
