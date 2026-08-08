@@ -643,18 +643,32 @@ await check('the payer holds enough cash', async () => {
   return `${balance}`;
 });
 
-await check('the escrow is allowed to take the cash', async () => {
+await check('the escrow can be allowed to take the cash', async () => {
+  // The run approves as its first cash step, so a zero allowance is not a
+  // prerequisite failure — it is a prerequisite the run itself supplies. What
+  // has to be true here is that the approval can succeed at all: the payer is
+  // the signing key, and the escrow is the one this settlement names.
   const allowance = await monad.pub.readContract({
     address: addresses.cash,
     abi: ERC20_ABI,
     functionName: 'allowance',
     args: [terms.cashPayer, addresses.escrow],
   });
+  if (allowance >= terms.cashAmount) return `already ${allowance}`;
+
   must(
-    allowance >= terms.cashAmount,
-    `allowance ${allowance} is below ${terms.cashAmount}; the run will approve first`,
+    sameAddress(terms.cashPayer, deployer.address),
+    `the payer is ${terms.cashPayer} and this process signs for ${deployer.address}, ` +
+      'so the run cannot approve on its behalf',
   );
-  return `${allowance}`;
+  await monad.pub.simulateContract({
+    address: addresses.cash,
+    abi: ERC20_ABI,
+    functionName: 'approve',
+    args: [addresses.escrow, terms.cashAmount],
+    account: deployer,
+  });
+  return `allowance ${allowance}; the run approves first and the approval simulates clean`;
 });
 
 await check('the escrow’s books match its balance', async () => {

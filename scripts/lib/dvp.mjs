@@ -174,6 +174,10 @@ export const COORDINATOR_ABI = parseAbi([
   'function settlementOf(bytes32) view returns ((uint8,uint8,bool,bool,uint8,uint8,bytes32,uint64))',
   'function recordAssetPrepared(bytes preparedVaa)',
   'function recordLegResolved(bytes resolutionVaa, uint8 expectedType, uint8 outcome)',
+  'function setRemotePeer(bytes32 emitter)',
+  'function setCashEscrow(address escrow)',
+  'function addComplianceSigner(address signer)',
+  'function setComplianceQuorum(uint256 quorum)',
   `function issueCommit(${INTENT_TUPLE} intent, bytes32 settlementId, bytes buyerSignature, bytes sellerSignature, ${COMPLIANCE_PROOF} compliance, uint8 consistencyLevel) payable returns (uint64)`,
   `function issueAbort(${INTENT_TUPLE} intent, bytes32 settlementId, uint8 ground, (${COMPLIANCE_PROOF},bytes,bytes) cancellation, uint8 consistencyLevel) payable returns (uint64)`,
 ]);
@@ -200,6 +204,9 @@ export const ESCROW_ABI = parseAbi([
   'function prepareCash(bytes32 settlementId, bytes32 intentHash, address receiver, uint256 amount, uint256 destinationChainId, uint8 consistencyLevel) payable returns (uint64)',
   `function releaseCash(bytes32 settlementId, ${COMPLIANCE_PROOF} compliance)`,
   `function returnCash(bytes32 settlementId, ${COMPLIANCE_PROOF} compliance)`,
+  'function setRemotePeer(bytes32 emitter)',
+  'function addComplianceSigner(address signer)',
+  'function setComplianceQuorum(uint256 quorum)',
 ]);
 
 export const ADAPTER_ABI = parseAbi([
@@ -227,6 +234,9 @@ export const ADAPTER_ABI = parseAbi([
   `function releaseAsset(bytes commitVaa, ${COMPLIANCE_PROOF} compliance)`,
   'function returnAsset(bytes abortVaa)',
   'function reportResolution(bytes32 settlementId, uint256 destinationChainId, uint8 consistencyLevel) payable returns (uint64)',
+  'function setRemotePeer(bytes32 emitter)',
+  'function addComplianceSigner(address signer)',
+  'function setComplianceQuorum(uint256 quorum)',
 ]);
 
 export const RWA_ABI = parseAbi([
@@ -240,6 +250,8 @@ export const RWA_ABI = parseAbi([
   'function availableBalanceOf(address) view returns (uint256)',
   'function reservationOf(bytes32) view returns ((address,uint256,bytes32,uint64,bool,bool,bool,bool))',
   'function reserveForSettlement(bytes32 settlementId, uint256 amount)',
+  'function cancelReservation(bytes32 settlementId)',
+  'function grantRole(bytes32 role, address account)',
   'function mint(address to, uint256 amount)',
   'function hasRole(bytes32 role, address account) view returns (bool)',
   'function SETTLEMENT_ROLE() view returns (bytes32)',

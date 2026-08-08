@@ -1,18 +1,18 @@
 {
-  "capturedAt": "2026-08-08T08:36:38.640Z",
-  "settlementId": "0x0047c8a527c3e8f305743b8cee62e01f4bc8fbc4463513c27347fdd62b16e48f",
+  "capturedAt": "2026-08-08T08:59:04.703Z",
+  "settlementId": "0x62bc31779e8fcb9e3b0abe24007b829469ee144f50f3695cb78f4e485b65c307",
   "nonce": "1",
-  "outcome": "BLOCKED",
+  "outcome": "READY",
   "providers": {
     "monadTestnet": ["testnet-rpc.monad.xyz"],
     "baseSepolia": ["sepolia.base.org", "base-sepolia-rpc.publicnode.com", "base-sepolia.drpc.org"]
   },
   "addresses": {
-    "coordinator": "0x6BfF2fD07c6519F8901307DB82a55a60d08d7d8E",
-    "escrow": "0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48",
+    "coordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
     "cash": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
-    "rwa": "0x6B70a81E010d8CEFE7c44701e490337661785644",
-    "adapter": "0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398",
+    "rwa": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "adapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
     "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
     "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
     "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
@@ -53,7 +53,7 @@
       "section": "NETWORKS",
       "name": "monadTestnet: wormhole message fee is affordable",
       "ok": true,
-      "detail": "fee 0 wei, balance 2408870578753931344 wei"
+      "detail": "fee 0 wei, balance 486759781033817554 wei"
     },
     {
       "section": "NETWORKS",
@@ -71,19 +71,19 @@
       "section": "NETWORKS",
       "name": "baseSepolia: wormhole message fee is affordable",
       "ok": true,
-      "detail": "fee 0 wei, balance 49841850410075784 wei"
+      "detail": "fee 0 wei, balance 49781106785184999 wei"
     },
     {
       "section": "NETWORKS",
-      "name": "SettlementCoordinator has bytecode at 0x6BfF2fD07c6519F8901307DB82a55a60d08d7d8E",
+      "name": "SettlementCoordinator has bytecode at 0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
       "ok": true,
-      "detail": "codeHash 0x83349a16c7411bdb0a7b9056a01780668b582afc0654d0c2079daa4e2cf7a222"
+      "detail": "codeHash 0x25ef57d0b10ca039c4151e3906199e6cfd66c92543c1148fc26ca28514f19204"
     },
     {
       "section": "NETWORKS",
-      "name": "CashEscrow has bytecode at 0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48",
+      "name": "CashEscrow has bytecode at 0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
       "ok": true,
-      "detail": "codeHash 0xca31543812708fa61f40c60e4605090b17fb313bd209719c9fa1353d50f85456"
+      "detail": "codeHash 0x831025f3f3eff2f0caeb25f0c2e6428329766141918eadd535f457433cf31930"
     },
     {
       "section": "NETWORKS",
@@ -93,27 +93,27 @@
     },
     {
       "section": "NETWORKS",
-      "name": "ConduitRWACVA has bytecode at 0x6B70a81E010d8CEFE7c44701e490337661785644",
+      "name": "ConduitRWACVA has bytecode at 0x7a78912533b43C483621200b4919806c0B855E5b",
       "ok": true,
-      "detail": "codeHash 0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a"
+      "detail": "codeHash 0x7ac7b42358fd8cf1ce1510acb890792dd3a436f7f0fc9e8cdc5719686efe4fd5"
     },
     {
       "section": "NETWORKS",
-      "name": "RWACVASettlementAdapter has bytecode at 0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398",
+      "name": "RWACVASettlementAdapter has bytecode at 0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
       "ok": true,
-      "detail": "codeHash 0x5a132715f245c83e1db5c00e1e102b3f8f7d4a27dc6bb1fe5fd6ac6a1ab80175"
+      "detail": "codeHash 0x715e863143cb078b398ae106c62413e353ef858beeaa708d717a451f459e1130"
     },
     {
       "section": "NETWORKS",
       "name": "the deployment manifests describe what is deployed",
-      "ok": false,
-      "reason": "SettlementCoordinator: manifest 0xc695F3dC72fa5027bDC000C35995FBE3C5227391, environment 0x6BfF2fD07c6519F8901307DB82a55a60d08d7d8E; CashEscrow: manifest 0xA351EbDc87fa9a6064b3f297caA8D10734022D29, environment 0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48; RWACVASettlementAdapter: manifest 0xc9F43b168379c2bE7e7AcC0D6696453b76a2EBeE, environment 0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398"
+      "ok": true,
+      "detail": "5 contracts match their manifest"
     },
     {
       "section": "PEERS",
-      "name": "SettlementCoordinator: peer is locked to 0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398",
+      "name": "SettlementCoordinator: peer is locked to 0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
       "ok": true,
-      "detail": "0x0000000000000000000000003a2ae3018c544b9dddba7dd9ed1b8d374114e398"
+      "detail": "0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be"
     },
     {
       "section": "PEERS",
@@ -129,9 +129,9 @@
     },
     {
       "section": "PEERS",
-      "name": "CashEscrow: peer is locked to 0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398",
+      "name": "CashEscrow: peer is locked to 0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
       "ok": true,
-      "detail": "0x0000000000000000000000003a2ae3018c544b9dddba7dd9ed1b8d374114e398"
+      "detail": "0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be"
     },
     {
       "section": "PEERS",
@@ -147,9 +147,9 @@
     },
     {
       "section": "PEERS",
-      "name": "RWACVASettlementAdapter: peer is locked to 0x6BfF2fD07c6519F8901307DB82a55a60d08d7d8E",
+      "name": "RWACVASettlementAdapter: peer is locked to 0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
       "ok": true,
-      "detail": "0x0000000000000000000000006bff2fd07c6519f8901307db82a55a60d08d7d8e"
+      "detail": "0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be"
     },
     {
       "section": "PEERS",
@@ -191,7 +191,7 @@
       "section": "CVA/POLICY",
       "name": "cash escrow pool is a registered validator pool",
       "ok": true,
-      "detail": "monad 0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48"
+      "detail": "monad 0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
     },
     {
       "section": "CVA/POLICY",
@@ -221,7 +221,7 @@
       "section": "ROLES",
       "name": "the coordinator accepts the cash leg only from this escrow",
       "ok": true,
-      "detail": "0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48"
+      "detail": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
     },
     {
       "section": "ROLES",
@@ -233,7 +233,7 @@
       "section": "ROLES",
       "name": "the adapter points at this token",
       "ok": true,
-      "detail": "0x6B70a81E010d8CEFE7c44701e490337661785644"
+      "detail": "0x7a78912533b43C483621200b4919806c0B855E5b"
     },
     {
       "section": "ROLES",
@@ -263,25 +263,25 @@
       "section": "IDENTITIES",
       "name": "cash payer 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb is eligible now",
       "ok": true,
-      "detail": "/verify_apass code 4, /validator/verify valid true → evidence 0x737cabf4616fa4e56948d49349fda21c412eac4516844a78bf8c4e2aa70a514c"
+      "detail": "/verify_apass code 4, /validator/verify valid true → evidence 0x5ed146bb2aa4ff4ba2d4a9c7dec9901cf8494ad7cab110105e761061431eb2e2"
     },
     {
       "section": "IDENTITIES",
       "name": "cash receiver 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb is eligible now",
       "ok": true,
-      "detail": "/verify_apass code 4, /validator/verify valid true → evidence 0x737cabf4616fa4e56948d49349fda21c412eac4516844a78bf8c4e2aa70a514c"
+      "detail": "/verify_apass code 4, /validator/verify valid true → evidence 0x5ed146bb2aa4ff4ba2d4a9c7dec9901cf8494ad7cab110105e761061431eb2e2"
     },
     {
       "section": "IDENTITIES",
       "name": "asset seller 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb is eligible now",
       "ok": true,
-      "detail": "/verify_apass code 4 → evidence 0x88efa7581973b1ab6f1c004b0fc56e35bc65ae573d21df71628ddd006281fb7d"
+      "detail": "/verify_apass code 4 → evidence 0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30"
     },
     {
       "section": "IDENTITIES",
       "name": "asset receiver 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb is eligible now",
       "ok": true,
-      "detail": "/verify_apass code 4 → evidence 0x88efa7581973b1ab6f1c004b0fc56e35bc65ae573d21df71628ddd006281fb7d"
+      "detail": "/verify_apass code 4 → evidence 0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30"
     },
     {
       "section": "IDENTITIES",
@@ -305,7 +305,7 @@
       "section": "BALANCES",
       "name": "the seller can cover the reservation, or can be topped up",
       "ok": true,
-      "detail": "held 2999000 reserved 1999000 available 1000000 (need 500000)"
+      "detail": "held 0 reserved 0 available 0 (need 500000)"
     },
     {
       "section": "BALANCES",
@@ -315,33 +315,33 @@
     },
     {
       "section": "BALANCES",
-      "name": "the escrow is allowed to take the cash",
+      "name": "the escrow can be allowed to take the cash",
       "ok": true,
-      "detail": "975000000"
+      "detail": "allowance 0; the run approves first and the approval simulates clean"
     },
     {
       "section": "BALANCES",
       "name": "the escrow’s books match its balance",
       "ok": true,
-      "detail": "accounted 25000000, held 25000000"
+      "detail": "accounted 0, held 0"
     },
     {
       "section": "BALANCES",
       "name": "monadTestnet: the deployer can pay for gas",
       "ok": true,
-      "detail": "2408870578753931344 wei at 102000000000 wei/gas"
+      "detail": "486759781033817554 wei at 102000000000 wei/gas"
     },
     {
       "section": "BALANCES",
       "name": "baseSepolia: the deployer can pay for gas",
       "ok": true,
-      "detail": "49841850410075784 wei at 6000000 wei/gas"
+      "detail": "49781106785184999 wei at 6000000 wei/gas"
     },
     {
       "section": "SETTLEMENT",
       "name": "the coordinator’s intent domain is the one this settlement id assumes",
       "ok": true,
-      "detail": "0x79e2f8550f5357baea33192504b885e7c5a83dc91bbf0e6c78468478791801c0"
+      "detail": "0x38cffd6d36043062e538921940ed318252b6210552ae902d0c62527350cea010"
     },
     {
       "section": "SETTLEMENT",
@@ -352,8 +352,8 @@
     {
       "section": "SETTLEMENT",
       "name": "this settlement id is unused everywhere",
-      "ok": false,
-      "reason": "Position `255` is out of bounds (`0 < position < 224`)."
+      "ok": true,
+      "detail": "nonce 1 is free"
     },
     {
       "section": "SETTLEMENT",
@@ -365,19 +365,19 @@
       "section": "SETTLEMENT",
       "name": "the deadlines leave room for Base finality",
       "ok": true,
-      "detail": "10770s to the commit deadline, 14370s to release"
+      "detail": "10768s to the commit deadline, 14368s to release"
     },
     {
       "section": "COMMIT ATTESTATION",
       "name": "coordinator: the attestation domain is the one we can construct",
       "ok": true,
       "detail": {
-        "separator": "0x79e2f8550f5357baea33192504b885e7c5a83dc91bbf0e6c78468478791801c0",
+        "separator": "0x38cffd6d36043062e538921940ed318252b6210552ae902d0c62527350cea010",
         "chainId": 10143,
         "maxValidity": "900",
         "quorum": "1",
         "signerCount": "1",
-        "verifyingContract": "0x6BfF2fD07c6519F8901307DB82a55a60d08d7d8E"
+        "verifyingContract": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
       }
     },
     {
@@ -385,12 +385,12 @@
       "name": "escrow: the attestation domain is the one we can construct",
       "ok": true,
       "detail": {
-        "separator": "0x07abf430b0c9aafa2f6507c19065b856a4ee0501f99ed8cd4b124a73b465604d",
+        "separator": "0x58dda2ab4527de25702ec80350495ea74d5db1795eb6fe20d0cce1c3e129f2f1",
         "chainId": 10143,
         "maxValidity": "900",
         "quorum": "1",
         "signerCount": "1",
-        "verifyingContract": "0xacfeB1fb23A3c39e8eB265A9d34D43E36754Ba48"
+        "verifyingContract": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
       }
     },
     {
@@ -398,25 +398,25 @@
       "name": "adapter: the attestation domain is the one we can construct",
       "ok": true,
       "detail": {
-        "separator": "0xf20f5ca404846ca5c3767714d4ef40a2ccd12fdeec8500bb530c3bcae967b2b8",
+        "separator": "0xd1779b074b8e39240dc47c7589051a5956d691afa6d1a6afed6decd23ed84a7d",
         "chainId": 84532,
         "maxValidity": "900",
         "quorum": "1",
         "signerCount": "1",
-        "verifyingContract": "0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398"
+        "verifyingContract": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
       }
     },
     {
       "section": "COMMIT ATTESTATION",
       "name": "a probe attestation signs and recovers to the intended signer",
       "ok": true,
-      "detail": "0x5446ee4fda480a1884a0fa97dea8105cbdf09759bfa99786762f87125a3dc9aa"
+      "detail": "0x7f8e61f0ae078dff194c527e94fbfed3230c9acd8b61d4e395bb9e2773abda51"
     },
     {
       "section": "COMMIT ATTESTATION",
       "name": "the contract’s own view accepts the probe",
-      "ok": false,
-      "reason": "The contract function \"verifyEligible\" reverted."
+      "ok": true,
+      "detail": "accepted"
     },
     {
       "section": "COMMIT ATTESTATION",
@@ -428,7 +428,7 @@
       "section": "COMMIT ATTESTATION",
       "name": "a signature over another contract’s domain does not verify here",
       "ok": true,
-      "detail": "recovers to the stranger 0x911F9F8D6a932c7E42dC411c421dD844019aed98, unauthorized"
+      "detail": "recovers to the stranger 0xaDec31e3007267139152BD0f60fF1722Af19f36A, unauthorized"
     },
     {
       "section": "COMMIT ATTESTATION",

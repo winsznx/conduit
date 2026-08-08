@@ -1,7 +1,7 @@
 {
   "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
   "protocolVersion": 1,
-  "gitCommit": "6d10449510754fb9e48291c8251198f5b68d7990",
+  "gitCommit": "a2caa43a016f9c1f01a1b2194a4ae2b0f752c797",
   "solcVersion": "0.8.36",
   "chainConfigs": {
     "monadTestnet": {
@@ -14,11 +14,11 @@
   "contracts": {
     "SettlementCoordinator": {
       "chain": "monadTestnet",
-      "address": "0xc695F3dC72fa5027bDC000C35995FBE3C5227391"
+      "address": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
     },
     "CashEscrow": {
       "chain": "monadTestnet",
-      "address": "0xA351EbDc87fa9a6064b3f297caA8D10734022D29"
+      "address": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
     },
     "ConduitSandboxSettlementCVA": {
       "chain": "monadTestnet",
@@ -30,8 +30,8 @@
     }
   },
   "bytecodeHashes": {
-    "SettlementCoordinator": "0xc32b2a53e215e00b4fef96952840ef33d640c506bfd227f6a36b196605d124ce",
-    "CashEscrow": "0xe902ee4ab0fa8ac8243e58449dba0cf7d1b797510099a8a402cfd410cfe84809",
+    "SettlementCoordinator": "0x25ef57d0b10ca039c4151e3906199e6cfd66c92543c1148fc26ca28514f19204",
+    "CashEscrow": "0x831025f3f3eff2f0caeb25f0c2e6428329766141918eadd535f457433cf31930",
     "ConduitSandboxSettlementCVA": "0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a",
     "ConduitVaultRegistrar": "0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f"
   },
@@ -56,5 +56,5 @@
   },
   "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
   "validatorRuleHashes": {},
-  "timestamp": "2026-08-08T00:57:49.872Z"
+  "timestamp": "2026-08-08T08:57:04.392Z"
 }

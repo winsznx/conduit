@@ -1,0 +1,67 @@
+{
+  "capturedAt": "2026-08-08T08:56:05.700Z",
+  "addresses": {
+    "coordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "cash": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "rwa": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "adapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+    "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+    "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+    "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
+  },
+  "complianceSigner": "0xEC16Ead9832292fEfc95Bc94C3D536Eed98ED26c",
+  "steps": [
+    {
+      "step": "adapter.setRemotePeer(coordinator)",
+      "action": "sent",
+      "hash": "0x4291a8e477618552891ac25543d49e5431dc8794520850d9069949c0ced090b9"
+    },
+    {
+      "step": "coordinator.setCashEscrow(escrow)",
+      "action": "skipped"
+    },
+    {
+      "step": "coordinator.addComplianceSigner",
+      "action": "sent",
+      "hash": "0xda867dec5f95179a9082b195b192840df125bf2353d65fe70ef38e6d3b8232a6"
+    },
+    {
+      "step": "coordinator.setComplianceQuorum(1)",
+      "action": "sent",
+      "hash": "0xf3c982b179d740d6ef56f65fec5ab6fe626d667253cf6b09727874108ce21d8a"
+    },
+    {
+      "step": "escrow.addComplianceSigner",
+      "action": "sent",
+      "hash": "0xf7654b0b8ad2a82a778a366ad66eb09afe737f894c806c839bece9aabc69c8b1"
+    },
+    {
+      "step": "escrow.setComplianceQuorum(1)",
+      "action": "sent",
+      "hash": "0x27ad7fb56a8ea585b11a9f787949961d747b4926c5be964cbe9a2c9d2f9aaa82"
+    },
+    {
+      "step": "adapter.addComplianceSigner",
+      "action": "sent",
+      "hash": "0x7b3574439d3b1175eb1f8baab6b71aa8a0bd25f7bd2beed94779ac99f1745b96"
+    },
+    {
+      "step": "adapter.setComplianceQuorum(1)",
+      "action": "sent",
+      "hash": "0x4cf3aff988dd06ff166e45659005c308b68b49414e9e595d0df4c05260c0e162"
+    },
+    {
+      "step": "rwa.grantRole(MINTER_ROLE, deployer)",
+      "action": "sent",
+      "hash": "0x5ded2efada555c56dd7bbcf93c1b661d9b8cddd5361605739996f54e5b9e6e16"
+    }
+  ],
+  "remaining": [
+    "register the RWA CVA with Cleanverse (scripts/register-cva.mjs)",
+    "configure RuleV2 (scripts/configure-cva-rule.mjs)",
+    "register the escrow as a CVI vault (scripts/register-cash-vault.mjs)",
+    "emit both deployment manifests"
+  ]
+}
