@@ -177,6 +177,76 @@ await ensure({
   },
 });
 
+// ── The superseded generation ───────────────────────────────────────────────
+//
+// A redeployment that leaves the old adapter holding SETTLEMENT_ROLE leaves two
+// contracts authorised to move the same token's reservations. Both would be
+// live, both would answer to a COMMIT from their own coordinator, and the token
+// would have no way to prefer one. Revoking is the whole point of treating this
+// as a generation rather than a replacement.
+//
+// It is deliberately not automatic on deploy: revoking as a side effect would
+// strand any settlement still in flight on the previous adapter. It is a
+// separate, explicit step, and this is it.
+
+const superseded = process.env['SUPERSEDED_RWA_CVA_ADAPTER_ADDRESS'];
+
+if (superseded !== undefined && superseded !== '' && superseded !== addresses.adapter) {
+  log.stage('superseded adapter');
+
+  const settlementRole = await base.pub.readContract({
+    address: addresses.rwa,
+    abi: RWA_ABI,
+    functionName: 'SETTLEMENT_ROLE',
+  });
+
+  const stillHeld = await base.pub.readContract({
+    address: addresses.rwa,
+    abi: RWA_ABI,
+    functionName: 'hasRole',
+    args: [settlementRole, superseded],
+  });
+  log.step(`${superseded} holds SETTLEMENT_ROLE: ${String(stillHeld)}`);
+
+  await ensure({
+    label: `rwa.revokeRole(SETTLEMENT_ROLE, ${superseded})`,
+    chain: base,
+    isDone: async () =>
+      !(await base.pub.readContract({
+        address: addresses.rwa,
+        abi: RWA_ABI,
+        functionName: 'hasRole',
+        args: [settlementRole, superseded],
+      })),
+    request: {
+      address: addresses.rwa,
+      abi: RWA_ABI,
+      functionName: 'revokeRole',
+      args: [settlementRole, superseded],
+    },
+  });
+
+  // Two adapters authorised against one token is the authorisation surface
+  // reopening, so this is asserted rather than assumed.
+  const holders = [];
+  for (const candidate of [addresses.adapter, superseded, deployer.address]) {
+    const has = await base.pub.readContract({
+      address: addresses.rwa,
+      abi: RWA_ABI,
+      functionName: 'hasRole',
+      args: [settlementRole, candidate],
+    });
+    if (has) holders.push(candidate);
+  }
+  if (holders.length !== 1 || holders[0] !== addresses.adapter) {
+    throw new Error(
+      `SETTLEMENT_ROLE holders are ${holders.join(', ')}, expected only the new adapter`,
+    );
+  }
+  log.ok(`SETTLEMENT_ROLE is held by exactly one contract: ${addresses.adapter}`);
+  done.push({ step: 'exactly one settlement adapter authorised', action: 'verified' });
+}
+
 const path = join(ROOT, 'docs', 'evidence', 'phase-06-wiring.json');
 writeFileSync(
   path,

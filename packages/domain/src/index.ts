@@ -98,3 +98,17 @@ export {
   type ViewProjection,
   type ViewStateValue,
 } from './view-states.js';
+
+export {
+  addressToEmitter,
+  contractKey,
+  ContractRegistry,
+  emitterKey,
+  emitterToAddress,
+  explorerAddressUrl,
+  parseContractKey,
+  sameContract,
+  sameEmitter,
+  type ChainScopedAddress,
+  type WormholeEmitter,
+} from './identity.js';

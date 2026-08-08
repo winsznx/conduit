@@ -11,3 +11,29 @@
 export const PACKAGE_ID = '@conduit-protocol/verifier';
 
 export const IMPLEMENTATION_PHASE = '08';
+
+export {
+  DeploymentGeneration,
+  type DeploymentManifest,
+  type ManifestChainConfig,
+  type RegisteredContract,
+} from './registry.js';
+
+export {
+  authorizesValue,
+  CASH_LEG_STATE,
+  DECISION,
+  decodeVaa,
+  finalityOf,
+  LEG_OUTCOME,
+  MESSAGE_TYPE,
+  SETTLEMENT_STATE,
+  verifySettlement,
+  type ChainReader,
+  type Finding,
+  type GuardianReader,
+  type MessageTypeName,
+  type VerificationResult,
+  type VerifiedMessage,
+  type VerifyOptions,
+} from './settlement.js';

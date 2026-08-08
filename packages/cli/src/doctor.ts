@@ -289,7 +289,11 @@ export async function runDoctor(
     const onChain =
       rpcUrl === undefined
         ? []
-        : await aTokensDeployedOn(list.data.tokens, (address) => deps.readCode(rpcUrl, address));
+        : await aTokensDeployedOn(
+            list.data.tokens,
+            (address) => deps.readCode(rpcUrl, address),
+            cashChain.nativeChainId,
+          );
 
     atokenAddress = onChain[0]?.aTokenAddress;
 

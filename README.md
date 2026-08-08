@@ -83,6 +83,29 @@ When sources conflict, work stops and an ADR records the conflict. Nothing is si
 
 ## Honest limits
 
+Three of these bound what the live demo can show, and they are stated first
+because a reader who skips the rest should still leave with them.
+
+- **The buyer and the seller are the same key** (ASM-035). `generate_apass`
+  returns HTTP 403 for this credential on both chains, the sandbox faucet's own
+  reservoir is empty, and a deposit executes and is refunded by policy about
+  forty blocks later. No second A-Passed identity can be created, so both intent
+  signatures come from one wallet and each leg moves value into and out of a
+  settlement contract rather than between two wallets. The protocol path is
+  real — reservation, escrow, authenticated cross-chain state, COMMIT, both
+  releases, exact conservation — and the two ERC-20 legs are self-transfers
+  whose net wallet delta is zero by arithmetic. This does **not** demonstrate a
+  counterparty ownership change, and nothing in this repository may say it does.
+- **The Monad leg settles in a project-issued sandbox CVA**, not aUSDC. It is a
+  real Cleanverse CVA, registered and issued, enforcing the same live CCP
+  policy, and nobody backs it with currency. Permitted description:
+  "Cleanverse-native sandbox settlement CVA on Monad".
+  `tests/settlement-asset-naming.test.ts` fails the build on the alternatives.
+- **The compliance quorum is 1-of-1** (ASM-036). Quorum is genuinely enforced
+  and a signer attesting twice is refused — that refusal happened live during
+  the phase 06 settlement — but a one-signer threshold is a testnet property and
+  is not a threshold guarantee.
+
 - Cleanverse V5.6 documents no generic cross-chain Travel Rule endpoint. Conduit generates its
   own compliance envelope and anchors Cleanverse response hashes. No part of this project may
   claim otherwise (PRD 2.3).

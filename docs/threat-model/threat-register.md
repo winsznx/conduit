@@ -138,3 +138,91 @@ arrays while RuleV2 represents them as a bitmap, and explicitly forbids inventin
 A wrong bit position does not fail loudly — it silently authorizes or denies the wrong
 jurisdiction, which is invariant I8 breaking while every test still passes. ASM-020 keeps it
 open until the official policy contract supplies the mapping.
+
+## Realised defect classes
+
+Every row above describes a threat somebody imagined. The five below reached
+deployed contracts. They are kept as their own section because a threat that was
+real once is a different kind of evidence from one that was anticipated, and
+because each of them now carries an invariant a future change has to break
+loudly rather than quietly.
+
+`contracts/test/ExploitRegressions.t.sol` proves each as an attack rather than
+as a repair: the exploit is driven to the exact point where the guard stands,
+shown to be otherwise complete, and then shown refused. A test that only
+exercises the fixed path proves the fixed path works; it does not prove the
+guard is what stops the attack, and it fails uninformatively when someone
+removes the guard for a plausible reason.
+
+| ID   | Realised defect                                                                        | Surface       | Invariants that were breakable | Status                              |
+| ---- | -------------------------------------------------------------------------------------- | ------------- | ------------------------------ | ----------------------------------- |
+| D-01 | phantom cash preparation: `recordCashPrepared` permissionless and the producer missing | Coordinator   | I1, I2, I11                    | CLOSED — ADR-0016, regression A     |
+| D-02 | cross-chain knowledge race on reservation cancellation                                 | CVA token     | R2, R4, I4                     | CLOSED — ADR-0016, regression B     |
+| D-03 | caller-supplied resolution truth: `reportResolution(bool released)`                    | Asset adapter | I1, I10, I11, I13              | CLOSED — ADR-0016, regression C     |
+| D-04 | HELD value with no reachable disposition path                                          | Both legs     | I9                             | CLOSED — ADR-0016, regression D     |
+| D-05 | cross-chain address collision treated as one identity                                  | Off-chain     | I13                            | CLOSED — ADR-0018, identity.test.ts |
+
+### D-01 — phantom cash preparation
+
+**Required invariant.** READY is unreachable unless the cash escrow has actually
+locked the exact amount the intent names, and the authorized production path is
+what records it.
+
+Both halves are load-bearing. Restricting the caller is worthless if the
+permitted caller can report cash it does not hold, so `prepareCash` takes the
+cash and reports in the same transaction with an exact balance delta:
+`cashPrepared == true` implies the escrow holds the amount. Wiring the producer
+is worthless if anyone else may also call, so the coordinator refuses every
+other caller.
+
+### D-02 — cross-chain knowledge race on reservation cancellation
+
+**Required invariant.** Once a reservation has been announced into the canonical
+settlement protocol, unilateral cancellation is impossible. Only a canonical
+pre-COMMIT ABORT may unwind it.
+
+`committed` is the asset chain's _knowledge_ of the COMMIT and arrives with a
+relayer. The COMMIT exists earlier and the cash moves against it immediately, so
+any gate that waits for local knowledge leaves a window an untrusted relayer
+times. The announcement is the last moment this chain can be certain no COMMIT
+exists, so the gate sits there.
+
+`SETTLEMENT_ROLE` bypasses the announcement gate, which is correct for an ABORT
+arriving through the adapter and catastrophic if a party ever holds it. The
+preflight checks against the live deployment that no EOA does.
+
+### D-03 — caller-supplied resolution truth
+
+**Required invariant.** A terminal resolution is derived from authenticated
+contract state or from the message type itself, never from a caller-supplied
+boolean describing what supposedly happened.
+
+The consumer cannot defend against this and the regression proves it: a false
+ASSET_RELEASED from the real peer, on the real chain, for a real committed
+settlement, at FINALIZED, passes every transport check there is. Canonical state
+then reads SETTLED against an undelivered bond, and the true report is refused
+afterwards with `LegAlreadyResolved` — the correct state permanently locked out
+by the false one. The defence has to be at the producer.
+
+### D-04 — HELD value with no reachable disposition path
+
+**Required invariant.** Every HELD state has at least one reachable, authorized
+resolution path, and taking it preserves: no post-COMMIT refund, exact
+conservation, and a compliance check on the eventual receiver.
+
+`resolveHeldCash` and `resolveHeldAsset` are FR-012's `REVERIFY_AND_RESUME`. The
+destination is the one the intent named and is not a parameter, so neither can
+rebind a receiver or substitute an asset; the other five order types need the
+authority registry phase 07 delivers.
+
+### D-05 — cross-chain address collision
+
+**Required invariant.** Identity is `(chainId, address)`, or for a Wormhole
+emitter `(wormholeChainId, bytes32)`. Never an address alone.
+
+The live deployment has `0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE` as the
+SettlementCoordinator on Monad Testnet and the RWACVASettlementAdapter on Base
+Sepolia, because the deployer's nonce lined up across two chains. Anything
+keying a contract, peer, balance, event, cache entry, idempotency key, explorer
+link, or row by address alone conflates two different contracts with two
+different roles, silently. See ADR-0018.

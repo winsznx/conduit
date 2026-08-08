@@ -29,6 +29,17 @@ export function isEvmAddress(value: string): boolean {
 export type CodeReader = (address: string) => Promise<string>;
 
 export interface AttributedAToken {
+  /**
+   * The EVM chain the bytecode was found on.
+   *
+   * Carried on the result rather than left implicit in the caller's head,
+   * because two chains can hold the same twenty bytes and this deployment
+   * actually does: `0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE` is the
+   * coordinator on Monad and the asset adapter on Base. An attribution result
+   * that says only "this address has code" is true of both and identifies
+   * neither.
+   */
+  readonly chainId: number;
   readonly aTokenAddress: `0x${string}`;
   readonly symbol: string;
   readonly decimals: number;
@@ -48,10 +59,15 @@ export interface AttributedAToken {
  *
  * Entries are deduplicated by A-Token address, because the sandbox maps several
  * origin tokens onto the same A-Token and each mapping arrives as its own entry.
+ * The key is safe here and only here: every candidate in one call is attributed
+ * against one `readCode`, so the map never spans two chains. `chainId` is
+ * required so the *result* carries what the map could assume, and two calls'
+ * results can be merged without conflating an address that exists on both.
  */
 export async function aTokensDeployedOn(
   tokens: readonly DepositAToken[],
   readCode: CodeReader,
+  chainId: number,
 ): Promise<AttributedAToken[]> {
   const byAToken = new Map<string, AttributedAToken>();
 
@@ -68,6 +84,7 @@ export async function aTokensDeployedOn(
 
     if (existing === undefined) {
       byAToken.set(address.toLowerCase(), {
+        chainId,
         aTokenAddress: address,
         symbol: entry.atoken.symbol,
         decimals: entry.atoken.decimals,
