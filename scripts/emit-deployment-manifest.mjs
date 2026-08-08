@@ -30,7 +30,7 @@ const CONFIG = {
       // had no owner() for Cleanverse to validate a registration signature
       // against. ADR-0011.
       ConduitRWACVA: '0x6B70a81E010d8CEFE7c44701e490337661785644',
-      RWACVASettlementAdapter: '0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5',
+      RWACVASettlementAdapter: '0xc9F43b168379c2bE7e7AcC0D6696453b76a2EBeE',
     },
   },
   'monad-testnet': {
@@ -41,8 +41,13 @@ const CONFIG = {
     coreEnv: 'WORMHOLE_CORE_MONAD_TESTNET',
     finalityBlocks: 1,
     contracts: {
-      SettlementCoordinator: '0xe1792F67472b5CA51F6B1133A995001eeA9f9FdD',
-      CashEscrow: '0x742bEe50781562C2aCb6049D02C4BAF43a4eCadf',
+      SettlementCoordinator: '0xc695F3dC72fa5027bDC000C35995FBE3C5227391',
+      CashEscrow: '0xA351EbDc87fa9a6064b3f297caA8D10734022D29',
+      // The cash leg settles in a CVA we issued and registered ourselves,
+      // because no route to real aUSDC exists for this credential (ASM-035).
+      // Registered and ISSUED like any other, enforcing the same live policy.
+      // Not aUSDC, not fiat-backed, and named so it cannot be mistaken for it.
+      ConduitSandboxSettlementCVA: '0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf',
       // Holds REGISTER_ROLE on the CVI validator and nothing else. Listed here
       // because a verifier reading only the manifest needs to see which address
       // may register a Conduit vault, and because its bytecode hash pins the
