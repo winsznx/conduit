@@ -106,15 +106,23 @@ describe('the database credential cannot reach a browser', () => {
     }
   });
 
-  it('imports no database client from client-side source', () => {
+  it('imports no database client from anything that could reach a browser', () => {
+    // `worker.ts` is the Cloudflare entry point — server-side by definition, and
+    // reading `DATABASE_URL` from a secret binding is exactly its job. Excluding
+    // it by name rather than widening the pattern, so a *new* file that touches
+    // the credential still fails. The moment this app grows a client bundle,
+    // that bundle's directory goes in the list below and nothing else changes.
+    const serverOnly = new Set(['apps/web/src/worker.ts']);
     const offenders: string[] = [];
     for (const app of ['apps/web/src', 'packages/ui/src']) {
       const dir = join(ROOT, app);
       if (!existsSync(dir)) continue;
       for (const file of walk(dir)) {
         const body = readFileSync(file, 'utf8');
+        const relative = file.slice(ROOT.length + 1);
+        if (serverOnly.has(relative)) continue;
         if (/@conduit-protocol\/db|createDatabase|DATABASE_URL|SERVICE_ROLE/.test(body)) {
-          offenders.push(file.slice(ROOT.length + 1));
+          offenders.push(relative);
         }
       }
     }

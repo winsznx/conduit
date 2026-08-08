@@ -15,6 +15,9 @@
 
 export const PACKAGE_ID = '@conduit-protocol/db';
 
+/** PRD 11.6 and 11.7 place the projection in phase 06. */
+export const IMPLEMENTATION_PHASE = '06';
+
 export {
   connectionStringFrom,
   createDatabase,
