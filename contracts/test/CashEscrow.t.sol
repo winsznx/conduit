@@ -73,6 +73,13 @@ contract CashEscrowTest is ComplianceFixture {
 
         attestationDomain = escrow.attestationDomainSeparator();
 
+        // `prepareCash` now reports the preparation to the coordinator in the
+        // same transaction that takes the cash, so the stand-in needs code for
+        // the call to land. A bare STOP is enough: these are unit tests for the
+        // escrow, and what the coordinator does with the report is proven
+        // against the real contract in `CrossChainSettlementSeam.t.sol`.
+        vm.etch(COORDINATOR, hex"00");
+
         vm.startPrank(OWNER);
         escrow.addComplianceSigner(_signerA());
         escrow.addComplianceSigner(_signerB());

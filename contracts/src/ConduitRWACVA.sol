@@ -62,6 +62,10 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
         uint256 amount;
         bytes32 settlementId;
         uint64 createdAt;
+        /// @dev The settlement adapter has published this leg to the coordinator.
+        ///      From that moment the settlement can reach COMMIT with no further
+        ///      transaction on this chain, so the owner's unilateral exit closes.
+        bool announced;
         bool committed;
         bool released;
         bool cancelled;
@@ -88,6 +92,7 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
     error ReservationClosed(bytes32 settlementId);
     error ReservationNotCommitted(bytes32 settlementId);
     error ReservationAlreadyCommitted(bytes32 settlementId);
+    error ReservationAlreadyAnnounced(bytes32 settlementId);
     error InsufficientAvailableBalance(uint256 available, uint256 requested);
     error NotReservationOwner(address caller, address owner);
     error ZeroAddress();
@@ -145,6 +150,7 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
             amount: amount,
             settlementId: settlementId,
             createdAt: uint64(block.timestamp),
+            announced: false,
             committed: false,
             released: false,
             cancelled: false
@@ -152,6 +158,22 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
         _reservedOf[msg.sender] += amount;
 
         emit ReservationCreated(settlementId, msg.sender, amount);
+    }
+
+    /// @notice Records that this leg has been published to the coordinator.
+    ///
+    /// Called by the settlement adapter inside `prepareAsset`, which is the
+    /// transaction that emits ASSET_PREPARED. Announcing a reservation that is
+    /// already closed would put a leg in front of the coordinator with nothing
+    /// behind it: the settlement reaches READY, the COMMIT releases the cash, and
+    /// the matching `releaseAsset` then reverts on the closed reservation — VAA
+    /// unconsumed, asset leg unresolvable, cash gone.
+    function markAnnounced(bytes32 settlementId) external onlyRole(SETTLEMENT_ROLE) {
+        Reservation storage reservation = _requireOpen(settlementId);
+        if (reservation.committed) revert ReservationAlreadyCommitted(settlementId);
+        if (reservation.announced) revert ReservationAlreadyAnnounced(settlementId);
+
+        reservation.announced = true;
     }
 
     /// @notice Records that a canonical COMMIT exists for this settlement.
@@ -169,8 +191,20 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
 
     /// @notice Withdraws a reservation. Invariant R2: pre-COMMIT only.
     ///
-    /// Callable by the reservation owner before commit, or by the settlement
-    /// adapter when a verified ABORT arrives.
+    /// Callable by the reservation owner while the leg is still private to this
+    /// chain, or by the settlement adapter when a verified ABORT arrives.
+    ///
+    /// @dev `committed` is this chain's knowledge of the canonical COMMIT, and it
+    ///      arrives only when a relayer delivers the VAA. The COMMIT itself
+    ///      exists on Monad well before that, and the cash releases against it
+    ///      immediately — same chain, nothing to wait for. Gating the owner's
+    ///      exit on `committed` alone therefore leaves a window, minutes wide and
+    ///      set by an untrusted relayer, in which a seller watching the
+    ///      coordinator takes the cash and keeps the bond. R2 says "before
+    ///      canonical COMMIT", and the last moment this chain can be sure of that
+    ///      is before the leg is announced: after `prepareAsset` the settlement
+    ///      can reach COMMIT with no further transaction here, so from then on
+    ///      only a canonical ABORT frees these units.
     function cancelReservation(bytes32 settlementId) external {
         Reservation storage reservation = _requireOpen(settlementId);
 
@@ -179,8 +213,11 @@ contract ConduitRWACVA is ERC20, AccessControl, Ownable2Step {
         // commit.
         if (reservation.committed) revert ReservationAlreadyCommitted(settlementId);
 
-        if (msg.sender != reservation.owner && !hasRole(SETTLEMENT_ROLE, msg.sender)) {
-            revert NotReservationOwner(msg.sender, reservation.owner);
+        if (!hasRole(SETTLEMENT_ROLE, msg.sender)) {
+            if (msg.sender != reservation.owner) {
+                revert NotReservationOwner(msg.sender, reservation.owner);
+            }
+            if (reservation.announced) revert ReservationAlreadyAnnounced(settlementId);
         }
 
         reservation.cancelled = true;

@@ -204,7 +204,21 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
     ///
     /// Called by the cash escrow on this chain, so no VAA is involved: the two
     /// contracts share a chain and a transaction can span both.
+    ///
+    /// @dev Restricted to the escrow, for the reason `recordLocalCashResolved`
+    ///      is. This was permissionless and the escrow never called it, so the
+    ///      coordinator learned that cash had arrived from whoever sent the next
+    ///      transaction. A buyer who funded nothing could declare the cash leg
+    ///      prepared against a genuinely prepared asset leg, reach READY, and
+    ///      commit: the seller's signature is one they already produced to enter
+    ///      the trade, and the quorum attests two parties who are both really
+    ///      eligible. Every check passes and the bond is delivered against an
+    ///      empty escrow. Unlike the resolution defect this one moves value, and
+    ///      it was invisible for exactly the ADR-0015 reason — every test called
+    ///      this from the test contract, so nothing ever asked whether the real
+    ///      producer calls it at all.
     function recordCashPrepared(bytes32 settlementId, bytes32 intentHash) external {
+        if (msg.sender != cashEscrow) revert NotTheCashEscrow(msg.sender, cashEscrow);
         Settlement storage settlement = _settlements[settlementId];
         _requireUndecided(settlementId, settlement);
         if (settlement.cashPrepared) revert LegAlreadyPrepared(settlementId);

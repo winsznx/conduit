@@ -221,7 +221,9 @@ contract CashSettlementSeamTest is ComplianceFixture {
         vm.prank(buyer);
         escrow.prepareCash(settlementId, settlementId, RECEIVER, AMOUNT, ASSET_CHAIN, 1);
 
-        coordinator.recordCashPrepared(settlementId, settlementId);
+        // No `recordCashPrepared` here. The escrow makes that call itself, inside
+        // the transaction that took the cash, and the coordinator accepts it from
+        // nobody else.
         coordinator.recordAssetPrepared(_assetPreparedVaa(settlementId));
 
         coordinator.issueCommit(
@@ -308,7 +310,9 @@ contract CashSettlementSeamTest is ComplianceFixture {
 
         vm.prank(buyer);
         escrow.prepareCash(settlementId, settlementId, RECEIVER, AMOUNT, ASSET_CHAIN, 1);
-        coordinator.recordCashPrepared(settlementId, settlementId);
+        // No `recordCashPrepared` here. The escrow makes that call itself, inside
+        // the transaction that took the cash, and the coordinator accepts it from
+        // nobody else.
         coordinator.recordAssetPrepared(_assetPreparedVaa(settlementId));
 
         // READY, both legs prepared, and still no decision. The cash does not move.

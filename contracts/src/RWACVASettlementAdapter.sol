@@ -52,6 +52,7 @@ contract RWACVASettlementAdapter is
     error ReceiverMismatch(address expected, address provided);
     error IntentHashMismatch(bytes32 actual, bytes32 expected);
     error NotReservationOwner();
+    error LegNotResolved(bytes32 settlementId);
     error ZeroAddress();
 
     constructor(
@@ -121,6 +122,14 @@ contract RWACVASettlementAdapter is
 
         intendedReceiver[settlementId] = receiver;
         boundIntentHash[settlementId] = intentHash;
+
+        // Announcing closes the seller's unilateral exit and refuses a
+        // reservation that is already released, cancelled, or committed. Both
+        // halves matter: a leg announced on a closed reservation reaches READY
+        // with nothing behind it, and a leg that stays cancellable after it is
+        // announced lets the seller take the cash and keep the bond in the gap
+        // before the COMMIT VAA arrives here.
+        asset.markAnnounced(settlementId);
 
         emit AssetPrepared(settlementId, msg.sender, receiver, reservation.amount);
 
@@ -210,18 +219,48 @@ contract RWACVASettlementAdapter is
     ///
     /// PRD FR-011: the coordinator is SETTLED only after it consumes final
     /// release proofs for both legs, so the asset leg has to report.
+    ///
+    /// Permissionless, and it reads the outcome off the token rather than taking
+    /// it from the caller. Anyone may carry a true statement; nobody may author
+    /// one.
+    ///
+    /// @dev This took `bool released` from whoever called it. After a genuine
+    ///      hold anyone could publish ASSET_RELEASED, and every check on the
+    ///      coordinator passes — releasing after a COMMIT is precisely what is
+    ///      supposed to happen. Canonical state then reads SETTLED while the bond
+    ///      sits reserved and undelivered, and the true ASSET_HELD report is
+    ///      afterwards refused with `LegAlreadyResolved`: the correct state
+    ///      permanently locked out by the false one. Nobody's balance moves,
+    ///      which is why it reads as harmless. What it destroys is the
+    ///      correspondence between canonical state and where the value is, and
+    ///      every conservation claim rests on that. ADR-0014's rule applies here
+    ///      unchanged — a boolean records that a decision exists and carries no
+    ///      evidence of who made it or on what basis — and the evidence in this
+    ///      case is on the same chain, one call away.
     function reportResolution(
         bytes32 settlementId,
-        bool released,
         uint256 destinationChainId,
         uint8 consistencyLevel
     ) external payable returns (uint64 sequence) {
         ConduitRWACVA.Reservation memory reservation = asset.reservationOf(settlementId);
         if (reservation.owner == address(0)) revert ReceiverNotRegistered(settlementId);
 
+        // A reservation that is neither committed nor cancelled has had no
+        // canonical decision applied to it here, so there is nothing to report.
+        // Reporting it as held would be a claim about a leg that is still open.
+        if (!reservation.committed && !reservation.cancelled) {
+            revert LegNotResolved(settlementId);
+        }
+
+        // PRD 7.3 has no RETURNED type: the wire says delivered or held, and the
+        // coordinator's own decision separates a release from a return. A
+        // cancelled reservation is the abort direction, and the units are back
+        // with the seller, so it is delivered rather than held.
+        bool delivered = reservation.released || reservation.cancelled;
+
         return _publish(
             _header(
-                released
+                delivered
                     ? MessageCodec.MessageType.ASSET_RELEASED
                     : MessageCodec.MessageType.ASSET_HELD,
                 settlementId,

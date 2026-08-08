@@ -813,6 +813,8 @@ contract SettlementCoordinatorTest is ComplianceFixture {
             "1"
         );
         assertEq(fresh.complianceQuorum(), 0);
+        vm.prank(OWNER);
+        fresh.setCashEscrow(address(this));
 
         bytes32 settlementId = SettlementIntentLib.digest(_intent(), fresh.domainSeparator());
         fresh.recordCashPrepared(settlementId, settlementId);

@@ -326,7 +326,7 @@ contract RWACVASettlementAdapterTest is ComplianceFixture {
         );
 
         uint256 before = wormhole.publishedCount();
-        adapter.reportResolution(SETTLEMENT_ID, true, 10_143, 1);
+        adapter.reportResolution(SETTLEMENT_ID, 10_143, 1);
 
         MessageCodec.Header memory header =
             MessageCodec.decode(wormhole.publishedAt(before).payload);
@@ -343,7 +343,7 @@ contract RWACVASettlementAdapterTest is ComplianceFixture {
         );
 
         uint256 before = wormhole.publishedCount();
-        adapter.reportResolution(SETTLEMENT_ID, false, 10_143, 1);
+        adapter.reportResolution(SETTLEMENT_ID, 10_143, 1);
 
         MessageCodec.Header memory header =
             MessageCodec.decode(wormhole.publishedAt(before).payload);

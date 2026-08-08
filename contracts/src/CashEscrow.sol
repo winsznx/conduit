@@ -245,6 +245,14 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
 
         emit CashPrepared(settlementId, msg.sender, receiver, amount);
 
+        // The coordinator hears about the cash from the contract that is holding
+        // it, in the same transaction that took it. `recordCashPrepared` is
+        // restricted to this contract, so if this call is absent nobody can make
+        // it — and while it was absent and unrestricted, anybody could, with no
+        // cash anywhere. The mirror of the resolution defect ADR-0015 records,
+        // on the preparation side and one leg further upstream.
+        coordinator.recordCashPrepared(settlementId, intentHash);
+
         sequence = _publish(
             _header(
                 MessageCodec.MessageType.CASH_PREPARED,
