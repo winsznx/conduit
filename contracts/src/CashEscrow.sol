@@ -138,6 +138,23 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         coordinator = SettlementCoordinator(coordinator_);
     }
 
+    /// @notice Tells the coordinator what this leg did.
+    ///
+    /// @dev Without this the cash leg is unreportable and a settlement can never
+    ///      reach SETTLED. `recordLocalCashResolved` is restricted to this
+    ///      contract, so if this contract never calls it, nobody can — which is
+    ///      what restricting it without wiring the call produced. The coordinator
+    ///      is the only place the two legs are compared, and a leg that resolves
+    ///      silently is invisible to every conservation check that matters.
+    ///
+    ///      Called after the leg's own state is written and before the token
+    ///      moves, so canonical state is never behind the value. `nonReentrant`
+    ///      on the callers covers the reentrancy this ordering would otherwise
+    ///      open.
+    function _report(bytes32 settlementId, SettlementCoordinator.LegOutcome outcome) private {
+        coordinator.recordLocalCashResolved(settlementId, outcome);
+    }
+
     /// @dev The three questions every resolution has to answer, in one place so
     ///      the release and return paths cannot drift apart: is this leg ours and
     ///      still open, does the canonical decision permit this direction, and do
@@ -268,12 +285,14 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         if (!_isEligible(settlementId, leg.intentHash, leg.receiver, compliance)) {
             leg.state = LegState.HELD;
             emit CashHeld(settlementId, leg.receiver, amount);
+            _report(settlementId, SettlementCoordinator.LegOutcome.HELD);
             return;
         }
 
-        // Effects before interactions. The VAA was already burned in `_consume`.
         leg.state = LegState.RELEASED;
         totalEscrowed -= amount;
+
+        _report(settlementId, SettlementCoordinator.LegOutcome.RELEASED);
 
         cashAsset.safeTransfer(leg.receiver, amount);
         emit CashReleased(settlementId, leg.receiver, amount);
@@ -297,11 +316,14 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         if (!_isEligible(settlementId, leg.intentHash, leg.payer, compliance)) {
             leg.state = LegState.HELD;
             emit CashHeld(settlementId, leg.payer, amount);
+            _report(settlementId, SettlementCoordinator.LegOutcome.HELD);
             return;
         }
 
         leg.state = LegState.RETURNED;
         totalEscrowed -= amount;
+
+        _report(settlementId, SettlementCoordinator.LegOutcome.RETURNED);
 
         cashAsset.safeTransfer(leg.payer, amount);
         emit CashReturned(settlementId, leg.payer, amount);

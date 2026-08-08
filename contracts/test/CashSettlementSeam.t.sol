@@ -252,6 +252,41 @@ contract CashSettlementSeamTest is ComplianceFixture {
         assertEq(uint8(escrow.legOf(settlementId).state), uint8(CashEscrow.LegState.RELEASED));
     }
 
+    function test_TheCashLegReportsItselfSoTheSettlementCanFinish() public {
+        // Restricting recordLocalCashResolved to the escrow made it unreachable
+        // until the escrow actually called it: nobody else may, so a cash leg
+        // that never reports leaves the settlement unable to reach a terminal
+        // state at all. The coordinator is the only place the two legs are
+        // compared, so a leg that resolves silently is invisible to every
+        // conservation check that matters.
+        bytes32 settlementId = _prepareAndCommit();
+
+        vm.prank(RELAYER);
+        escrow.releaseCash(settlementId, _proof(settlementId, RECEIVER, true));
+
+        assertEq(
+            uint8(coordinator.settlementOf(settlementId).cashOutcome),
+            uint8(SettlementCoordinator.LegOutcome.RELEASED),
+            "canonical state knows the cash moved"
+        );
+    }
+
+    function test_AHeldCashLegIsReportedAsHeldNotAsSilence() public {
+        // A compliance shortfall after COMMIT holds the value, and the
+        // coordinator has to hear about that too — otherwise a held leg and an
+        // unreported one look identical from the only place they are compared.
+        bytes32 settlementId = _prepareAndCommit();
+
+        vm.prank(RELAYER);
+        escrow.releaseCash(settlementId, _proof(settlementId, RECEIVER, false));
+
+        assertEq(
+            uint8(coordinator.settlementOf(settlementId).cashOutcome),
+            uint8(SettlementCoordinator.LegOutcome.HELD)
+        );
+        assertEq(cash.balanceOf(address(escrow)), AMOUNT, "and the value is still there");
+    }
+
     function test_ConservationHoldsAcrossTheWholeRoundTrip() public {
         uint256 payerBefore = cash.balanceOf(buyer);
         uint256 supplyBefore = cash.totalSupply();
