@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {ComplianceAuthority} from "./ComplianceAuthority.sol";
+import {SettlementCoordinator} from "./SettlementCoordinator.sol";
 import {WormholeTransport} from "./WormholeTransport.sol";
 import {MessageCodec} from "./libraries/MessageCodec.sol";
 
@@ -26,13 +27,35 @@ import {MessageCodec} from "./libraries/MessageCodec.sol";
 ///     less than the intent promised;
 ///   - cash may be prepared once and the amount is immutable (PRD FR-004);
 ///   - a refund is impossible after COMMIT, and the check is on canonical
-///     coordinator state rather than a local timeout (PRD FR-008, invariant I4);
-///   - value moves only after `_consume` has verified and burned the VAA.
+///     coordinator state rather than a local timeout (PRD FR-008, invariant I4).
+///
+/// **The decision is read from the coordinator, not from a VAA.** This contract
+/// used to take a COMMIT VAA and put it through `_consume`, which could never
+/// have worked: `_consume` requires the emitter to be the remote peer on the
+/// remote chain, and the coordinator that issues COMMIT is neither — it is on
+/// this chain. The COMMIT message is also addressed to `intent.assetChainId`, so
+/// the destination check rejected it a second time. Two independent refusals, on
+/// the path that releases the cash.
+///
+/// It was invisible because the tests fabricated well-formed COMMIT VAAs with
+/// the escrow's own peer and this chain as the destination, rather than taking
+/// what the coordinator actually emits. The unit tests were self-consistent and
+/// described a message nothing in the system produces.
+///
+/// Reading the coordinator directly is not a workaround for that, it is the
+/// correct source. A VAA exists to carry state across a trust boundary; between
+/// two contracts on one chain there is no boundary to cross, and a
+/// guardian-attested copy of local state is strictly weaker than the state
+/// itself. The coordinator already had `recordLocalCashResolved` for the
+/// return direction, so this closes the loop the design was already assuming.
 contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The Cleanverse A-Token, discovered at deploy time and never hardcoded.
     IERC20 public immutable cashAsset;
+
+    /// @notice The canonical decision, on this chain. The only authority here.
+    SettlementCoordinator public immutable coordinator;
 
     enum LegState {
         NONE,
@@ -80,9 +103,12 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     error PreparationsArePaused();
     error ZeroAddress();
     error IntentHashMismatch(bytes32 actual, bytes32 expected);
+    error ReleaseRequiresCommit(bytes32 settlementId);
+    error ReturnRequiresAbort(bytes32 settlementId);
 
     constructor(
         address cashAsset_,
+        address coordinator_,
         address wormhole_,
         bytes32 deploymentId_,
         uint16 localWormholeChainId_,
@@ -105,10 +131,39 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         ComplianceAuthority(maxAttestationValidity_, "Conduit", "1")
         Ownable(owner_)
     {
-        if (cashAsset_ == address(0) || wormhole_ == address(0)) {
+        if (cashAsset_ == address(0) || coordinator_ == address(0) || wormhole_ == address(0)) {
             revert ZeroAddress();
         }
         cashAsset = IERC20(cashAsset_);
+        coordinator = SettlementCoordinator(coordinator_);
+    }
+
+    /// @dev The three questions every resolution has to answer, in one place so
+    ///      the release and return paths cannot drift apart: is this leg ours and
+    ///      still open, does the canonical decision permit this direction, and do
+    ///      the terms it was prepared under still match the ones the coordinator
+    ///      decided on.
+    function _requireReleasable(bytes32 settlementId, SettlementCoordinator.Decision required)
+        private
+        view
+        returns (CashLeg storage leg)
+    {
+        leg = _legs[settlementId];
+        if (leg.state == LegState.NONE) revert LegUnknown(settlementId);
+        if (leg.state != LegState.PREPARED) {
+            revert LegNotInState(settlementId, leg.state, LegState.PREPARED);
+        }
+
+        SettlementCoordinator.Settlement memory settlement = coordinator.settlementOf(settlementId);
+        if (settlement.decision != required) {
+            if (required == SettlementCoordinator.Decision.COMMIT) {
+                revert ReleaseRequiresCommit(settlementId);
+            }
+            revert ReturnRequiresAbort(settlementId);
+        }
+        if (settlement.intentHash != leg.intentHash) {
+            revert IntentHashMismatch(settlement.intentHash, leg.intentHash);
+        }
     }
 
     function legOf(bytes32 settlementId) external view returns (CashLeg memory) {
@@ -199,28 +254,20 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     /// path reopens, so a release that cannot proceed must reach the held state
     /// rather than revert and strand the cash. A forged or misbound attestation
     /// is a different thing and still reverts.
-    function releaseCash(bytes calldata commitVaa, ComplianceProof calldata compliance)
+    function releaseCash(bytes32 settlementId, ComplianceProof calldata compliance)
         external
         nonReentrant
     {
-        MessageCodec.Header memory header = _consume(commitVaa, MessageCodec.MessageType.COMMIT);
-
-        CashLeg storage leg = _legs[header.settlementId];
-        if (leg.state == LegState.NONE) revert LegUnknown(header.settlementId);
-        if (leg.state != LegState.PREPARED) {
-            revert LegNotInState(header.settlementId, leg.state, LegState.PREPARED);
-        }
-        if (leg.intentHash != header.intentHash) {
-            revert IntentHashMismatch(header.intentHash, leg.intentHash);
-        }
+        CashLeg storage leg =
+            _requireReleasable(settlementId, SettlementCoordinator.Decision.COMMIT);
 
         uint256 amount = leg.amount;
 
         // PRD FR-010: if the receiver is no longer permitted, the leg is held.
         // No refund path reopens, because a COMMIT exists (invariant I4).
-        if (!_isEligible(header.settlementId, header.intentHash, leg.receiver, compliance)) {
+        if (!_isEligible(settlementId, leg.intentHash, leg.receiver, compliance)) {
             leg.state = LegState.HELD;
-            emit CashHeld(header.settlementId, leg.receiver, amount);
+            emit CashHeld(settlementId, leg.receiver, amount);
             return;
         }
 
@@ -229,7 +276,7 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         totalEscrowed -= amount;
 
         cashAsset.safeTransfer(leg.receiver, amount);
-        emit CashReleased(header.settlementId, leg.receiver, amount);
+        emit CashReleased(settlementId, leg.receiver, amount);
     }
 
     /// @notice Consumes an ABORT VAA and returns cash to the payer.
@@ -237,28 +284,19 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
     /// The source of truth is canonical coordinator state carried by the VAA,
     /// never a local timeout. PRD FR-008 is explicit: a timeout alone cannot
     /// authorize a refund when a remote release may already have happened.
-    function returnCash(bytes calldata abortVaa, ComplianceProof calldata compliance)
+    function returnCash(bytes32 settlementId, ComplianceProof calldata compliance)
         external
         nonReentrant
     {
-        MessageCodec.Header memory header = _consume(abortVaa, MessageCodec.MessageType.ABORT);
-
-        CashLeg storage leg = _legs[header.settlementId];
-        if (leg.state == LegState.NONE) revert LegUnknown(header.settlementId);
-        if (leg.state != LegState.PREPARED) {
-            revert LegNotInState(header.settlementId, leg.state, LegState.PREPARED);
-        }
-        if (leg.intentHash != header.intentHash) {
-            revert IntentHashMismatch(header.intentHash, leg.intentHash);
-        }
+        CashLeg storage leg = _requireReleasable(settlementId, SettlementCoordinator.Decision.ABORT);
 
         uint256 amount = leg.amount;
 
         // PRD 5.2 step 7: a return recipient who is currently ineligible leaves
         // the leg in escrow and opens a disposition case.
-        if (!_isEligible(header.settlementId, header.intentHash, leg.payer, compliance)) {
+        if (!_isEligible(settlementId, leg.intentHash, leg.payer, compliance)) {
             leg.state = LegState.HELD;
-            emit CashHeld(header.settlementId, leg.payer, amount);
+            emit CashHeld(settlementId, leg.payer, amount);
             return;
         }
 
@@ -266,7 +304,7 @@ contract CashEscrow is WormholeTransport, ComplianceAuthority, Ownable2Step, Ree
         totalEscrowed -= amount;
 
         cashAsset.safeTransfer(leg.payer, amount);
-        emit CashReturned(header.settlementId, leg.payer, amount);
+        emit CashReturned(settlementId, leg.payer, amount);
     }
 
     // ── Administration ───────────────────────────────────────────────────────

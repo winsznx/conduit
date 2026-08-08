@@ -37,16 +37,20 @@ contract DeployCashEscrow is Script {
             WormholeTransport.FinalityLevel(vm.envOr("OBSERVATION_FINALITY", uint256(0)));
         uint64 maxAttestationValidity = uint64(vm.envOr("MAX_ATTESTATION_VALIDITY", uint256(900)));
 
+        address coordinatorAddress = vm.envAddress("SETTLEMENT_COORDINATOR_ADDRESS");
+
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
         require(cashAsset.code.length > 0, "cash CVA has no bytecode on this chain");
         require(wormhole.code.length > 0, "Wormhole core has no bytecode on this chain");
+        require(coordinatorAddress.code.length > 0, "coordinator has no bytecode on this chain");
 
         vm.startBroadcast(deployerKey);
 
         CashEscrow escrow = new CashEscrow(
             cashAsset,
+            coordinatorAddress,
             wormhole,
             deploymentId,
             localWormholeChainId,
@@ -63,7 +67,7 @@ contract DeployCashEscrow is Script {
         console2.log("chainId               ", block.chainid);
         console2.log("cash asset            ", cashAsset);
         console2.log("CashEscrow            ", address(escrow));
-        console2.log("coordinator (kept)    ", vm.envAddress("SETTLEMENT_COORDINATOR_ADDRESS"));
-        console2.log("next: compliance signers, vault CVI, RuleV2, mint");
+        console2.log("coordinator (kept)    ", coordinatorAddress);
+        console2.log("next: coordinator.setCashEscrow, compliance signers, vault CVI, mint");
     }
 }

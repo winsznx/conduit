@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-08-08T00:28:24.411Z",
+  "chain": {
+    "key": "monadTestnet",
+    "nativeChainId": 10143
+  },
+  "token": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+  "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd",
+  "ruleSource": "On chain via ConduitRWACVA.setRuleV2 -> IATokenPolicy.setRuleV2FromToken. The CVA guide recommends self-management for a registered contract.",
+  "ruleApiFinding": {
+    "endpoint": "POST /validator/add_rule",
+    "acceptedShape": ["chain", "contract_address", "rule"],
+    "result": "12026 AddComplianceRule failed: add validator rule: execution reverted",
+    "interpretation": "That endpoint drives IAPassComplianceValidator, where a registered CVA is not a registered pool. It is the correct path for a pool and the wrong contract for a CVA. Its rule object does accept a `countries` string array, which is where platform-side bitmap computation lives."
+  },
+  "countryBitmap": {
+    "value": 0,
+    "meaning": "no country restriction, per the guide",
+    "open": "ASM-025 — bit positions are stated to follow ISO 3166-1 numeric codes, which run to 894 against a 256-bit field, and no index table has been supplied. No country-enforcement claim is made."
+  },
+  "transaction": {
+    "hash": "0x2a4f1e0c87dd1279a4bd16d11876bddcca673bd2354c8df9a6d24de665ba5107",
+    "status": "success",
+    "gasUsed": "120418"
+  },
+  "rulesBefore": [],
+  "rulesAfter": [
+    {
+      "allowedGroup": "0x0000",
+      "allowedSubGroup": "0x0000",
+      "minTier": 0,
+      "minSubTier": 0,
+      "isBlackList": false,
+      "poolCountryBitmap": "0"
+    }
+  ],
+  "policyAnswers": {
+    "deployerToDeployer": {
+      "allowed": true
+    },
+    "deployerToNobody": {
+      "allowed": true
+    }
+  },
+  "registrationProvenLive": true
+}

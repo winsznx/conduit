@@ -3,8 +3,8 @@ pragma solidity =0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 
-import {CashEscrow} from "../src/CashEscrow.sol";
 import {ComplianceAuthority} from "../src/ComplianceAuthority.sol";
+import {SettlementCoordinator} from "../src/SettlementCoordinator.sol";
 import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
 import {ComplianceAttestationLib} from "../src/libraries/ComplianceAttestationLib.sol";
@@ -30,6 +30,13 @@ import {MockAToken} from "./mocks/TestTokens.sol";
 /// arrived in 2.6 seconds during the phase 02 seam test, while the documented
 /// finalized path is roughly eighteen minutes. Those are not two speeds of the
 /// same guarantee.
+///
+/// Exercised through the coordinator's `recordAssetPrepared`, which is where a
+/// cross-chain message now enters the settlement path. These tests used to drive
+/// `CashEscrow.releaseCash`, and that turned out to be a release that consumed a
+/// VAA nothing in the system emits — the escrow reads the coordinator directly
+/// now. The finality check itself is unchanged: one `_consume` in
+/// `WormholeTransport`, shared by every contract that takes a message.
 contract FinalityTest is ComplianceFixture {
     MockWormhole private wormhole;
     MockAToken private aToken;
@@ -59,40 +66,11 @@ contract FinalityTest is ComplianceFixture {
         aToken.mint(PAYER, AMOUNT * 10);
     }
 
-    /// @dev An eligible proof for `subject`, so these tests fail on finality
-    ///      rather than on compliance. A shortfall would divert the release to
-    ///      the held path and stop exercising the check under test.
-    function _eligible(CashEscrow escrow, address subject)
-        private
-        view
-        returns (ComplianceAuthority.ComplianceProof memory)
-    {
-        (
-            ComplianceAttestationLib.ComplianceAttestation[] memory attestations,
-            bytes[] memory signatures
-        ) = _attestAll(
-            // Computed rather than read off the escrow. Reading it would be an
-            // external call, and `vm.expectRevert` applies to the next external
-            // call — the expectation would land here instead of on the release
-            // under test. Recomputing also cross-checks the contract's domain.
-            ComplianceAttestationLib.domainSeparator(
-                "Conduit", "1", block.chainid, address(escrow)
-            ),
-            _keys(SIGNER_A_KEY),
-            SETTLEMENT_ID,
-            INTENT_HASH,
-            _subjects(subject),
-            true
-        );
-        return ComplianceAuthority.ComplianceProof(attestations, signatures);
-    }
-
     function _escrow(
         WormholeTransport.FinalityLevel settlement,
         WormholeTransport.FinalityLevel observation
-    ) private returns (CashEscrow) {
-        CashEscrow escrow = new CashEscrow(
-            address(aToken),
+    ) private returns (SettlementCoordinator) {
+        SettlementCoordinator coordinator = new SettlementCoordinator(
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -101,29 +79,24 @@ contract FinalityTest is ComplianceFixture {
             settlement,
             observation,
             15 minutes,
-            OWNER
+            OWNER,
+            "Conduit",
+            "1"
         );
 
         vm.startPrank(OWNER);
-        escrow.addComplianceSigner(_signerA());
-        escrow.setComplianceQuorum(1);
+        coordinator.addComplianceSigner(_signerA());
+        coordinator.setComplianceQuorum(1);
         vm.stopPrank();
 
-        vm.prank(PAYER);
-        aToken.approve(address(escrow), type(uint256).max);
-        return escrow;
-    }
-
-    function _prepare(CashEscrow escrow) private {
-        vm.prank(PAYER);
-        escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, FINALIZED);
+        return coordinator;
     }
 
     function _vaa(uint8 consistencyLevel, string memory seed) private view returns (bytes memory) {
         bytes memory payload = MessageCodec.encode(
             MessageCodec.Header({
                 protocolVersion: MessageCodec.PROTOCOL_VERSION,
-                messageType: MessageCodec.MessageType.COMMIT,
+                messageType: MessageCodec.MessageType.ASSET_PREPARED,
                 deploymentId: DEPLOYMENT_ID,
                 settlementId: SETTLEMENT_ID,
                 intentHash: INTENT_HASH,
@@ -155,7 +128,7 @@ contract FinalityTest is ComplianceFixture {
         // 200 is instant and 1 is finalized. Any `>=` on the raw byte ranks the
         // weakest guarantee above the strongest and admits exactly the message
         // it was meant to reject.
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
 
@@ -174,53 +147,53 @@ contract FinalityTest is ComplianceFixture {
     // ── Instant and safe cannot authorize value ──────────────────────────────
 
     function test_InstantVaaCannotAuthorizeReleaseUnderProductionProfile() public {
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
-        _prepare(escrow);
 
         vm.prank(RELAYER);
         vm.expectRevert(
             abi.encodeWithSelector(
                 WormholeTransport.InsufficientFinality.selector,
-                MessageCodec.MessageType.COMMIT,
+                MessageCodec.MessageType.ASSET_PREPARED,
                 WormholeTransport.FinalityLevel.INSTANT,
                 WormholeTransport.FinalityLevel.FINALIZED
             )
         );
-        escrow.releaseCash(_vaa(INSTANT, "instant"), _eligible(escrow, RECEIVER));
+        escrow.recordAssetPrepared(_vaa(INSTANT, "instant"));
 
         assertEq(aToken.balanceOf(RECEIVER), 0, "no value moved on a fast VAA");
     }
 
     function test_SafeVaaCannotAuthorizeReleaseWhenPolicyRequiresFinalized() public {
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
-        _prepare(escrow);
 
         vm.prank(RELAYER);
         vm.expectRevert(
             abi.encodeWithSelector(
                 WormholeTransport.InsufficientFinality.selector,
-                MessageCodec.MessageType.COMMIT,
+                MessageCodec.MessageType.ASSET_PREPARED,
                 WormholeTransport.FinalityLevel.SAFE,
                 WormholeTransport.FinalityLevel.FINALIZED
             )
         );
-        escrow.releaseCash(_vaa(SAFE, "safe"), _eligible(escrow, RECEIVER));
+        escrow.recordAssetPrepared(_vaa(SAFE, "safe"));
     }
 
     function test_FinalizedVaaIsAccepted() public {
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
-        _prepare(escrow);
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(FINALIZED, "finalized"), _eligible(escrow, RECEIVER));
-
-        assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
+        escrow.recordAssetPrepared(_vaa(FINALIZED, "finalized"));
+        assertEq(
+            uint8(escrow.settlementOf(SETTLEMENT_ID).state),
+            uint8(SettlementCoordinator.SettlementState.ASSET_PREPARED),
+            "a sufficiently final message is accepted"
+        );
     }
 
     // ── A relayer cannot substitute a weaker VAA ─────────────────────────────
@@ -229,10 +202,9 @@ contract FinalityTest is ComplianceFixture {
         // The attack: publish at instant, wait for guardians, then hand the fast
         // VAA to a contract expecting a final one. `valid` is true throughout,
         // which is exactly why authenticity is not the check that matters here.
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
-        _prepare(escrow);
 
         bytes memory fast = _vaa(INSTANT, "substituted");
 
@@ -242,21 +214,25 @@ contract FinalityTest is ComplianceFixture {
 
         vm.prank(RELAYER);
         vm.expectRevert();
-        escrow.releaseCash(fast, _eligible(escrow, RECEIVER));
+        escrow.recordAssetPrepared(fast);
 
         // And the fast VAA is not consumed, so the settlement is not stranded:
         // the same message re-published at finality still works.
         assertFalse(escrow.consumedVaa(keccak256("substituted")));
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(FINALIZED, "proper"), _eligible(escrow, RECEIVER));
-        assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
+        escrow.recordAssetPrepared(_vaa(FINALIZED, "proper"));
+        assertEq(
+            uint8(escrow.settlementOf(SETTLEMENT_ID).state),
+            uint8(SettlementCoordinator.SettlementState.ASSET_PREPARED),
+            "a sufficiently final message is accepted"
+        );
     }
 
     // ── The policy is immutable and deployment-bound ─────────────────────────
 
     function test_FinalityPolicyCannotBeChangedAfterDeployment() public {
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
 
@@ -276,10 +252,10 @@ contract FinalityTest is ComplianceFixture {
         // interchangeable. Binding it as an immutable puts it in the bytecode,
         // so the deployment manifest's codeHash covers it and a verifier can see
         // which profile is live.
-        CashEscrow strict = _escrow(
+        SettlementCoordinator strict = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
-        CashEscrow loose = _escrow(
+        SettlementCoordinator loose = _escrow(
             WormholeTransport.FinalityLevel.INSTANT, WormholeTransport.FinalityLevel.INSTANT
         );
 
@@ -292,14 +268,14 @@ contract FinalityTest is ComplianceFixture {
     // ── Message classification ───────────────────────────────────────────────
 
     function test_EveryValueBearingMessageRequiresSettlementFinality() public {
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
 
         MessageCodec.MessageType[9] memory economic = [
             MessageCodec.MessageType.CASH_PREPARED,
             MessageCodec.MessageType.ASSET_PREPARED,
-            MessageCodec.MessageType.COMMIT,
+            MessageCodec.MessageType.ASSET_PREPARED,
             MessageCodec.MessageType.ABORT,
             MessageCodec.MessageType.CASH_RELEASED,
             MessageCodec.MessageType.ASSET_RELEASED,
@@ -325,32 +301,37 @@ contract FinalityTest is ComplianceFixture {
     function test_ARelaxedProfileIsExplicitRatherThanAccidental() public {
         // A staging deployment may accept instant, and nothing hides that: the
         // profile is a constructor argument, an immutable, and a manifest field.
-        CashEscrow relaxed = _escrow(
+        SettlementCoordinator relaxed = _escrow(
             WormholeTransport.FinalityLevel.INSTANT, WormholeTransport.FinalityLevel.INSTANT
         );
-        _prepare(relaxed);
 
         vm.prank(RELAYER);
-        relaxed.releaseCash(_vaa(INSTANT, "relaxed"), _eligible(relaxed, RECEIVER));
-
-        assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
+        relaxed.recordAssetPrepared(_vaa(INSTANT, "relaxed"));
+        assertEq(
+            uint8(relaxed.settlementOf(SETTLEMENT_ID).state),
+            uint8(SettlementCoordinator.SettlementState.ASSET_PREPARED),
+            "a relaxed profile accepts instant, visibly and on purpose"
+        );
     }
 
     function testFuzz_NoConsistencyLevelBypassesTheRequirement(uint8 consistencyLevel) public {
-        CashEscrow escrow = _escrow(
+        SettlementCoordinator escrow = _escrow(
             WormholeTransport.FinalityLevel.FINALIZED, WormholeTransport.FinalityLevel.INSTANT
         );
-        _prepare(escrow);
 
         bool shouldSucceed = consistencyLevel != INSTANT && consistencyLevel != SAFE;
 
         vm.prank(RELAYER);
         if (shouldSucceed) {
-            escrow.releaseCash(_vaa(consistencyLevel, "fuzz"), _eligible(escrow, RECEIVER));
-            assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
+            escrow.recordAssetPrepared(_vaa(consistencyLevel, "fuzz"));
+            assertEq(
+                uint8(escrow.settlementOf(SETTLEMENT_ID).state),
+                uint8(SettlementCoordinator.SettlementState.ASSET_PREPARED),
+                "a sufficiently final message is accepted"
+            );
         } else {
             vm.expectRevert();
-            escrow.releaseCash(_vaa(consistencyLevel, "fuzz"), _eligible(escrow, RECEIVER));
+            escrow.recordAssetPrepared(_vaa(consistencyLevel, "fuzz"));
             assertEq(aToken.balanceOf(RECEIVER), 0);
         }
     }

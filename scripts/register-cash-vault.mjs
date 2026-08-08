@@ -136,7 +136,19 @@ const send = async (functionName, args) => {
 };
 
 console.log('\n  registering');
-const poolTx = await send('registerPool', [ESCROW, UNRESTRICTED]);
+
+// The validator already knows some addresses as pools, and re-registering one
+// reverts PoolAlreadyRegistered() (0xb3e8301e). Observed on a freshly deployed
+// escrow, so this cannot be predicted from our own history — it has to be read.
+const alreadyPool = await pub.readContract({
+  address: VALIDATOR,
+  abi: VALIDATOR_ABI,
+  functionName: 'isRegistered',
+  args: [ESCROW],
+});
+const poolTx = alreadyPool
+  ? { skipped: 'the validator already knows this pool' }
+  : await send('registerPool', [ESCROW, UNRESTRICTED]);
 const cviTx = await send('registerVaultCvi', [
   ESCROW,
   A_TOKEN,

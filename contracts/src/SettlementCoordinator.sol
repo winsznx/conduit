@@ -89,6 +89,14 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
 
     bytes32 public immutable domainSeparator;
 
+    /// @notice The one contract permitted to report the local cash leg.
+    ///
+    /// @dev Not immutable for the same reason the peer emitter is not: the two
+    ///      contracts reference each other, so whichever deploys first cannot
+    ///      know the other's address. Settable once and then fixed, so the
+    ///      window closes permanently rather than staying open for an owner.
+    address public cashEscrow;
+
     /// @dev A bilateral cancellation is its own signed statement. Signing to
     ///      enter a trade is not signing to abandon it, so the intent signature
     ///      cannot stand in for this one.
@@ -108,6 +116,7 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
 
     mapping(bytes32 settlementId => Settlement) private _settlements;
 
+    event CashEscrowSet(address indexed escrow);
     event CashLegPrepared(bytes32 indexed settlementId);
     event AssetLegPrepared(bytes32 indexed settlementId);
     event CommitIssued(bytes32 indexed settlementId, uint64 sequence);
@@ -132,6 +141,8 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
     error ReleaseRequiresCommit(bytes32 settlementId);
     error ReturnRequiresAbort(bytes32 settlementId);
     error AbortGroundNotProven(AbortGround ground);
+    error NotTheCashEscrow(address caller, address expected);
+    error CashEscrowAlreadySet(address current);
     error InvalidCancellationSignature(address party);
     error OutcomeDoesNotMatchMessage(LegOutcome outcome, MessageCodec.MessageType messageType);
 
@@ -452,13 +463,33 @@ contract SettlementCoordinator is WormholeTransport, ComplianceAuthority, Ownabl
     }
 
     /// @notice Records the local cash leg's own resolution, no VAA needed.
+    ///
+    /// @dev Restricted to the escrow. It was permissionless, and that let anyone
+    ///      declare the cash leg RELEASED the moment a COMMIT existed — the
+    ///      outcome and resolvability checks both pass at that point, because
+    ///      releasing after a commit is exactly what is supposed to happen. The
+    ///      coordinator would then report a settled cash leg while the cash sat
+    ///      untouched in escrow, and `recordAssetResolved` would drive the whole
+    ///      settlement to SETTLED on it. Nobody gains the funds, which is why it
+    ///      reads as harmless; what it destroys is the correspondence between
+    ///      canonical state and where the value actually is, and every
+    ///      conservation claim rests on that.
     function recordLocalCashResolved(bytes32 settlementId, LegOutcome outcome) external {
+        if (msg.sender != cashEscrow) revert NotTheCashEscrow(msg.sender, cashEscrow);
         Settlement storage settlement = _settlements[settlementId];
         if (settlement.decision == Decision.NONE) revert SettlementUnknown(settlementId);
         _requireOutcomeAllowed(settlementId, settlement, outcome);
         _requireResolvable(settlementId, settlement, true, outcome);
 
         _applyResolution(settlementId, settlement, true, outcome);
+    }
+
+    /// @notice Fixes the local cash escrow. Callable once, by the owner, forever.
+    function setCashEscrow(address escrow) external onlyOwner {
+        if (cashEscrow != address(0)) revert CashEscrowAlreadySet(cashEscrow);
+        if (escrow == address(0)) revert NotTheCashEscrow(escrow, escrow);
+        cashEscrow = escrow;
+        emit CashEscrowSet(escrow);
     }
 
     /// @notice Fixes the cross-chain peer. Callable once, by the owner, forever.

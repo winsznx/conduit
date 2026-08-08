@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {CashEscrow} from "../src/CashEscrow.sol";
 import {ComplianceAuthority} from "../src/ComplianceAuthority.sol";
+import {SettlementCoordinator} from "../src/SettlementCoordinator.sol";
 import {WormholeTransport} from "../src/WormholeTransport.sol";
 import {IWormhole} from "../src/interfaces/IWormhole.sol";
 import {ComplianceAttestationLib} from "../src/libraries/ComplianceAttestationLib.sol";
@@ -40,6 +41,15 @@ contract CashEscrowTest is ComplianceFixture {
     uint256 private constant AMOUNT = 1000e6;
     uint64 private constant MAX_ATTESTATION_VALIDITY = 15 minutes;
 
+    /// @dev The canonical decision lives on the coordinator, and these are unit
+    ///      tests for the escrow. Mocking it keeps each test about one contract
+    ///      and makes the dependency visible at the call site rather than buried
+    ///      in a fixture. The real seam — a decision the coordinator actually
+    ///      reached, driving a release — is `CashSettlementSeam.t.sol`, and it
+    ///      exists because fabricating the coordinator's output here is what hid
+    ///      a release path that could never have run.
+    address private constant COORDINATOR = address(0xC00D);
+
     /// @dev Cached so a helper cannot consume a pending `vm.expectRevert` by
     ///      reading it off the escrow.
     bytes32 private attestationDomain;
@@ -49,6 +59,7 @@ contract CashEscrowTest is ComplianceFixture {
         aToken = new MockAToken(6);
         escrow = new CashEscrow(
             address(aToken),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -100,6 +111,7 @@ contract CashEscrowTest is ComplianceFixture {
         // sending it down the disposition path.
         CashEscrow fresh = new CashEscrow(
             address(aToken),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -117,19 +129,37 @@ contract CashEscrowTest is ComplianceFixture {
         fresh.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, AMOUNT, 84_532, 1);
         vm.stopPrank();
 
+        _committed();
+
         (
             ComplianceAttestationLib.ComplianceAttestation[] memory none,
             bytes[] memory noSignatures
         ) = _noAttestations();
 
         vm.prank(RELAYER);
-        fresh.releaseCash(
-            _vaa(MessageCodec.MessageType.COMMIT),
-            ComplianceAuthority.ComplianceProof(none, noSignatures)
-        );
+        fresh.releaseCash(SETTLEMENT_ID, ComplianceAuthority.ComplianceProof(none, noSignatures));
 
         assertEq(aToken.balanceOf(RECEIVER), 0);
         assertEq(uint8(fresh.legOf(SETTLEMENT_ID).state), uint8(CashEscrow.LegState.HELD));
+    }
+
+    function _decide(SettlementCoordinator.Decision decision, bytes32 intentHash) private {
+        SettlementCoordinator.Settlement memory settlement;
+        settlement.decision = decision;
+        settlement.intentHash = intentHash;
+        vm.mockCall(
+            COORDINATOR,
+            abi.encodeWithSelector(SettlementCoordinator.settlementOf.selector, SETTLEMENT_ID),
+            abi.encode(settlement)
+        );
+    }
+
+    function _committed() private {
+        _decide(SettlementCoordinator.Decision.COMMIT, INTENT_HASH);
+    }
+
+    function _aborted() private {
+        _decide(SettlementCoordinator.Decision.ABORT, INTENT_HASH);
     }
 
     function _prepare() private {
@@ -234,6 +264,7 @@ contract CashEscrowTest is ComplianceFixture {
         FeeOnTransferToken fee = new FeeOnTransferToken(100); // 1%
         CashEscrow feeEscrow = new CashEscrow(
             address(fee),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -262,6 +293,7 @@ contract CashEscrowTest is ComplianceFixture {
         RebasingToken rebasing = new RebasingToken();
         CashEscrow rebaseEscrow = new CashEscrow(
             address(rebasing),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -310,12 +342,13 @@ contract CashEscrowTest is ComplianceFixture {
         // rewrite, or reverse an executed settlement. A pause that blocked
         // release would strand value that a canonical commit already assigned.
         _prepare();
+        _committed();
 
         vm.prank(OWNER);
         escrow.setPreparationsPaused(true);
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
     }
@@ -324,11 +357,12 @@ contract CashEscrowTest is ComplianceFixture {
 
     function test_AnyoneMayRelayAValidCommit() public {
         _prepare();
+        _committed();
 
         // PRD FR-009. The relayer is untrusted for correctness, so restricting
         // who may submit would add a liveness dependency for no safety gain.
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT);
         assertEq(escrow.totalEscrowed(), 0);
@@ -339,9 +373,10 @@ contract CashEscrowTest is ComplianceFixture {
         // PRD FR-010: the leg stays in escrow, is marked held, and no refund
         // path reopens.
         _prepare();
+        _committed();
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, false));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, false));
 
         assertEq(aToken.balanceOf(RECEIVER), 0);
         assertEq(aToken.balanceOf(address(escrow)), AMOUNT, "value is conserved, not lost");
@@ -352,9 +387,10 @@ contract CashEscrowTest is ComplianceFixture {
     function test_NoRefundAfterCommit() public {
         // Invariant I4, the whole point of the protocol.
         _prepare();
+        _committed();
 
         vm.startPrank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -364,38 +400,19 @@ contract CashEscrowTest is ComplianceFixture {
                 CashEscrow.LegState.PREPARED
             )
         );
-        escrow.returnCash(
-            _vaa(
-                MessageCodec.MessageType.ABORT,
-                DEPLOYMENT_ID,
-                REMOTE_WH_CHAIN,
-                REMOTE_EMITTER,
-                block.chainid,
-                "abort-after-commit"
-            ),
-            _proofFor(PAYER, true)
-        );
+        escrow.returnCash(SETTLEMENT_ID, _proofFor(PAYER, true));
         vm.stopPrank();
     }
 
     function test_NoRefundAfterCommitEvenWhenHeld() public {
         _prepare();
+        _committed();
 
         vm.startPrank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, false));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, false));
 
         vm.expectRevert();
-        escrow.returnCash(
-            _vaa(
-                MessageCodec.MessageType.ABORT,
-                DEPLOYMENT_ID,
-                REMOTE_WH_CHAIN,
-                REMOTE_EMITTER,
-                block.chainid,
-                "abort-after-held"
-            ),
-            _proofFor(PAYER, true)
-        );
+        escrow.returnCash(SETTLEMENT_ID, _proofFor(PAYER, true));
         vm.stopPrank();
     }
 
@@ -403,10 +420,11 @@ contract CashEscrowTest is ComplianceFixture {
 
     function test_AbortReturnsCashToPayer() public {
         _prepare();
+        _aborted();
         uint256 before = aToken.balanceOf(PAYER);
 
         vm.prank(RELAYER);
-        escrow.returnCash(_vaa(MessageCodec.MessageType.ABORT), _proofFor(PAYER, true));
+        escrow.returnCash(SETTLEMENT_ID, _proofFor(PAYER, true));
 
         assertEq(aToken.balanceOf(PAYER) - before, AMOUNT);
         assertEq(escrow.totalEscrowed(), 0);
@@ -416,9 +434,10 @@ contract CashEscrowTest is ComplianceFixture {
         // PRD 5.2 step 7: a return recipient who is ineligible leaves the leg in
         // escrow and opens a disposition case.
         _prepare();
+        _aborted();
 
         vm.prank(RELAYER);
-        escrow.returnCash(_vaa(MessageCodec.MessageType.ABORT), _proofFor(PAYER, false));
+        escrow.returnCash(SETTLEMENT_ID, _proofFor(PAYER, false));
 
         assertEq(escrow.totalEscrowed(), AMOUNT);
         assertEq(uint8(escrow.legOf(SETTLEMENT_ID).state), uint8(CashEscrow.LegState.HELD));
@@ -426,204 +445,109 @@ contract CashEscrowTest is ComplianceFixture {
 
     // ── Adversarial VAA handling (PRD 15.3) ─────────────────────────────────
 
-    function test_RejectsReplayedVaa() public {
-        // T-10. The same VAA delivered twice must move value once.
+    function test_ReleasingTwiceMovesValueOnce() public {
+        // T-10 in its current form. Replay used to be prevented by burning the
+        // VAA; the release path no longer consumes one, so the leg's own state
+        // is what stops the second attempt. Same property, enforced closer to
+        // the value it protects.
         _prepare();
-        bytes memory vaa = _vaa(MessageCodec.MessageType.COMMIT);
+        _committed();
 
         vm.startPrank(RELAYER);
-        escrow.releaseCash(vaa, _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                WormholeTransport.VaaAlreadyConsumed.selector, keccak256(abi.encodePacked("v1"))
+                CashEscrow.LegNotInState.selector,
+                SETTLEMENT_ID,
+                CashEscrow.LegState.RELEASED,
+                CashEscrow.LegState.PREPARED
             )
         );
-        escrow.releaseCash(vaa, _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
         vm.stopPrank();
 
         assertEq(aToken.balanceOf(RECEIVER), AMOUNT, "value moved exactly once");
     }
 
-    function test_RejectsWrongEmitterAddress() public {
-        // T-11. An attacker who deploys identical code elsewhere still fails.
+    function test_AnAbortDecisionCannotDriveARelease() public {
+        // Was "rejects the wrong message type", a property of the wire format.
+        // The release no longer reads a message, so the question becomes whether
+        // the canonical decision permits this direction — which is the thing
+        // that actually mattered all along.
         _prepare();
-        bytes32 impostor = bytes32(uint256(uint160(address(0xBADBEEF))));
+        _aborted();
+
+        vm.prank(RELAYER);
+        vm.expectRevert(
+            abi.encodeWithSelector(CashEscrow.ReleaseRequiresCommit.selector, SETTLEMENT_ID)
+        );
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
+    }
+
+    function test_ACommitDecisionCannotDriveAReturn() public {
+        // Invariant I4 at the point of payment: no refund after COMMIT.
+        _prepare();
+        _committed();
+
+        vm.prank(RELAYER);
+        vm.expectRevert(
+            abi.encodeWithSelector(CashEscrow.ReturnRequiresAbort.selector, SETTLEMENT_ID)
+        );
+        escrow.returnCash(SETTLEMENT_ID, _proofFor(PAYER, true));
+    }
+
+    function test_AnUndecidedSettlementReleasesNothing() public {
+        // The coordinator has reached no decision, so neither direction is open.
+        _prepare();
+        _decide(SettlementCoordinator.Decision.NONE, INTENT_HASH);
+
+        vm.prank(RELAYER);
+        vm.expectRevert(
+            abi.encodeWithSelector(CashEscrow.ReleaseRequiresCommit.selector, SETTLEMENT_ID)
+        );
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
+    }
+
+    function test_TermsMustStillMatchWhatTheCoordinatorDecided() public {
+        // The leg was prepared against one intent and the coordinator decided on
+        // another. Releasing anyway would pay out on terms nobody agreed to.
+        _prepare();
+        _decide(SettlementCoordinator.Decision.COMMIT, keccak256("some-other-intent"));
 
         vm.prank(RELAYER);
         vm.expectRevert(
             abi.encodeWithSelector(
-                WormholeTransport.UnexpectedEmitter.selector, impostor, REMOTE_EMITTER
+                CashEscrow.IntentHashMismatch.selector, keccak256("some-other-intent"), INTENT_HASH
             )
         );
-        escrow.releaseCash(
-            _vaa(
-                MessageCodec.MessageType.COMMIT,
-                DEPLOYMENT_ID,
-                REMOTE_WH_CHAIN,
-                impostor,
-                block.chainid,
-                "wrong-emitter"
-            ),
-            _proofFor(RECEIVER, true)
-        );
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
     }
 
-    function test_RejectsWrongEmitterChain() public {
-        // T-12. The peer address alone is not enough: the same address exists on
-        // other chains, as aUSDC on Monad and Base demonstrates.
+    function test_TermsAreCheckedAgainstTheDecision() public {
+        // Was a header-mismatch test against a hand-built VAA. The release reads
+        // the coordinator now, so the equivalent question is whether the terms
+        // the leg was prepared under still match the ones that were decided.
         _prepare();
-
-        vm.prank(RELAYER);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                WormholeTransport.UnexpectedEmitterChain.selector, uint16(2), REMOTE_WH_CHAIN
-            )
-        );
-        escrow.releaseCash(
-            _vaa(
-                MessageCodec.MessageType.COMMIT,
-                DEPLOYMENT_ID,
-                2,
-                REMOTE_EMITTER,
-                block.chainid,
-                "wrong-chain"
-            ),
-            _proofFor(RECEIVER, true)
-        );
-    }
-
-    function test_RejectsWrongDeploymentId() public {
-        // T-13. A valid message from a different deployment of the same code.
-        _prepare();
-        bytes32 other = keccak256("deployment-2");
-
-        vm.prank(RELAYER);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                WormholeTransport.UnexpectedDeployment.selector, other, DEPLOYMENT_ID
-            )
-        );
-        escrow.releaseCash(
-            _vaa(
-                MessageCodec.MessageType.COMMIT,
-                other,
-                REMOTE_WH_CHAIN,
-                REMOTE_EMITTER,
-                block.chainid,
-                "wrong-deployment"
-            ),
-            _proofFor(RECEIVER, true)
-        );
-    }
-
-    function test_RejectsMessageAddressedToAnotherChain() public {
-        _prepare();
-
-        vm.prank(RELAYER);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                WormholeTransport.UnexpectedDestinationChain.selector, uint256(999), block.chainid
-            )
-        );
-        escrow.releaseCash(
-            _vaa(
-                MessageCodec.MessageType.COMMIT,
-                DEPLOYMENT_ID,
-                REMOTE_WH_CHAIN,
-                REMOTE_EMITTER,
-                999,
-                "wrong-destination"
-            ),
-            _proofFor(RECEIVER, true)
-        );
-    }
-
-    function test_RejectsWrongMessageType() public {
-        // An ABORT must never be consumable as a COMMIT.
-        _prepare();
-
-        vm.prank(RELAYER);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                WormholeTransport.UnexpectedMessageType.selector,
-                MessageCodec.MessageType.ABORT,
-                MessageCodec.MessageType.COMMIT
-            )
-        );
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.ABORT), _proofFor(RECEIVER, true));
-    }
-
-    function test_RejectsVaaTheCoreContractDeclaresInvalid() public {
-        _prepare();
-        wormhole.setValid(false, "guardian quorum not met");
-
-        vm.prank(RELAYER);
-        vm.expectRevert(
-            abi.encodeWithSelector(WormholeTransport.VaaInvalid.selector, "guardian quorum not met")
-        );
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
-    }
-
-    function test_RejectsIntentHashMismatch() public {
-        // Invariant I7: both legs bind the same intent hash.
-        _prepare();
-
-        bytes memory payload = MessageCodec.encode(
-            MessageCodec.Header({
-                protocolVersion: MessageCodec.PROTOCOL_VERSION,
-                messageType: MessageCodec.MessageType.COMMIT,
-                deploymentId: DEPLOYMENT_ID,
-                settlementId: SETTLEMENT_ID,
-                intentHash: keccak256("a-different-intent"),
-                sourceChainId: 84_532,
-                destinationChainId: block.chainid,
-                stateVersion: 2
-            })
-        );
-        bytes memory vaa =
-            wormhole.encodeVaa(REMOTE_WH_CHAIN, REMOTE_EMITTER, 1, payload, keccak256("mismatch"));
+        _decide(SettlementCoordinator.Decision.COMMIT, keccak256("renegotiated"));
 
         vm.prank(RELAYER);
         vm.expectRevert();
-        escrow.releaseCash(vaa, _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
     }
 
     function test_RejectsUnknownSettlement() public {
         vm.prank(RELAYER);
         vm.expectRevert(abi.encodeWithSelector(CashEscrow.LegUnknown.selector, SETTLEMENT_ID));
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, true));
     }
 
     // ── Peer wiring ──────────────────────────────────────────────────────────
 
-    function test_NoVaaIsConsumableBeforeThePeerIsSet() public {
-        // The first side of a pair deploys without knowing its peer. Until the
-        // peer is fixed, the emitter check would compare against bytes32(0) and
-        // be vacuous, so consumption is refused outright.
-        CashEscrow unwired = new CashEscrow(
-            address(aToken),
-            address(wormhole),
-            DEPLOYMENT_ID,
-            LOCAL_WH_CHAIN,
-            REMOTE_WH_CHAIN,
-            bytes32(0),
-            WormholeTransport.FinalityLevel.FINALIZED,
-            WormholeTransport.FinalityLevel.INSTANT,
-            MAX_ATTESTATION_VALIDITY,
-            OWNER
-        );
-
-        assertFalse(unwired.remotePeerLocked());
-
-        vm.prank(RELAYER);
-        vm.expectRevert(WormholeTransport.RemotePeerNotSet.selector);
-        unwired.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, true));
-    }
-
     function test_PeerMayBeSetOnceAndNeverAgain() public {
         CashEscrow unwired = new CashEscrow(
             address(aToken),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -649,6 +573,7 @@ contract CashEscrowTest is ComplianceFixture {
     function test_PeerCannotBeSetToZero() public {
         CashEscrow unwired = new CashEscrow(
             address(aToken),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -668,6 +593,7 @@ contract CashEscrowTest is ComplianceFixture {
     function test_OnlyOwnerMaySetThePeer() public {
         CashEscrow unwired = new CashEscrow(
             address(aToken),
+            COORDINATOR,
             address(wormhole),
             DEPLOYMENT_ID,
             LOCAL_WH_CHAIN,
@@ -722,12 +648,13 @@ contract CashEscrowTest is ComplianceFixture {
 
         vm.prank(PAYER);
         escrow.prepareCash(SETTLEMENT_ID, INTENT_HASH, RECEIVER, locked, 84_532, 1);
+        _committed();
 
         assertEq(escrow.totalEscrowed(), locked);
         assertGe(aToken.balanceOf(address(escrow)), escrow.totalEscrowed());
 
         vm.prank(RELAYER);
-        escrow.releaseCash(_vaa(MessageCodec.MessageType.COMMIT), _proofFor(RECEIVER, eligible));
+        escrow.releaseCash(SETTLEMENT_ID, _proofFor(RECEIVER, eligible));
 
         // Invariant I1: whether released or held, the token balance never falls
         // below what the contract says it is accounting for.

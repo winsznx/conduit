@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-07T21:55:40.913Z",
+  "capturedAt": "2026-08-08T00:26:26.278Z",
   "complianceSigner": "0xEC16Ead9832292fEfc95Bc94C3D536Eed98ED26c",
   "owner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
   "signerIsSeparateFromDeployer": true,
@@ -17,12 +17,12 @@
     {
       "label": "CashEscrow",
       "chain": "monadTestnet",
-      "address": "0x742bEe50781562C2aCb6049D02C4BAF43a4eCadf",
+      "address": "0xB8D48FEE6EF115fa4Df18CcD5Bf4d4F652df0B5A",
       "signerRegistered": true,
       "signerCount": 1,
       "quorum": 1,
       "maxAttestationValiditySeconds": 900,
-      "attestationDomainSeparator": "0x58727715ab0ea0840ec61d4560ad0932012eec57f6fd5daad7c40f8d4a850682"
+      "attestationDomainSeparator": "0x5e37d42432c1b7a91c4c030791d3fc37adc4c9ff6921a03eefc95add96698cf3"
     },
     {
       "label": "RWACVASettlementAdapter",

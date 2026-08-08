@@ -39,8 +39,16 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 import { ROOT } from './lib/run.mjs';
 
-const TOKEN = process.env['RWA_CVA_ADDRESS'];
-const POLICY = process.env['CCP_POLICY_BASE_SEPOLIA'];
+const CHAIN = process.argv[3] ?? 'base';
+const ON_MONAD = CHAIN === 'monad';
+const TOKEN =
+  process.argv[4] ??
+  (ON_MONAD ? process.env['SETTLEMENT_CVA_ADDRESS'] : process.env['RWA_CVA_ADDRESS']);
+const POLICY = ON_MONAD
+  ? process.env['CCP_POLICY_MONAD_TESTNET']
+  : process.env['CCP_POLICY_BASE_SEPOLIA'];
+const RPC = ON_MONAD ? process.env['MONAD_TESTNET_RPC_URL'] : process.env['BASE_SEPOLIA_RPC_URL'];
+const EXPECTED_CHAIN_ID = ON_MONAD ? 10143 : 84532;
 const minTier = Number(process.argv[2] ?? '0');
 
 const RULE_TUPLE = '(bytes2,bytes2,uint8,uint8,bool,uint256)';
@@ -58,12 +66,14 @@ const POLICY_ABI = parseAbi([
 ]);
 
 const account = privateKeyToAccount(process.env['DEPLOYER_PRIVATE_KEY']);
-const transport = http(process.env['BASE_SEPOLIA_RPC_URL']);
+const transport = http(RPC);
 const pub = createPublicClient({ transport });
-const wallet = createWalletClient({ account, transport, chain: { id: 84532 } });
+const wallet = createWalletClient({ account, transport, chain: { id: EXPECTED_CHAIN_ID } });
 
 const chainId = await pub.getChainId();
-if (chainId !== 84532) throw new Error(`RPC reports chain ${chainId}, expected 84532`);
+if (chainId !== EXPECTED_CHAIN_ID) {
+  throw new Error(`RPC reports chain ${chainId}, expected ${EXPECTED_CHAIN_ID} for ${CHAIN}`);
+}
 
 const rulesOnPolicy = () =>
   pub.readContract({ address: POLICY, abi: POLICY_ABI, functionName: 'getRulesV2', args: [TOKEN] });
@@ -78,7 +88,7 @@ const describe = (rules) =>
     poolCountryBitmap: bitmap.toString(),
   }));
 
-console.log(`Base Sepolia ${chainId}`);
+console.log(`${CHAIN} ${chainId}`);
 console.log(`token  ${TOKEN}`);
 console.log(`policy ${POLICY}\n`);
 
@@ -143,7 +153,7 @@ for (const [label, a] of Object.entries(answers)) {
 
 const evidence = {
   capturedAt: new Date().toISOString(),
-  chain: { key: 'baseSepolia', nativeChainId: chainId },
+  chain: { key: ON_MONAD ? 'monadTestnet' : 'baseSepolia', nativeChainId: chainId },
   token: TOKEN,
   policy: POLICY,
   ruleSource:
@@ -167,7 +177,12 @@ const evidence = {
   registrationProvenLive: after.length > 0,
 };
 
-const path = join(ROOT, 'docs', 'evidence', 'phase-03-cva-rulev2.json');
+const path = join(
+  ROOT,
+  'docs',
+  'evidence',
+  ON_MONAD ? 'phase-01-settlement-cva-rulev2.json' : 'phase-03-cva-rulev2.json',
+);
 writeFileSync(path, `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(`\nwritten ${path}`);
 process.exitCode = after.length > 0 ? 0 : 1;

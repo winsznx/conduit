@@ -82,6 +82,10 @@ contract DifferentialTest is ComplianceFixture {
         );
 
         vm.startPrank(address(0x0E7E4));
+        // The test contract stands in for the escrow: recordLocalCashResolved is
+        // restricted to it now, because permissionless was a way to declare the
+        // cash leg resolved while the cash sat untouched.
+        coordinator.setCashEscrow(address(this));
         coordinator.addComplianceSigner(_signerA());
         coordinator.addComplianceSigner(_signerB());
         coordinator.setComplianceQuorum(2);

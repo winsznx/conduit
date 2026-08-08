@@ -65,6 +65,7 @@ contract DeployCashLeg is Script {
 
         CashEscrow escrow = new CashEscrow(
             cashAsset,
+            address(coordinator),
             wormhole,
             deploymentId,
             localWormholeChainId,
@@ -75,6 +76,10 @@ contract DeployCashLeg is Script {
             maxAttestationValidity,
             deployer
         );
+
+        // The two contracts reference each other, so the binding closes here
+        // rather than being left as a step somebody has to remember.
+        coordinator.setCashEscrow(address(escrow));
 
         vm.stopBroadcast();
 
