@@ -1,0 +1,60 @@
+{
+  "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+  "protocolVersion": 1,
+  "gitCommit": "ed413db9f8a6287d72c84db6ee69fe9a8d2d5260",
+  "solcVersion": "0.8.36",
+  "chainConfigs": {
+    "monadTestnet": {
+      "nativeChainId": 10143,
+      "wormholeChainId": 10009,
+      "rpcUrlEnvVar": "MONAD_TESTNET_RPC_URL",
+      "finalityBlocks": 1
+    }
+  },
+  "contracts": {
+    "SettlementCoordinator": {
+      "chain": "monadTestnet",
+      "address": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61"
+    },
+    "CashEscrow": {
+      "chain": "monadTestnet",
+      "address": "0x8151D682836f5B7106181bc8e48DC899ab538930"
+    },
+    "ConduitSandboxSettlementCVA": {
+      "chain": "monadTestnet",
+      "address": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16"
+    },
+    "ConduitVaultRegistrar": {
+      "chain": "monadTestnet",
+      "address": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5"
+    }
+  },
+  "bytecodeHashes": {
+    "SettlementCoordinator": "0xce2fc566e7046dd6451438404d1bc42aaf784ae136ccae74d03eac4d0c7b7899",
+    "CashEscrow": "0x4751e1ab11dbab6b4df484e08b4127fb643e24c284b59a7e57da62fc5dc4e574",
+    "ConduitSandboxSettlementCVA": "0x27e4d710348bb18265ef5d2ddddf473ecd64e52e7a8f6b0e05adb7b2f642e5b1",
+    "ConduitVaultRegistrar": "0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f"
+  },
+  "wormhole": {
+    "monadTestnet": {
+      "coreAddress": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+      "wormholeChainId": 10009,
+      "consistencyLevel": 1
+    }
+  },
+  "finalityProfile": {
+    "settlement": "FINALIZED",
+    "observation": "INSTANT",
+    "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
+  },
+  "complianceProfile": {
+    "maxAttestationValiditySeconds": 900,
+    "signerCount": 1,
+    "quorum": 1,
+    "snapshotIsLiveState": true,
+    "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
+  },
+  "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918",
+  "validatorRuleHashes": {},
+  "timestamp": "2026-08-08T19:46:42.117Z"
+}

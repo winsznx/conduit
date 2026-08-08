@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-08-08T00:28:24.411Z",
+  "capturedAt": "2026-08-08T19:17:40.958Z",
   "chain": {
     "key": "monadTestnet",
     "nativeChainId": 10143
   },
-  "token": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+  "token": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
   "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd",
   "ruleSource": "On chain via ConduitRWACVA.setRuleV2 -> IATokenPolicy.setRuleV2FromToken. The CVA guide recommends self-management for a registered contract.",
   "ruleApiFinding": {
@@ -19,11 +19,20 @@
     "open": "ASM-025 — bit positions are stated to follow ISO 3166-1 numeric codes, which run to 894 against a 256-bit field, and no index table has been supplied. No country-enforcement claim is made."
   },
   "transaction": {
-    "hash": "0x2a4f1e0c87dd1279a4bd16d11876bddcca673bd2354c8df9a6d24de665ba5107",
+    "hash": "0x2928c166bdbdba3daf5fd56a7a468eb32c08e53044ce375c1f028c86d7266b18",
     "status": "success",
-    "gasUsed": "120418"
+    "gasUsed": "103554"
   },
-  "rulesBefore": [],
+  "rulesBefore": [
+    {
+      "allowedGroup": "0x0000",
+      "allowedSubGroup": "0x0000",
+      "minTier": 0,
+      "minSubTier": 0,
+      "isBlackList": false,
+      "poolCountryBitmap": "0"
+    }
+  ],
   "rulesAfter": [
     {
       "allowedGroup": "0x0000",

@@ -1,50 +1,50 @@
 {
-  "capturedAt": "2026-08-08T00:06:33.938Z",
+  "capturedAt": "2026-08-08T18:46:38.667Z",
   "endpoint": "POST /atoken/register_atoken",
   "chain": {
     "slug": "monad",
     "nativeChainId": 10143
   },
   "token": {
-    "address": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "address": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
     "name": "Conduit Sandbox Settlement Unit",
-    "symbol": "cSETTLE",
+    "symbol": "cSETTLE3",
     "decimals": 6,
     "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
   },
   "ownerOnChain": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
-  "signedPlaintext": "monad0xe32825bb4bf312688233f68abde3eb6dcbc89caf",
+  "signedPlaintext": "monad0xfefd2ea28db25c720ec5298964f8d2f34e3f1f16",
   "recoveredSigner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
   "recoveredMatchesOwner": true,
-  "requestHash": "0xe5f7cddac1b20cd3772913a68eeb8b059650250cc0e6a86c93c7bff0b28525eb",
+  "requestHash": "0xe50faf21b68a6baa0e12ef42129749c56d5f858db275c9002da5b029d18688ed",
   "submission": {
-    "requestId": "b46234bd-67ed-496d-b2dc-aecd9e0e1609",
+    "requestId": "2bdcc6fe-5476-40bd-a037-f3c519f231f1",
     "code": "0000",
     "message": "success",
-    "responseHash": "0xf0ee335b02e68e9f8d85ac0bd08127de050f7fda610ba20b5efb900471356570",
+    "responseHash": "0x9d88d373ed74a1b8e1827975f7203b62898de68311e5e9d6d0398d007a8e4998",
     "redactedBody": {
       "code": "0000",
       "message": "success",
       "data": {
         "todo": true,
-        "requestId": "IAR20260808080632387119",
-        "issueAssetRegisterId": 297
+        "requestId": "IAR20260809024624529016",
+        "issueAssetRegisterId": 365
       }
     },
-    "applicationRequestId": "IAR20260808080632387119",
-    "issueAssetRegisterId": 297
+    "applicationRequestId": "IAR20260809024624529016",
+    "issueAssetRegisterId": 365
   },
   "failure": null,
   "applyStatus": "ISSUED",
   "registered": true,
   "applyStatusDetail": {
     "flowType": "REGISTER_ATOKEN",
-    "requestId": "IAR20260808080632387119",
+    "requestId": "IAR20260809024624529016",
     "applyStatus": "ISSUED",
     "chain": "monad",
-    "atokenAddress": "0xe32825bb4bf312688233f68abde3eb6dcbc89caf",
-    "txHash": "0x998e398489986af9fa490d25d71c78b5eefb56be2b55b8e8d7e64de10c04dfc4",
+    "atokenAddress": "0xfefd2ea28db25c720ec5298964f8d2f34e3f1f16",
+    "txHash": "0x2badc89f93ee7b5d605dfd1243626edd16997cf3e1385cad8e55335bd13886e6",
     "issueErrorMsg": "",
-    "issuedAt": "2026-08-08 08:06:33"
+    "issuedAt": "2026-08-09 02:46:25"
   }
 }

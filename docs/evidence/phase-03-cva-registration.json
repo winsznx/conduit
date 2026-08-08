@@ -1,50 +1,50 @@
 {
-  "capturedAt": "2026-08-08T08:52:37.477Z",
+  "capturedAt": "2026-08-08T18:43:15.536Z",
   "endpoint": "POST /atoken/register_atoken",
   "chain": {
     "slug": "base",
     "nativeChainId": 84532
   },
   "token": {
-    "address": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "address": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
     "name": "Conduit Demo Bond II",
-    "symbol": "cBOND2",
+    "symbol": "cBOND3",
     "decimals": 6,
     "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
   },
   "ownerOnChain": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
-  "signedPlaintext": "base0x7a78912533b43c483621200b4919806c0b855e5b",
+  "signedPlaintext": "base0xddb1ae5685f4033ed10b3dfce5e9dc13d3e4989b",
   "recoveredSigner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
   "recoveredMatchesOwner": true,
-  "requestHash": "0x77f199e7ffcf738ab36f356570dfdcff72ac9f634e03e5f9bde5a98bc15f8ed7",
+  "requestHash": "0x65a2de19873788705ce465af7d5cabf2709c668cbacdbdd534859f3d70e45b67",
   "submission": {
-    "requestId": "a8fcfb5b-82bf-480e-9649-a9c0ac01e79c",
+    "requestId": "60395b4e-e2b3-4339-86cf-35aef127e56e",
     "code": "0000",
     "message": "success",
-    "responseHash": "0x8731bfb9b294bd69dcb5a97719fdc61627bd3199c787e824f38a21bf4c0ce548",
+    "responseHash": "0x4447c34ab2a3595c2263146fcf5f90b941a05717aaadda41d4b9e003613fcb61",
     "redactedBody": {
       "code": "0000",
       "message": "success",
       "data": {
         "todo": true,
-        "requestId": "IAR2026080816522519266",
-        "issueAssetRegisterId": 309
+        "requestId": "IAR20260809024259102177",
+        "issueAssetRegisterId": 364
       }
     },
-    "applicationRequestId": "IAR2026080816522519266",
-    "issueAssetRegisterId": 309
+    "applicationRequestId": "IAR20260809024259102177",
+    "issueAssetRegisterId": 364
   },
   "failure": null,
   "applyStatus": "ISSUED",
   "registered": true,
   "applyStatusDetail": {
     "flowType": "REGISTER_ATOKEN",
-    "requestId": "IAR2026080816522519266",
+    "requestId": "IAR20260809024259102177",
     "applyStatus": "ISSUED",
     "chain": "base",
-    "atokenAddress": "0x7a78912533b43c483621200b4919806c0b855e5b",
-    "txHash": "0x069dac4b0f5ed9a0a7f223f3045dc265d04fdfae5b7aef1bb0ecda0c602b563c",
+    "atokenAddress": "0xddb1ae5685f4033ed10b3dfce5e9dc13d3e4989b",
+    "txHash": "0xe126e7a959efafc8cb98c133d47418171f834a5727ae4eeb7b3f179499f90a8c",
     "issueErrorMsg": "",
-    "issuedAt": "2026-08-08 16:52:26"
+    "issuedAt": "2026-08-09 02:42:59"
   }
 }

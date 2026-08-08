@@ -1,0 +1,92 @@
+{
+  "capturedAt": "2026-08-08T19:45:07.061Z",
+  "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+  "policyId": "0x5eae1a29b5bab0300329f9d58599546ddb24bbbf081f612f6bf762a00f10e2ab",
+  "contestWindowSeconds": 300,
+  "requiredSignatures": {
+    "REVERIFY_AND_RESUME": 1,
+    "REBIND_RECEIVER": 2,
+    "RETURN_TO_ELIGIBLE_SENDER": 1,
+    "AUTHORIZED_SUBSTITUTION": 1,
+    "OPERATOR_ASSISTED_OFFRAMP": 1,
+    "RESTRICTED_HOLD": 1
+  },
+  "monad": {
+    "controller": "0x3c4060D402675A25CAd836247CFA0B95614efe81",
+    "registry": "0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7",
+    "executor": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "policyHash": "0x4fb1a7193d103763741cfaca152abbf8ccc2eaf2a79c882bb1573b87c8461490",
+    "domainSeparator": "0x637f08affb726cadf0f2600238b4c7972140c749b1699cc60af3c49d1bb6d82d"
+  },
+  "base": {
+    "controller": "0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7",
+    "registry": "0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45",
+    "executor": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "policyHash": "0x4fb1a7193d103763741cfaca152abbf8ccc2eaf2a79c882bb1573b87c8461490",
+    "domainSeparator": "0xcfec04df9164d2077c30fbfa0c02f46bf8cd8d2d6e3d1ee5b5d6074fa48ba4e5"
+  },
+  "authorities": [
+    {
+      "role": "issuer",
+      "authorityType": 2,
+      "address": "0xBEE9aABCeab9fcC3290c696133892eb400954533"
+    },
+    {
+      "role": "transferAgent",
+      "authorityType": 3,
+      "address": "0xFd26BF71f59D0D582a2DACdE920f0900beDC5914"
+    },
+    {
+      "role": "complianceOperator",
+      "authorityType": 4,
+      "address": "0xe5F03e715680Ce99524D60bf23c70b3dCf555de2"
+    },
+    {
+      "role": "gatewayOperator",
+      "authorityType": 5,
+      "address": "0xe02B08332b84641E4d05c916987079De86F9af4D"
+    }
+  ],
+  "destinations": {
+    "restrictedCustodian": "0xA418C776401E46C54Dc03948f4ABafB61CC086F5",
+    "gatewayAccount": "0xD5E220d30a82adE65753f60a8a0fDF8e4AA4B280"
+  },
+  "limitation": "ASM-035: generate_apass is 403 for this credential, so only one identity holds an A-Pass. REBIND_RECEIVER and AUTHORIZED_SUBSTITUTION have no live-eligible destination and are IMPLEMENTED + TESTED rather than LIVE DEMONSTRATED.",
+  "steps": [
+    {
+      "step": "escrow.setDispositionController(monad controller)",
+      "action": "skipped"
+    },
+    {
+      "step": "monad controller.setExecutor(CASH, escrow)",
+      "action": "skipped"
+    },
+    {
+      "step": "adapter.setDispositionController(base controller)",
+      "action": "skipped"
+    },
+    {
+      "step": "base controller.setExecutor(ASSET, adapter)",
+      "action": "skipped"
+    },
+    {
+      "step": "Monad registry.setPolicy(conduit-disposition-policy-v1)",
+      "action": "skipped"
+    },
+    {
+      "step": "Monad setIdentityCommitment(deployer)",
+      "action": "sent",
+      "hash": "0xad5ab849ca55637cabbc57d06e815e83069f742a8de67c09f75680d5dacfe1e8"
+    },
+    {
+      "step": "Base registry.setPolicy(conduit-disposition-policy-v1)",
+      "action": "sent",
+      "hash": "0x7b56379310d9cb2e61a65c76474d818c324b1f28c8f61d8691beb5bcf256a9c8"
+    },
+    {
+      "step": "Base setIdentityCommitment(deployer)",
+      "action": "sent",
+      "hash": "0x6081836fb91d6f19c5e02d5dfd9f22989e17aeca080dab061b59fcf15250b754"
+    }
+  ]
+}

@@ -1,63 +1,63 @@
 {
-  "capturedAt": "2026-08-08T14:27:11.823Z",
+  "capturedAt": "2026-08-08T20:13:21.333Z",
   "current": {
+    "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+    "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "token": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B"
+  },
+  "superseded": {
     "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
     "coordinator": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
     "escrow": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
-    "adapter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
-    "token": "0x7a78912533b43C483621200b4919806c0B855E5b"
-  },
-  "superseded": {
-    "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
-    "coordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
-    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
-    "adapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
+    "adapter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
   },
   "checks": [
     {
       "check": "the superseded adapter no longer holds SETTLEMENT_ROLE",
       "ok": true,
-      "detail": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE hasRole=false"
+      "detail": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a hasRole=false"
     },
     {
       "check": "the current adapter does hold it",
       "ok": true,
-      "detail": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a hasRole=true"
+      "detail": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61 hasRole=true"
     },
     {
       "check": "the superseded adapter cannot call markCommitted on the token",
       "ok": true,
-      "detail": "refused with The contract function \"markCommitted\" reverted with the following signature:"
+      "detail": "refused with 0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
     },
     {
       "check": "the superseded adapter cannot call markAnnounced on the token",
       "ok": true,
-      "detail": "refused with The contract function \"markAnnounced\" reverted with the following signature:"
+      "detail": "refused with 0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
     },
     {
       "check": "the superseded adapter cannot call releaseReservation on the token",
       "ok": true,
-      "detail": "refused with The contract function \"releaseReservation\" reverted with the following signature:"
+      "detail": "refused with 0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
     },
     {
       "check": "exactly one settlement adapter is authorised against the token",
       "ok": true,
-      "detail": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a"
+      "detail": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61"
     },
     {
       "check": "the current adapter is locked to the current coordinator, not the old one",
       "ok": true,
-      "detail": "peer 0x0000000000000000000000000aebe99a17796325da45e49ef3ba8bd13bbe5c86, old coordinator would be 0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be"
+      "detail": "peer 0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61, old coordinator would be 0x0000000000000000000000000aebe99a17796325da45e49ef3ba8bd13bbe5c86"
     },
     {
       "check": "the two coordinators carry different deployment ids",
       "ok": true,
-      "detail": "old 0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843, current 0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417"
+      "detail": "old 0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417, current 0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6"
     },
     {
       "check": "the superseded coordinator points at its own escrow, not the current one",
       "ok": true,
-      "detail": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB"
+      "detail": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b"
     },
     {
       "check": "the superseded escrow cannot report into the current coordinator",
@@ -68,6 +68,141 @@
       "check": "the current coordinator refuses a VAA from the superseded generation",
       "ok": true,
       "detail": "refused with UnexpectedEmitter"
+    },
+    {
+      "check": "the generation-1 adapter cannot call markCommitted on the generation-3 token",
+      "ok": true,
+      "detail": "refused with 0xe2517d3f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "check": "the generation-1 adapter cannot call releaseReservation on the generation-3 token",
+      "ok": true,
+      "detail": "refused with 0xe2517d3f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "check": "the generation-1 escrow cannot report into the generation-3 coordinator",
+      "ok": true,
+      "detail": "refused with NotTheCashEscrow"
+    },
+    {
+      "check": "the generation-3 adapter is not peered to the generation-1 coordinator",
+      "ok": true,
+      "detail": "peer 0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61, generation-1 coordinator would be 0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be"
+    },
+    {
+      "check": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61 is two different contracts across chains",
+      "ok": true,
+      "detail": "eip155:84532 is RWACVASettlementAdapter (15854 bytes), eip155:10143 is SettlementCoordinator (17315 bytes)"
+    },
+    {
+      "check": "the deployment reports its own collisions rather than hiding them",
+      "ok": true,
+      "detail": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61: RWACVASettlementAdapter@84532 vs SettlementCoordinator@10143"
+    }
+  ],
+  "refusalEvidence": [
+    {
+      "label": "the superseded adapter cannot call markCommitted on the token",
+      "chainId": 84532,
+      "target": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+      "caller": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0xccb27abeabababababababababababababababababababababababababababababababab",
+      "rawRevert": "0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846",
+      "detail": "reverted with undecodable data 0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "label": "the superseded adapter cannot call markAnnounced on the token",
+      "chainId": 84532,
+      "target": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+      "caller": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0xed5baa74abababababababababababababababababababababababababababababababab",
+      "rawRevert": "0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846",
+      "detail": "reverted with undecodable data 0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "label": "the superseded adapter cannot call releaseReservation on the token",
+      "chainId": 84532,
+      "target": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+      "caller": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0xd4312824abababababababababababababababababababababababababababababababab00000000000000000000000083c130ed9fb92830f09ea2b30e49009ef03065bb",
+      "rawRevert": "0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846",
+      "detail": "reverted with undecodable data 0xe2517d3f00000000000000000000000051c3d536e94fb5b944c2af8946d6916543bdf93a300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "label": "the superseded escrow cannot report into the current coordinator",
+      "chainId": 10143,
+      "target": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+      "caller": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0x093ceecccdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "rawRevert": "0x07890ea6000000000000000000000000ee40c930be5a67e9fc8f6237e9aca2b94a8bd85b0000000000000000000000008151d682836f5b7106181bc8e48dc899ab538930",
+      "decodedError": "NotTheCashEscrow",
+      "decodedArgs": [
+        "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
+        "0x8151D682836f5B7106181bc8e48DC899ab538930"
+      ],
+      "detail": "reverted with NotTheCashEscrow"
+    },
+    {
+      "label": "the current coordinator refuses a VAA from the superseded generation",
+      "chainId": 10143,
+      "target": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+      "caller": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0xf648462c0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000012801000000000100c196a3bb4f223c52d89885a4eeb9c72bf71de7ed6d4a44897ad9a230e56f76cc4c1fc80597645196c84e97b617fbec730417ad53784dbff48fdc5c57226f5943006a76f07c000000002714000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be00000000000000000100000001019303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f6588580000000000000000000000000000000000000000000000000000000000014a34000000000000000000000000000000000000000000000000000000000000279f0000000000000001000000000000000000000000000000000000000000000000",
+      "rawRevert": "0xb385c62f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "decodedError": "UnexpectedEmitter",
+      "decodedArgs": [
+        "0x000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be",
+        "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61"
+      ],
+      "detail": "reverted with UnexpectedEmitter"
+    },
+    {
+      "label": "the generation-1 adapter cannot call markCommitted on the generation-3 token",
+      "chainId": 84532,
+      "target": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+      "caller": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0xccb27abeabababababababababababababababababababababababababababababababab",
+      "rawRevert": "0xe2517d3f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846",
+      "detail": "reverted with undecodable data 0xe2517d3f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "label": "the generation-1 adapter cannot call releaseReservation on the generation-3 token",
+      "chainId": 84532,
+      "target": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+      "caller": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0xd4312824abababababababababababababababababababababababababababababababab00000000000000000000000083c130ed9fb92830f09ea2b30e49009ef03065bb",
+      "rawRevert": "0xe2517d3f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846",
+      "detail": "reverted with undecodable data 0xe2517d3f000000000000000000000000e4ba8f4d65f8c62393b47bf47ef6eea8f07f45be300f9ae985dc711960f7a4d1dd013f9c19ecf40bff149522ab7523b2187a3846"
+    },
+    {
+      "label": "the generation-1 escrow cannot report into the generation-3 coordinator",
+      "chainId": 10143,
+      "target": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+      "caller": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+      "outcome": "CONTRACT_REVERT",
+      "isProtocolRefusal": true,
+      "calldata": "0x093ceeccabababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab",
+      "rawRevert": "0x07890ea6000000000000000000000000793c7a8f0c9549ee6caf7ecc014ddafb7da601eb0000000000000000000000008151d682836f5b7106181bc8e48dc899ab538930",
+      "decodedError": "NotTheCashEscrow",
+      "decodedArgs": [
+        "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+        "0x8151D682836f5B7106181bc8e48DC899ab538930"
+      ],
+      "detail": "reverted with NotTheCashEscrow"
     }
   ]
 }

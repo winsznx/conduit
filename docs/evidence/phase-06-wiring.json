@@ -1,11 +1,11 @@
 {
-  "capturedAt": "2026-08-08T14:25:35.866Z",
+  "capturedAt": "2026-08-08T19:18:16.740Z",
   "addresses": {
-    "coordinator": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
-    "escrow": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
-    "cash": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
-    "rwa": "0x7a78912533b43C483621200b4919806c0B855E5b",
-    "adapter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+    "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "cash": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+    "rwa": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+    "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
     "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
     "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
     "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
@@ -15,8 +15,7 @@
   "steps": [
     {
       "step": "adapter.setRemotePeer(coordinator)",
-      "action": "sent",
-      "hash": "0x34c1b7eacf1face39ea0c9d5e297f75e3485d0c11799a9a117fc3ecf749b7369"
+      "action": "skipped"
     },
     {
       "step": "coordinator.setCashEscrow(escrow)",
@@ -24,42 +23,35 @@
     },
     {
       "step": "coordinator.addComplianceSigner",
-      "action": "sent",
-      "hash": "0x8a80e256a00f40f7c5edb9321a30f8b32c9efadaaa58a3f5fb434e7611ad7935"
+      "action": "skipped"
     },
     {
       "step": "coordinator.setComplianceQuorum(1)",
-      "action": "sent",
-      "hash": "0x4881791879744d5131291e9bebbfba7313f1fc3f1e20d6706d499c8739b214ae"
+      "action": "skipped"
     },
     {
       "step": "escrow.addComplianceSigner",
-      "action": "sent",
-      "hash": "0x1a0e4b1290ff17b7b3a2661c6954f13317cc7be9402890584a7c84cb10d896de"
+      "action": "skipped"
     },
     {
       "step": "escrow.setComplianceQuorum(1)",
-      "action": "sent",
-      "hash": "0x2b0050a1fb947317f2e649bda1d69b899e2616d0ec652612bba69e0cd8d9eece"
+      "action": "skipped"
     },
     {
       "step": "adapter.addComplianceSigner",
-      "action": "sent",
-      "hash": "0x8cd39f9f79548153220bda62d2ccb33c237e54f77c4b1e981783034e74204411"
+      "action": "skipped"
     },
     {
       "step": "adapter.setComplianceQuorum(1)",
-      "action": "sent",
-      "hash": "0x5c1802bb9634036416bf28885ff91240d6edf391bfb944a446f2f189979e1576"
+      "action": "skipped"
     },
     {
       "step": "rwa.grantRole(MINTER_ROLE, deployer)",
       "action": "skipped"
     },
     {
-      "step": "rwa.revokeRole(SETTLEMENT_ROLE, 0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE)",
-      "action": "sent",
-      "hash": "0xec6543ba5db14137bab411dc5bc76b9cf3a61c0db7ab917f0295d6dab3acf545"
+      "step": "rwa.revokeRole(SETTLEMENT_ROLE, 0x51c3D536e94fB5b944c2AF8946d6916543bdf93a)",
+      "action": "skipped"
     },
     {
       "step": "exactly one settlement adapter authorised",

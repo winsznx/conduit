@@ -42,3 +42,11 @@ test-results/
 # generated evidence artifacts are content-addressed and published, not committed raw
 docs/evidence/artifacts/
 .scratch/
+
+# Cloudflare Workers local secrets. `wrangler dev` reads these and `wrangler
+# secret put` writes them; either way the file holds live values and the moment
+# it exists is the moment it can be staged. Ignored before it is created.
+.dev.vars
+.dev.vars.*
+**/.dev.vars
+**/.dev.vars.*

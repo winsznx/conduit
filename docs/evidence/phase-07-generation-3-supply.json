@@ -1,0 +1,26 @@
+{
+  "capturedAt": "2026-08-08T19:46:24.656Z",
+  "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+  "holder": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "tokens": [
+    {
+      "token": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+      "chainId": 10143,
+      "symbol": "cSETTLE3",
+      "decimals": 6,
+      "minted": "100000000",
+      "balance": "100000000",
+      "totalSupply": "100000000"
+    },
+    {
+      "token": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+      "chainId": 84532,
+      "symbol": "cBOND3",
+      "decimals": 6,
+      "minted": "4000000",
+      "balance": "4000000",
+      "totalSupply": "4000000"
+    }
+  ],
+  "note": "Sandbox supply for the planned live runs only. Neither token is backed by anything and neither is aUSDC."
+}

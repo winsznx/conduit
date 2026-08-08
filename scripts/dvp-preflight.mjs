@@ -186,15 +186,36 @@ for (const [name, chain, address] of CONTRACTS) {
 await check('the deployment manifests describe what is deployed', async () => {
   const { readFileSync, readdirSync } = await import('node:fs');
   const dir = join(ROOT, 'contracts', 'deployments');
+  // This generation's manifests, and only this generation's.
+  //
+  // The lookup used to take the first manifest containing the role name, across
+  // every file on disk. With three generations deployed and `readdirSync`
+  // returning them sorted, generation 2 answered every question about
+  // generation 3 and the check failed a correct deployment by comparing it to
+  // its predecessor.
+  //
+  // A role name is not an identity. `SettlementCoordinator` names one contract
+  // per (deployment, chain) and three across the directory — the same mistake
+  // as an address without a chain (ADR-0018), on a different key.
   const manifests = readdirSync(dir)
     .filter((file) => file.endsWith('.json') && !file.includes('schema'))
-    .map((file) => JSON.parse(readFileSync(join(dir, file), 'utf8')));
+    .map((file) => JSON.parse(readFileSync(join(dir, file), 'utf8')))
+    .filter((entry) => entry.deploymentId === config.deploymentId);
+
+  if (manifests.length === 0) {
+    must(false, `no manifest on disk carries deploymentId ${config.deploymentId}`);
+    return;
+  }
 
   const problems = [];
   for (const [name, chain, address] of CONTRACTS) {
-    const manifest = manifests.find((entry) => entry.contracts?.[name] !== undefined);
+    const manifest = manifests.find(
+      (entry) =>
+        entry.contracts?.[name] !== undefined &&
+        entry.chainConfigs?.[entry.contracts[name].chain]?.nativeChainId === chain.chainId,
+    );
     if (manifest === undefined) {
-      problems.push(`${name} appears in no manifest`);
+      problems.push(`${name} appears in no manifest for chain ${String(chain.chainId)}`);
       continue;
     }
     if (!sameAddress(manifest.contracts[name].address, address)) {

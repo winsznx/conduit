@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-08-08T08:53:21.887Z",
+  "capturedAt": "2026-08-08T19:17:25.549Z",
   "chain": {
     "key": "baseSepolia",
     "nativeChainId": 84532
   },
-  "token": "0x7a78912533b43C483621200b4919806c0B855E5b",
+  "token": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
   "policy": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
   "ruleSource": "On chain via ConduitRWACVA.setRuleV2 -> IATokenPolicy.setRuleV2FromToken. The CVA guide recommends self-management for a registered contract.",
   "ruleApiFinding": {
@@ -19,23 +19,37 @@
     "open": "ASM-025 — bit positions are stated to follow ISO 3166-1 numeric codes, which run to 894 against a 256-bit field, and no index table has been supplied. No country-enforcement claim is made."
   },
   "transaction": {
-    "hash": "0x85ae96f41cc139e86906d28fbf94e672bb2abe37ea6352d110dca26b50ae0c06",
+    "hash": "0x65a331dac20207e8962e4b5e0722121328e7204acd42ca6ff4c8160999f54d08",
     "status": "success",
-    "gasUsed": "67413"
+    "gasUsed": "47882"
   },
-  "rulesBefore": [],
-  "rulesAfter": [],
+  "rulesBefore": [
+    {
+      "allowedGroup": "0x0000",
+      "allowedSubGroup": "0x0000",
+      "minTier": 0,
+      "minSubTier": 0,
+      "isBlackList": false,
+      "poolCountryBitmap": "0"
+    }
+  ],
+  "rulesAfter": [
+    {
+      "allowedGroup": "0x0000",
+      "allowedSubGroup": "0x0000",
+      "minTier": 0,
+      "minSubTier": 0,
+      "isBlackList": false,
+      "poolCountryBitmap": "0"
+    }
+  ],
   "policyAnswers": {
     "deployerToDeployer": {
-      "allowed": false,
-      "refusedWith": "revert",
-      "refusedAccount": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd"
+      "allowed": true
     },
     "deployerToNobody": {
-      "allowed": false,
-      "refusedWith": "revert",
-      "refusedAccount": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd"
+      "allowed": true
     }
   },
-  "registrationProvenLive": false
+  "registrationProvenLive": true
 }

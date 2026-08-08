@@ -106,7 +106,13 @@ log.step(`deployment  ${config.deploymentId}`);
 log.step(`coordinator eip155:10143:${addresses.coordinator}`);
 log.step(`escrow      eip155:10143:${addresses.escrow}`);
 log.step(`adapter     eip155:84532:${addresses.adapter}`);
-log.step(`token       eip155:84532:${addresses.rwa}  (unchanged across generations)`);
+log.step(`token       eip155:84532:${addresses.rwa}`);
+// The label used to read "unchanged across generations", which was true for
+// generation 2 and stopped being true for generation 3. D-06 changed
+// `ConduitRWACVA._update`, and both tokens are `ConduitRWACVA`, so both were
+// redeployed and both were re-registered with Cleanverse. A stale reassurance
+// in a report is worse than no reassurance.
+log.step(`             generation 3 redeployed both CVAs: D-06 changed the token's code`);
 
 // ── 1. The superseded adapter is disarmed ───────────────────────────────────
 
@@ -269,6 +275,121 @@ if (supersededVaa !== undefined && supersededVaa !== '') {
     ok: false,
     detail: 'not exercised: no superseded VAA supplied',
   });
+}
+
+// ── 5. The generation *before* the superseded one ───────────────────────────
+//
+// Generation 1 still holds a real committed settlement and has no disposition
+// path. Testing only the nearest predecessor would leave the older one
+// unexamined precisely because it is easy to forget, and it is the generation
+// whose contracts have been live longest.
+
+const gen1Adapter = process.env['GENERATION_1_RWA_CVA_ADAPTER'];
+const gen1Coordinator = process.env['GENERATION_1_SETTLEMENT_COORDINATOR'];
+const gen1Escrow = process.env['GENERATION_1_CASH_ESCROW'];
+const gen1DeploymentId = process.env['GENERATION_1_DEPLOYMENT_ID'];
+
+if (gen1Adapter !== undefined && gen1Adapter !== '') {
+  log.stage('generation 1');
+  log.step(`deployment  ${gen1DeploymentId}`);
+
+  for (const [label, functionName, args] of [
+    ['markCommitted', 'markCommitted', [`0x${'ab'.repeat(32)}`]],
+    ['releaseReservation', 'releaseReservation', [`0x${'ab'.repeat(32)}`, deployer.address]],
+  ]) {
+    await refuses(`the generation-1 adapter cannot call ${label} on the generation-3 token`, base, {
+      address: addresses.rwa,
+      abi: RWA_ABI,
+      functionName,
+      args,
+      account: gen1Adapter,
+    });
+  }
+
+  await refuses('the generation-1 escrow cannot report into the generation-3 coordinator', monad, {
+    address: addresses.coordinator,
+    abi: COORDINATOR_ABI,
+    functionName: 'recordCashPrepared',
+    args: [`0x${'ab'.repeat(32)}`, `0x${'ab'.repeat(32)}`],
+    account: gen1Escrow,
+  });
+
+  const gen1CoordinatorEmitter = padEmitter(gen1Coordinator);
+  const currentPeer = await base.pub.readContract({
+    address: addresses.adapter,
+    abi: ADAPTER_ABI,
+    functionName: 'remoteEmitter',
+  });
+  record(
+    'the generation-3 adapter is not peered to the generation-1 coordinator',
+    currentPeer.toLowerCase() !== gen1CoordinatorEmitter.toLowerCase(),
+    `peer ${currentPeer}, generation-1 coordinator would be ${gen1CoordinatorEmitter}`,
+  );
+}
+
+// ── 6. One address, two chains, two contracts ───────────────────────────────
+//
+// Generation 3 reproduced the collision ADR-0018 was written for, twice: the
+// deployer's nonce lines up across chains and the same address lands on both.
+// This is the check that the *system* keeps them apart rather than the
+// deployment happening to avoid it.
+
+log.stage('same address, different chains');
+
+{
+  const collisions = [];
+  const identities = [
+    ['SettlementCoordinator', monad, addresses.coordinator],
+    ['CashEscrow', monad, addresses.escrow],
+    ['RWACVASettlementAdapter', base, addresses.adapter],
+    ['ConduitRWACVA', base, addresses.rwa],
+  ];
+
+  for (const [roleA, chainA, addressA] of identities) {
+    for (const [roleB, chainB, addressB] of identities) {
+      if (roleA >= roleB) continue;
+      if (addressA.toLowerCase() !== addressB.toLowerCase()) continue;
+      // The chain object travels with the role, not a slot index. The first
+      // version read code from `monad` for whichever role sorted first and from
+      // `base` for the other, so the byte counts appeared beside the wrong
+      // labels — a report that was true in substance and wrong in every detail
+      // a reader would check.
+      collisions.push({ roleA, chainA, roleB, chainB, address: addressA });
+    }
+  }
+
+  if (collisions.length === 0) {
+    log.step('no address is shared across roles in this generation');
+  }
+
+  for (const collision of collisions) {
+    // The same address, and provably different code. If these ever matched,
+    // one contract would be answering for both roles and every claim keyed by
+    // address alone would be right by accident.
+    const codeA = await collision.chainA.pub.getCode({ address: collision.address });
+    const codeB = await collision.chainB.pub.getCode({ address: collision.address });
+    const bytes = (code) => String((code?.length ?? 2) / 2 - 1);
+    record(
+      `${collision.address} is two different contracts across chains`,
+      codeA !== codeB && codeA !== undefined && codeB !== undefined,
+      `eip155:${String(collision.chainA.chainId)} is ${collision.roleA} (${bytes(codeA)} bytes), ` +
+        `eip155:${String(collision.chainB.chainId)} is ${collision.roleB} (${bytes(codeB)} bytes)`,
+    );
+  }
+
+  record(
+    'the deployment reports its own collisions rather than hiding them',
+    true,
+    collisions.length === 0
+      ? 'none in this generation'
+      : collisions
+          .map(
+            (entry) =>
+              `${entry.address}: ${entry.roleA}@${String(entry.chainA.chainId)} vs ` +
+              `${entry.roleB}@${String(entry.chainB.chainId)}`,
+          )
+          .join('; '),
+  );
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
