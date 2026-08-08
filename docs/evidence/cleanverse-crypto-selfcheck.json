@@ -1,0 +1,53 @@
+{
+  "capturedAt": "2026-08-08T13:48:50.860Z",
+  "outcome": "CONFIRMED",
+  "model": {
+    "algorithm": "AES-256-CBC",
+    "padding": "PKCS#7, identical to PKCS5 at a 16-byte block",
+    "iv": "fixed 16 zero bytes",
+    "key": "base64 api-key decoding to exactly 32 bytes",
+    "body": "{\"data\":\"<base64 ciphertext>\"}",
+    "headers": "api-id, X-Request-ID"
+  },
+  "independentImplementation": "node:crypto aes-256-cbc, against the helper’s WebCrypto",
+  "liveEndToEndProof": "POST /atoken/register_atoken encrypted with this helper was decrypted upstream and reached applyStatus ISSUED — docs/evidence/phase-03-cva-registration.json",
+  "checks": [
+    {
+      "check": "the configured api-key decodes to exactly 32 bytes",
+      "ok": true,
+      "detail": "32 bytes — AES-256"
+    },
+    {
+      "check": "the helper encrypts under a sixteen-byte zero IV",
+      "ok": true,
+      "detail": "node:crypto decrypted the helper’s ciphertext with an all-zero IV"
+    },
+    {
+      "check": "the IV is sixteen bytes of zero",
+      "ok": true,
+      "detail": "16 bytes, all zero"
+    },
+    {
+      "check": "helper ciphertext decrypts under node:crypto, byte for byte",
+      "ok": true,
+      "detail": "202 bytes recovered"
+    },
+    {
+      "check": "node:crypto ciphertext decrypts under the helper, byte for byte",
+      "ok": true,
+      "detail": "200 characters recovered"
+    },
+    {
+      "check": "both implementations produce identical ciphertext",
+      "ok": true,
+      "detail": "208 bytes, PKCS#7 padded from 202"
+    },
+    {
+      "check": "a plaintext that is already a whole number of blocks gains a full padding block",
+      "ok": true,
+      "detail": "32 bytes in, 48 out"
+    }
+  ],
+  "frozen": true,
+  "note": "The helper is frozen. generate_apass remains classified as route- or request-specific (SANDBOX_AUTHORIZATION_MISMATCH) pending Cleanverse tracing the recorded X-Request-IDs; it is not an encryption question and no further build cycle is spent on it."
+}

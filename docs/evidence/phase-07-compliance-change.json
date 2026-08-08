@@ -56,7 +56,55 @@
     {
       "stage": "waiting for the finalized ASSET_PREPARED VAA",
       "at": "2026-08-08T13:32:42.393Z",
+      "detail": {
+        "waitSeconds": "1275",
+        "recordAssetPrepared": "0xbcc456fe169af5b33f46872759db43f05258dff2b066477d9e82a19baa4b56ae"
+      }
+    },
+    {
+      "stage": "fresh compliance, then COMMIT — the buyer is still eligible",
+      "at": "2026-08-08T13:54:02.775Z",
+      "detail": {
+        "issueCommit": "0x489e1d88fc1c9a5ce10687f471e83cadada9e31640cd3460083dd913fe15ceb4",
+        "sequence": "1"
+      }
+    },
+    {
+      "stage": "the cash releases: the seller is paid and cannot be un-paid",
+      "at": "2026-08-08T13:54:29.822Z",
+      "detail": {
+        "releaseCash": "0xe301c6c534cb2061863968fc8cdca097e9ccb636db79d20b423d3e0729f728a2"
+      }
+    },
+    {
+      "stage": "RuleV2: restrict — minTier 21 against a tier-20 holder",
+      "at": "2026-08-08T13:54:40.302Z",
+      "detail": {
+        "hash": "0x1fa640cc622897f132de798912fdc946454ffdf01ca2fe01dfa78861110df32f",
+        "before": "[[0x0000,0x0000,0,0,false,0]]",
+        "after": "[[0x0000,0x0000,21,0,false,0]]"
+      }
+    },
+    {
+      "stage": "the asset leg is asked to deliver, and holds instead",
+      "at": "2026-08-08T13:55:21.200Z",
+      "detail": {
+        "commitVaaWaitSeconds": "5",
+        "releaseAsset": "0x771fe988890f688997555966bf22a182048346c632d868927a5e34320f36f108"
+      }
+    },
+    {
+      "stage": "what cannot happen now",
+      "at": "2026-08-08T13:56:00.403Z",
       "detail": {}
+    },
+    {
+      "stage": "the asset leg reports what the token did: ASSET_HELD",
+      "at": "2026-08-08T13:56:03.519Z",
+      "detail": {
+        "reportResolution": "0xc3edd30759278576693e7307cda1b42fdc5b0b18cea756374db34a3c707da86c",
+        "sequence": "3"
+      }
     }
   ],
   "compliance": [
@@ -76,9 +124,50 @@
       ],
       "onChainCanTransfer": "true",
       "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "at commit time, before the rule change",
+      "at": "2026-08-08T13:54:07.674Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "de65b716-9a31-413f-954b-d606be70fb89",
+          "answer": "code 4",
+          "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "after the rule change",
+      "at": "2026-08-08T13:55:21.199Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": false,
+      "evidenceHash": "0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "eb02e41e-b030-435a-893e-297cb8979f4e",
+          "answer": "refused by policy: TierTooLow",
+          "responseHash": "0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190"
+        }
+      ],
+      "onChainCanTransfer": "revert The contract function \"canTransfer\" reverted with the following signature:",
+      "ruleV2": "[[0x0000,0x0000,21,0,false,0]]"
     }
   ],
-  "ruleTransitions": [],
+  "ruleTransitions": [
+    {
+      "label": "restrict — minTier 21 against a tier-20 holder",
+      "hash": "0x1fa640cc622897f132de798912fdc946454ffdf01ca2fe01dfa78861110df32f",
+      "before": "[[0x0000,0x0000,0,0,false,0]]",
+      "after": "[[0x0000,0x0000,21,0,false,0]]"
+    }
+  ],
   "conservation": {
     "before": {
       "at": "2026-08-08T13:30:59.877Z",
@@ -96,12 +185,49 @@
         "receiver": "2000000",
         "totalSupply": "2000000"
       }
+    },
+    "at held": {
+      "at": "2026-08-08T13:55:46.051Z",
+      "cash": {
+        "payer": "725000000",
+        "receiver": "725000000",
+        "escrow": "0",
+        "totalEscrowed": "0",
+        "totalSupply": "1000000000"
+      },
+      "rwa": {
+        "sellerNominal": "2000000",
+        "sellerReserved": "500000",
+        "sellerAvailable": "1500000",
+        "receiver": "2000000",
+        "totalSupply": "2000000"
+      }
     }
   },
-  "adversarial": [],
+  "adversarial": [
+    {
+      "attempt": "a refund to the payer after COMMIT",
+      "refusedWith": "LegNotInState"
+    },
+    {
+      "attempt": "the seller reclaiming the reserved bond",
+      "refusedWith": "ReservationAlreadyCommitted"
+    },
+    {
+      "attempt": "an ABORT after the COMMIT",
+      "refusedWith": "AbortAfterCommitForbidden"
+    }
+  ],
   "assetPrepared": {
     "hash": "0xb4cf1b9c4c7f0273f16bfd17b3c04d10c19c4ec2993e887d9a34dcd13cd4fd63",
     "sequence": "2",
     "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
+  },
+  "commit": {
+    "hash": "0x489e1d88fc1c9a5ce10687f471e83cadada9e31640cd3460083dd913fe15ceb4",
+    "sequence": "1"
+  },
+  "assetHeld": {
+    "hash": "0x771fe988890f688997555966bf22a182048346c632d868927a5e34320f36f108"
   }
 }

@@ -21,7 +21,7 @@ structure below is unchanged; what each phase must deliver is amended.
 | Phase 04 | settlement contracts and reference model | PASS        | reference model and contracts produce identical outcomes for generated traces                      |
 | Phase 05 | Cleanverse Validator integration         | IN PROGRESS | real Cleanverse eligibility result changes commit outcome on-chain                                 |
 | Phase 06 | full happy-path DvP                      | PASS        | CVA cash and restricted RWA settle under one intent, both chains publicly verifiable               |
-| Phase 07 | Disposition Kernel                       | NOT STARTED | every generated held case reaches an allowed terminal state or stays safely contested              |
+| Phase 07 | Disposition Kernel                       | IN PROGRESS | every generated held case reaches an allowed terminal state or stays safely contested              |
 | Phase 08 | evidence and verifier                    | NOT STARTED | new machine with only a settlement ID independently verifies the complete proof                    |
 | Phase 09 | hardening                                | NOT STARTED | all security, recovery, and chaos gates pass with no undisclosed critical issue                    |
 | Phase 10 | presentation proof                       | NOT STARTED | judge verifies both cases in under two minutes without private credentials                         |
@@ -41,7 +41,7 @@ item added upstream fails the build until it appears here.
 | Ineligible RWA CVA transfer fails through CCP policy.               | NOT STARTED | 03         |
 | Reservation prevents seller double-spend.                           | PASS        | 03         |
 | Reservation cannot cancel after COMMIT.                             | PASS        | 04         |
-| Held post-COMMIT RWA can be dispositioned once.                     | NOT STARTED | 07         |
+| Held post-COMMIT RWA can be dispositioned once.                     | IN PROGRESS | 07         |
 | Final demo uses the real registered CVA, not an ERC-3643-only mock. | NOT STARTED | 10         |
 | API compatibility fields are not confused with canonical RuleV2.    | NOT STARTED | 05         |
 | final web matches `design.md`.                                      | NOT STARTED | 06         |
