@@ -73,7 +73,12 @@ try {
     .locator('#onetrust-accept-btn-handler')
     .or(page.getByRole('button', { name: /accept cookies/i }))
     .first();
-  if (await consent.waitFor({ state: 'visible', timeout: 20_000 }).then(() => true, () => false)) {
+  if (
+    await consent.waitFor({ state: 'visible', timeout: 20_000 }).then(
+      () => true,
+      () => false,
+    )
+  ) {
     await consent.click({ timeout: 10_000 });
     await consent.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
     record('dismissed the consent banner');
@@ -132,8 +137,16 @@ try {
     page.getByRole('button', { name: /accept cookies/i }),
     page.getByRole('button', { name: /^accept/i }),
   ]) {
-    if (await candidate.first().isVisible().catch(() => false)) {
-      await candidate.first().click({ timeout: 10_000 }).catch(() => {});
+    if (
+      await candidate
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
+      await candidate
+        .first()
+        .click({ timeout: 10_000 })
+        .catch(() => {});
       record('dismissed the consent banner');
       await page.waitForTimeout(2_000);
       break;
@@ -164,18 +177,27 @@ try {
       // the page actually said, not against the FAQ. The first run classified
       // the boilerplate "Limit: One request per pairing…" as a refusal and
       // reported a failure that had not happened.
-      const before = await page.locator('body').innerText().catch(() => '');
+      const before = await page
+        .locator('body')
+        .innerText()
+        .catch(() => '');
 
       await submit.click({ timeout: 15_000 });
       record('clicked', await submit.innerText().catch(() => 'send'));
       await page.waitForTimeout(20_000);
 
-      const after = await page.locator('body').innerText().catch(() => '');
+      const after = await page
+        .locator('body')
+        .innerText()
+        .catch(() => '');
       const appeared = after
         .split('\n')
         .filter((line) => line.trim().length > 0 && !before.includes(line))
         .join('\n');
-      writeFileSync(join(OUT, 'circle-faucet-result.txt'), appeared.slice(0, 4_000) || after.slice(0, 4_000));
+      writeFileSync(
+        join(OUT, 'circle-faucet-result.txt'),
+        appeared.slice(0, 4_000) || after.slice(0, 4_000),
+      );
       record('page changed by', `${appeared.split('\n').length} lines`);
 
       if (/0x[0-9a-fA-F]{64}|success|sent|complete/i.test(appeared)) outcome = 'SENT';
@@ -186,11 +208,13 @@ try {
         // unclassified failure.
         outcome = 'CAPTCHA_BLOCKED';
         blockedBy = 'Circle reCAPTCHA rejected the automated session, headless and headed alike';
-      } else if (/limit exceeded|too many|rate limit|try again later/i.test(appeared)) outcome = 'RATE_LIMITED';
+      } else if (/limit exceeded|too many|rate limit|try again later/i.test(appeared))
+        outcome = 'RATE_LIMITED';
       else if (/error|failed|invalid/i.test(appeared)) outcome = 'REFUSED';
       else outcome = 'UNKNOWN';
       record('result', outcome);
-      if (appeared.trim().length > 0) console.log(`  page said: ${appeared.slice(0, 300).replace(/\n/g, ' | ')}`);
+      if (appeared.trim().length > 0)
+        console.log(`  page said: ${appeared.slice(0, 300).replace(/\n/g, ' | ')}`);
     } else {
       outcome = 'BLOCKED';
       blockedBy = 'no submit control found';
@@ -203,7 +227,9 @@ try {
   outcome = 'ERROR';
   blockedBy = error instanceof Error ? error.message.split('\n')[0] : String(error);
   record('error', blockedBy);
-  await page.screenshot({ path: join(OUT, 'circle-faucet-error.png'), fullPage: true }).catch(() => {});
+  await page
+    .screenshot({ path: join(OUT, 'circle-faucet-error.png'), fullPage: true })
+    .catch(() => {});
 } finally {
   await browser.close();
 }
