@@ -1,8 +1,10 @@
+import { encodeAbiParameters, hashDomain, hashTypedData, keccak256, toHex } from 'viem';
 import { describe, expect, it } from 'vitest';
 
 import {
   AttestationProblem,
   checkAttestation,
+  COMPLIANCE_ATTESTATION_TYPE,
   hashComplianceAttestation,
   type AttestationDomain,
   type ComplianceAttestation,
@@ -74,6 +76,41 @@ describe('compliance attestation hashing (PRD FR-006)', () => {
       ...(override as Partial<ComplianceAttestation>),
     });
     expect(changed).not.toBe(hashComplianceAttestation(DOMAIN, ATTESTATION));
+  });
+});
+
+describe('the domain that ended a live settlement', () => {
+  /**
+   * Attempt 3 called `signTypedData` with `domain: undefined` and kept a
+   * catch-based fallback that would have built the correct digest. The first
+   * path did not throw. viem accepts an absent domain, builds an EIP-712 domain
+   * with no fields at all, and signs over the resulting separator — so the
+   * fallback never ran and the signature covered a domain no contract uses.
+   *
+   * The coordinator recovered an unauthorised address and refused, which is the
+   * protocol behaving correctly. What is pinned here is that the two digests
+   * differ, so the mistake cannot be silent again: anything signing an
+   * attestation goes through `hashComplianceAttestation` with an explicit
+   * domain, and there is no path that treats a missing one as acceptable.
+   */
+  it('an absent domain is a different digest, not an error', () => {
+    const withoutDomain = hashTypedData({
+      types: COMPLIANCE_ATTESTATION_TYPE,
+      primaryType: 'ComplianceAttestation',
+      message: { ...ATTESTATION },
+    });
+
+    expect(withoutDomain).not.toBe(hashComplianceAttestation(DOMAIN, ATTESTATION));
+    // And it is well formed, which is exactly why nothing threw.
+    expect(withoutDomain).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+
+  it('the empty domain separator is the one Solidity pins as a stranger', () => {
+    // `ComplianceVerification.t.sol` recovers over this same separator and
+    // asserts the recovered address is not an authorized signer.
+    expect(
+      keccak256(encodeAbiParameters([{ type: 'bytes32' }], [keccak256(toHex('EIP712Domain()'))])),
+    ).toBe(hashDomain({ domain: {}, types: { EIP712Domain: [] } }));
   });
 });
 

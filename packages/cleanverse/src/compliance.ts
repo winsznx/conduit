@@ -1,7 +1,8 @@
-import { keccak256, toHex, type Address, type Hex } from 'viem';
+import { concatHex, keccak256, toHex, type Address, type Hex } from 'viem';
 
+import { VerifyApassCode } from './codes.js';
 import { CleanverseApiError } from './errors.js';
-import { validatorVerifyDataSchema } from './schemas.js';
+import { validatorVerifyDataSchema, verifyApassDataSchema } from './schemas.js';
 
 import type { CleanverseClient } from './client.js';
 
@@ -144,6 +145,172 @@ export async function attestEligibility(
       responseHash: result.responseHash,
       redactedBody: result.redactedBody,
       reason: result.data.reason,
+    },
+  };
+}
+
+/**
+ * One eligibility answer from one Cleanverse endpoint.
+ *
+ * Kept separate rather than merged into a boolean, because which endpoint said
+ * what is the part an auditor needs and the part a boolean discards.
+ */
+export interface EligibilitySource {
+  readonly endpoint: string;
+  readonly requestId: string;
+  readonly eligible: boolean;
+  /** The endpoint's own answer, verbatim: `code: 4`, `valid: true`. */
+  readonly answer: string;
+  readonly responseHash: Hex;
+  readonly redactedBody: unknown;
+}
+
+export interface EligibilityDecision {
+  readonly subject: Address;
+  readonly chain: string;
+  readonly eligible: boolean;
+  readonly sources: readonly EligibilitySource[];
+  /**
+   * keccak256 over the source response hashes, in the order they were asked.
+   *
+   * The single-source case is *not* the bare response hash. A fixed
+   * construction means the on-chain `evidenceHash` always means the same thing,
+   * and a verifier recomputing it does not need to know how many endpoints
+   * happened to be available for that chain.
+   */
+  readonly evidenceHash: Hex;
+}
+
+/**
+ * The commit-time eligibility question, asked of every endpoint that can answer
+ * it for this chain.
+ *
+ * Two endpoints answer it and they are not interchangeable:
+ *
+ * **`verify_apass`** is asked against the A-Token and answers for any chain the
+ * token is issued on. Result code 4 is the only value that permits a transfer;
+ * CLAUDE.md states that as an invariant and 1, 2, and 3 are all refusals with
+ * different reasons. This is the only source available on the asset chain,
+ * because `validator/grant` on Base was refused for this credential and so no
+ * Conduit pool is registered there (ASM-037).
+ *
+ * **`validator/verify`** is asked against a *registered pool*, not a token. On
+ * Monad the pool is `CashEscrow`, registered through `ConduitVaultRegistrar`.
+ * Asking it about a token address returns `12027 Validator verify returned no
+ * data`, which reads as an outage and is a wrong argument — it cost a preflight
+ * run to tell those apart.
+ *
+ * Where both answer, both must say yes. An `AND` is the only safe combination:
+ * either endpoint refusing is a refusal, and requiring agreement cannot be
+ * weaker than trusting one of them.
+ *
+ * An API failure from any source throws. It never becomes `eligible: false`,
+ * because a refusal is a decision the authority made and an outage is not.
+ */
+export async function queryEligibility(
+  client: CleanverseClient,
+  request: {
+    readonly chain: string;
+    readonly subject: Address;
+    /** The A-Token the transfer is in. `verify_apass` is asked against this. */
+    readonly atoken: Address;
+    /** A registered validator pool, when this chain has one. */
+    readonly poolAddress?: Address | undefined;
+  },
+): Promise<EligibilityDecision> {
+  const sources: EligibilitySource[] = [];
+
+  const apass = await client.call(
+    'verifyApass',
+    { chain: request.chain, address: request.subject, atoken: request.atoken },
+    verifyApassDataSchema,
+  );
+  sources.push({
+    endpoint: apass.path,
+    requestId: apass.requestId,
+    eligible: apass.data.code === VerifyApassCode.ALLOWED,
+    answer: `code ${String(apass.data.code)}`,
+    responseHash: apass.responseHash,
+    redactedBody: apass.redactedBody,
+  });
+
+  if (request.poolAddress !== undefined) {
+    const validator = await client.call(
+      'validatorVerify',
+      {
+        chain: request.chain,
+        contract_address: request.poolAddress,
+        user_address: request.subject,
+      },
+      validatorVerifyDataSchema,
+    );
+    sources.push({
+      endpoint: validator.path,
+      requestId: validator.requestId,
+      eligible: validator.data.valid,
+      answer: `valid ${String(validator.data.valid)}`,
+      responseHash: validator.responseHash,
+      redactedBody: validator.redactedBody,
+    });
+  }
+
+  return {
+    subject: request.subject,
+    chain: request.chain,
+    eligible: sources.every((source) => source.eligible),
+    sources,
+    evidenceHash: keccak256(concatHex(sources.map((source) => source.responseHash))),
+  };
+}
+
+/**
+ * Signs a decision that has already been obtained.
+ *
+ * Split from `attestEligibility` so the caller controls *when* the question is
+ * asked. On a cross-chain settlement that matters: the commit proofs have to be
+ * minted after the source chain reaches finality, because the contract's
+ * `maxAttestationValidity` is shorter than the wait and an earlier answer is
+ * expired by the time it would be presented.
+ */
+export async function attestDecision(
+  signer: AttestationSigner,
+  request: Omit<AttestationRequest, 'subject'> & { readonly subject: Address },
+  decision: EligibilityDecision,
+  hashDigest: (attestation: {
+    settlementId: Hex;
+    intentHash: Hex;
+    subject: Address;
+    eligible: boolean;
+    issuedAt: bigint;
+    expiresAt: bigint;
+    evidenceHash: Hex;
+  }) => Hex,
+  clock: AttestationClock = { now: () => Date.now() },
+): Promise<SignedAttestation> {
+  const issuedAt = BigInt(Math.floor(clock.now() / 1000));
+  const attestation = {
+    settlementId: request.settlementId,
+    intentHash: request.intentHash,
+    subject: request.subject,
+    eligible: decision.eligible,
+    issuedAt,
+    expiresAt: issuedAt + BigInt(request.validitySeconds),
+    evidenceHash: decision.evidenceHash,
+  };
+
+  const signature = await signer.signDigest(hashDigest(attestation));
+  const last = decision.sources[decision.sources.length - 1];
+
+  return {
+    ...attestation,
+    signature,
+    evidence: {
+      endpoint: decision.sources.map((source) => source.endpoint).join(' + '),
+      requestId: decision.sources.map((source) => source.requestId).join(' '),
+      code: decision.sources.map((source) => source.answer).join(' '),
+      responseHash: decision.evidenceHash,
+      redactedBody: decision.sources.map((source) => source.redactedBody),
+      reason: last === undefined ? undefined : last.answer,
     },
   };
 }

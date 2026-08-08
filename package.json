@@ -29,6 +29,8 @@
     "security:audit": "pnpm audit --audit-level moderate",
     "security:secrets": "node scripts/scan-secrets.mjs",
     "manifest:check": "node scripts/check-deployment-manifests.mjs",
+    "dvp:preflight": "node --env-file=.env scripts/dvp-preflight.mjs",
+    "dvp:run": "node --env-file=.env scripts/run-dvp.mjs",
     "verify": "node scripts/verify.mjs",
     "clean": "rm -rf node_modules '**/node_modules' '**/dist' '**/*.tsbuildinfo' cache out coverage"
   },

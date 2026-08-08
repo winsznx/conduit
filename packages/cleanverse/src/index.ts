@@ -129,12 +129,16 @@ export {
 } from './schemas.js';
 
 export {
+  attestDecision,
   attestEligibility,
   evidenceHashOf,
   isComplianceDecision,
+  queryEligibility,
   type AttestationClock,
   type AttestationRequest,
   type AttestationSigner,
   type AttestationSubject,
+  type EligibilityDecision,
+  type EligibilitySource,
   type SignedAttestation,
 } from './compliance.js';

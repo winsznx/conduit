@@ -139,6 +139,48 @@ abstract contract ComplianceAuthority {
 
     // ── Verification ─────────────────────────────────────────────────────────
 
+    /// @notice The exact eligibility question the value-moving paths ask, as a
+    ///         view anyone can call.
+    ///
+    /// @dev Two callers need this and neither should have to send a transaction
+    ///      to find out. A preflight must be able to prove that the proof it is
+    ///      about to submit verifies here — against this contract's own domain
+    ///      separator and signer set, not against a local reimplementation of
+    ///      them — before a settlement is twenty-five minutes old. And PRD 15.2's
+    ///      independent verifier has to check a settled proof without trusting
+    ///      the application database, which means asking the contract rather than
+    ///      re-deriving its answer.
+    ///
+    ///      It shares `_countAttestations` with the release paths rather than
+    ///      restating the checks, so the two cannot drift. A malformed proof
+    ///      reverts here exactly as it would there; a shortfall returns false,
+    ///      which is the release paths' behaviour rather than `issueCommit`'s
+    ///      revert. The difference is deliberate and it is the one place this is
+    ///      not identical to the commit path: a caller wanting the commit
+    ///      semantics reads `false` and stops.
+    function verifyEligible(
+        bytes32 settlementId,
+        bytes32 intentHash,
+        address subject,
+        ComplianceProof calldata proof
+    ) external view returns (bool) {
+        return _isEligible(settlementId, intentHash, subject, proof);
+    }
+
+    /// @notice Whether the quorum has explicitly refused, as a view.
+    ///
+    /// @dev Separate from `verifyEligible` for the reason `_isRefused` is
+    ///      separate from `_isEligible`: silence and refusal are different
+    ///      answers and only one of them is grounds for an abort.
+    function verifyRefused(
+        bytes32 settlementId,
+        bytes32 intentHash,
+        address subject,
+        ComplianceProof calldata proof
+    ) external view returns (bool) {
+        return _isRefused(settlementId, intentHash, subject, proof);
+    }
+
     /// @notice Requires `quorum` distinct authorized signers to attest `subject`
     ///         eligible for this exact settlement and intent, right now.
     ///
