@@ -1,0 +1,64 @@
+{
+  "capturedAt": "2026-08-08T02:00:00.000Z",
+  "outcome": "FIRST_DIVERGENCE_AT_ISSUE_COMMIT",
+  "classification": "HARNESS_DEFECT",
+  "note": "Not a protocol failure. The coordinator refused a malformed compliance proof correctly. Everything upstream of it ran on real contracts and real cross-chain messages.",
+  "settlementId": "0xf01d9d659f31744a83efa43a010f694ba40dfe5eb5d99f6fe3e17df2f32eda02",
+  "party": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "amounts": { "cash": "25000000 cSETTLE", "asset": "500000 cBOND" },
+  "stages": [
+    {
+      "stage": "asset reserve (Base Sepolia)",
+      "tx": "0x101e9377b0f767a056f6077b60cef47c03d836437b95e34a41a0ae2d1346d51e",
+      "sellerAvailableBefore": "1500000",
+      "reserved": "500000",
+      "result": "success"
+    },
+    {
+      "stage": "ASSET_PREPARED published (Base Sepolia)",
+      "tx": "0x78b41b99c33f9fd4916d7a872edee0416ff21eca9673c678b1f458a90039eef9",
+      "wormholeSequence": "0",
+      "emitter": "RWACVASettlementAdapter 0x3A2ae3018C544B9DdDBA7dD9ED1b8d374114E398",
+      "result": "success",
+      "note": "prepareAsset succeeded here, on the same call that reverted in the previous run. Consistent with the stale-read hypothesis; not by itself proof of it. ASM open."
+    },
+    {
+      "stage": "cash prepared (Monad Testnet)",
+      "tx": "0xb0b80c07612b92f1170a3870ee83c850171b0972f25aedf47480abbaf48f3c97",
+      "amount": "25000000",
+      "result": "success"
+    },
+    { "stage": "coordinator records the local cash leg", "result": "success" },
+    {
+      "stage": "finalized ASSET_PREPARED VAA observed",
+      "waitSeconds": 1485,
+      "consistency": "FINALIZED",
+      "note": "Real Base Sepolia economic finality, not the 2.6s instant path. Nothing was downgraded to make this faster."
+    },
+    {
+      "stage": "coordinator consumes the ASSET_PREPARED VAA (Monad Testnet)",
+      "tx": "0x659ba6528900f21b35c9d9b4547dd33dd98b792c0d10c1764de9e985c7e797fa",
+      "result": "success",
+      "proves": [
+        "a producer-originated message crossed Base to Monad and was accepted by the real consumer",
+        "peer emitter and emitter chain verified against the locked peer",
+        "deployment id, protocol version and destination chain verified",
+        "settlement finality enforced: an instant VAA would have been refused"
+      ]
+    },
+    {
+      "stage": "issueCommit (Monad Testnet)",
+      "result": "reverted",
+      "selector": "0xb786da5e",
+      "decoded": "AttestationSignerNotAuthorized(address)",
+      "cause": "The runner built the attestation with viem signTypedData against an undefined domain and kept a catch-based fallback that would have signed the correct digest. The first path did not throw, it succeeded incorrectly, so the fallback never ran and the signature covered a domain the contract does not use. The coordinator recovered an unauthorised address and refused.",
+      "classification": "HARNESS_DEFECT",
+      "protocolBehaviour": "correct — a malformed proof was rejected rather than accepted"
+    }
+  ],
+  "fix": "proofFor now derives the EIP-712 digest explicitly from the verifying contract's own attestationDomainSeparator, signs the raw hash, and recovers it locally before returning. A wrong signer fails in the second rather than twenty-five minutes into a live settlement. No fallback and no catch.",
+  "stillOpen": [
+    "prepareAsset stale-read hypothesis needs the field-by-field capture and dual-provider check",
+    "issueCommit onward is unproven: COMMIT, both releases, SETTLED_FINAL, replay rejection, post-COMMIT refund rejection, verifier agreement"
+  ]
+}

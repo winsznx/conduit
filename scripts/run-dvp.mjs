@@ -30,6 +30,7 @@ import {
   encodeAbiParameters,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { recoverAddress } from 'viem';
 
 import { ROOT } from './lib/run.mjs';
 
@@ -291,86 +292,75 @@ console.log(`settlementId ${settlementId}`);
 console.log(`buyer/seller ${BUYER}`);
 console.log(`cash  ${CASH_AMOUNT} cSETTLE     asset ${ASSET_AMOUNT} cBOND`);
 
-/** An eligible attestation for one subject, bound to the verifying contract. */
+/**
+ * An eligible attestation for one subject, bound to the verifying contract.
+ *
+ * The digest is built explicitly from that contract's own domain separator and
+ * signed raw. An earlier version tried `signTypedData` first and fell back to
+ * this in a `catch`, which is how it produced a signature over a domain the
+ * contract never uses: the first path did not throw, it succeeded incorrectly,
+ * and the fallback never ran. The coordinator recovered an address nobody
+ * authorised and answered `AttestationSignerNotAuthorized` — a correct refusal
+ * of a malformed proof, twenty-five minutes into a live settlement.
+ */
+const ATTESTATION_TYPEHASH = keccak256(
+  new TextEncoder().encode(
+    'ComplianceAttestation(bytes32 settlementId,bytes32 intentHash,address subject,bool eligible,uint64 issuedAt,uint64 expiresAt,bytes32 evidenceHash)',
+  ),
+);
+
 async function proofFor(chain, verifying, subject) {
   const domain = await chain.pub.readContract({
     address: verifying,
     abi: ESCROW_ABI,
     functionName: 'attestationDomainSeparator',
   });
+
   const issuedAt = BigInt(Math.floor(Date.now() / 1000) - 60);
-  const a = {
-    settlementId,
-    intentHash: settlementId,
-    subject,
-    eligible: true,
-    issuedAt,
-    expiresAt: issuedAt + 800n,
-    evidenceHash: keccak256('0x03'),
+  const expiresAt = issuedAt + 800n;
+  const evidenceHash = keccak256('0x03');
+
+  const structHash = keccak256(
+    encodeAbiParameters(
+      [
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'bytes32' },
+        { type: 'address' },
+        { type: 'bool' },
+        { type: 'uint64' },
+        { type: 'uint64' },
+        { type: 'bytes32' },
+      ],
+      [
+        ATTESTATION_TYPEHASH,
+        settlementId,
+        settlementId,
+        subject,
+        true,
+        issuedAt,
+        expiresAt,
+        evidenceHash,
+      ],
+    ),
+  );
+  const digest = keccak256(
+    encodePacked(['bytes2', 'bytes32', 'bytes32'], ['0x1901', domain, structHash]),
+  );
+  const signature = await complianceSigner.sign({ hash: digest });
+
+  // The contract will recover this; recovering it here first means a wrong
+  // signer is caught in the second before the transaction rather than in the
+  // revert after it.
+  const recovered = await recoverAddress({ hash: digest, signature });
+  if (recovered.toLowerCase() !== complianceSigner.address.toLowerCase()) {
+    throw new Error(`attestation recovers to ${recovered}, expected ${complianceSigner.address}`);
+  }
+
+  return {
+    attestations: [[settlementId, settlementId, subject, true, issuedAt, expiresAt, evidenceHash]],
+    signatures: [signature],
   };
-  const signature = await complianceSigner
-    .signTypedData({
-      domain: undefined,
-      types: {
-        ComplianceAttestation: [
-          { name: 'settlementId', type: 'bytes32' },
-          { name: 'intentHash', type: 'bytes32' },
-          { name: 'subject', type: 'address' },
-          { name: 'eligible', type: 'bool' },
-          { name: 'issuedAt', type: 'uint64' },
-          { name: 'expiresAt', type: 'uint64' },
-          { name: 'evidenceHash', type: 'bytes32' },
-        ],
-      },
-      primaryType: 'ComplianceAttestation',
-      message: a,
-      // The struct hash is combined with the contract's own separator below.
-      __rawDomainSeparator: domain,
-    })
-    .catch(async () => {
-      const structHash = keccak256(
-        encodeAbiParameters(
-          [
-            { type: 'bytes32' },
-            { type: 'bytes32' },
-            { type: 'bytes32' },
-            { type: 'address' },
-            { type: 'bool' },
-            { type: 'uint64' },
-            { type: 'uint64' },
-            { type: 'bytes32' },
-          ],
-          [
-            keccak256(
-              new TextEncoder().encode(
-                'ComplianceAttestation(bytes32 settlementId,bytes32 intentHash,address subject,bool eligible,uint64 issuedAt,uint64 expiresAt,bytes32 evidenceHash)',
-              ),
-            ),
-            a.settlementId,
-            a.intentHash,
-            a.subject,
-            a.eligible,
-            a.issuedAt,
-            a.expiresAt,
-            a.evidenceHash,
-          ],
-        ),
-      );
-      const digest = keccak256(
-        encodePacked(['bytes2', 'bytes32', 'bytes32'], ['0x1901', domain, structHash]),
-      );
-      return complianceSigner.sign({ hash: digest });
-    });
-  const tuple = [
-    a.settlementId,
-    a.intentHash,
-    a.subject,
-    a.eligible,
-    a.issuedAt,
-    a.expiresAt,
-    a.evidenceHash,
-  ];
-  return { attestations: [tuple], signatures: [signature] };
 }
 
 const evidence = { settlementId, startedAt: new Date().toISOString(), steps: {} };
