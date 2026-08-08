@@ -99,6 +99,15 @@ const RULE_ABI = parseAbi([
   `function getRulesV2() view returns (${RULE}[])`,
 ]);
 
+const PROOF = '((bytes32,bytes32,address,bool,uint64,uint64,bytes32)[],bytes[])';
+const DISPOSITION_ABI = parseAbi([
+  `function resolveHeldAsset(bytes32 settlementId, ${PROOF} compliance)`,
+  `function resolveHeldCash(bytes32 settlementId, ${PROOF} compliance)`,
+]);
+
+/** `cast sig`, pinned so a signature change fails the presence check loudly. */
+const RESOLVE_HELD_ASSET_SELECTOR = '1911b514';
+
 /** The holder's A-Pass tier on Base is 20, so 21 is the smallest real refusal. */
 const RESTRICTIVE = ['0x0000', '0x0000', 21, 0, false, 0n];
 const PERMISSIVE = ['0x0000', '0x0000', 0, 0, false, 0n];
@@ -964,34 +973,129 @@ async function main() {
 
   await conservation('after');
 
-  // ── what this deployment cannot do ────────────────────────────────────────
+  // ── the disposition, if this generation carries one ───────────────────────
 
-  {
-    const entry = stage('the disposition this generation cannot perform');
-    const code = await base.pub.getCode({ address: addresses.adapter });
-    // `resolveHeldAsset(bytes32,((...)[],bytes[]))`
-    const selector = '2a4c0d4d';
-    const present = code.includes(selector);
-    record(entry, 'resolveHeldAssetPresentInBytecode', present);
+  const entry = stage('disposition');
+  const code = await base.pub.getCode({ address: addresses.adapter });
+  const canDisposition = code.includes(RESOLVE_HELD_ASSET_SELECTOR);
+  record(entry, 'resolveHeldAssetPresentInBytecode', canDisposition);
+
+  if (!canDisposition) {
     log.warn(
-      'resolveHeldAsset is not in the deployed adapter. The held bond stays held until a new ' +
-        'deployment generation carries it, which is blocked on Monad gas — see ' +
-        'docs/evidence/phase-07-generation-2-blocked.json. The path itself is proven in ' +
-        'CrossChainSettlementSeam.t.sol against producer-originated messages.',
+      'resolveHeldAsset is not in this deployed adapter, so the held bond stays held. The path ' +
+        'is proven in CrossChainSettlementSeam.t.sol against producer-originated messages and ' +
+        'needs the deployment generation blocked in phase-07-generation-2-blocked.json.',
     );
     evidence.dispositionBlocked = {
       reason: 'resolveHeldAsset postdates this deployment generation',
       provenIn: 'contracts/test/CrossChainSettlementSeam.t.sol test_12',
       blockedBy: 'docs/evidence/phase-07-generation-2-blocked.json',
     };
+    evidence.outcome = 'HELD_ON_REAL_COMPLIANCE_CHANGE';
+    return;
   }
 
-  evidence.outcome = 'HELD_ON_REAL_COMPLIANCE_CHANGE';
+  // ── REVERIFY_AND_RESUME ───────────────────────────────────────────────────
+  //
+  // The authority has revised its answer and the destination has not changed.
+  // That is the one disposition order type reachable without the authority
+  // registry: no rebinding, no substitution, and the receiver is still the one
+  // the intent named.
+
+  const { decision: nowEligible } = await complianceSnapshot('at disposition time');
+  if (!nowEligible.eligible) {
+    throw new Error('the receiver is still ineligible; the disposition would only re-hold');
+  }
+
+  const proof = await proofFor(base, addresses.adapter, terms.assetReceiver, nowEligible);
+  const resolveResult = await submit(base, {
+    label: 'resolveHeldAsset',
+    log,
+    request: {
+      address: addresses.adapter,
+      abi: DISPOSITION_ABI,
+      functionName: 'resolveHeldAsset',
+      args: [settlementId, proof],
+    },
+    postState: {
+      describe: 'the reservation is released',
+      read: async (client) =>
+        reservation(
+          await client.readContract({
+            address: addresses.rwa,
+            abi: RWA_ABI,
+            functionName: 'reservationOf',
+            args: [settlementId],
+          }),
+        ).released,
+      matches: (v) => v === true,
+    },
+  });
+  record(entry, 'resolveHeldAsset', resolveResult.hash);
+  evidence.disposition = { type: 'REVERIFY_AND_RESUME', hash: resolveResult.hash };
+  log.ok('the bond is delivered to the receiver the intent named, and nowhere else');
+
+  // The coordinator has to hear about it, or the settlement stays HELD there.
+  const report = await submit(base, {
+    label: 'reportResolution after disposition',
+    log,
+    request: {
+      address: addresses.adapter,
+      abi: ADAPTER_ABI,
+      functionName: 'reportResolution',
+      args: [settlementId, BigInt(MONAD_EVM_CHAIN_ID), 1],
+    },
+  });
+  const published = sequenceFrom(report.receipt);
+  record(entry, 'reportResolution', report.hash);
+
+  const { vaa, waitSeconds } = await fetchVaa(
+    base.wormholeChainId,
+    padEmitter(addresses.adapter),
+    String(published.sequence),
+    { log, label: 'finalized ASSET_RELEASED' },
+  );
+  record(entry, 'dispositionReportWaitSeconds', waitSeconds);
+
+  // HELD -> RELEASED is a forward move the coordinator allows precisely so a
+  // disposition can complete one. PRD 7.1 lists it; nothing else uses it.
+  const settled = await submit(monad, {
+    label: 'recordLegResolved(ASSET_RELEASED) after disposition',
+    log,
+    request: {
+      address: addresses.coordinator,
+      abi: COORDINATOR_ABI,
+      functionName: 'recordLegResolved',
+      args: [vaa, MessageType.ASSET_RELEASED, LegOutcome.RELEASED],
+    },
+    postState: {
+      describe: 'the settlement is terminal',
+      read: async (client) =>
+        settlement(
+          await client.readContract({
+            address: addresses.coordinator,
+            abi: COORDINATOR_ABI,
+            functionName: 'settlementOf',
+            args: [settlementId],
+          }),
+        ).state,
+      matches: (v) => v === 'SETTLED',
+    },
+  });
+  record(entry, 'recordLegResolved', settled.hash);
+  evidence.settled = { hash: settled.hash };
+
+  await conservation('after disposition');
+  evidence.outcome = 'HELD_THEN_DISPOSITIONED_TO_SETTLED';
 }
 
 try {
   await main();
-  log.ok('HELD on a real compliance change, no refund, no illegal delivery');
+  log.ok(
+    evidence.outcome === 'HELD_THEN_DISPOSITIONED_TO_SETTLED'
+      ? 'HELD on a real compliance change, then dispositioned to SETTLED'
+      : 'HELD on a real compliance change, no refund, no illegal delivery',
+  );
 } catch (error) {
   evidence.outcome = 'FAILED';
   evidence.failure = {
