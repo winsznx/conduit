@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-08-08T14:30:00.000Z",
+  "outcome": "BLOCKED",
+  "classification": "EXTERNAL_CAPABILITY_UNAVAILABLE",
+  "what": "The HELD-capable deployment generation cannot be completed. The Monad Testnet deployer has 0.305 MON and the coordinator plus escrow cost 0.879 MON at the current gas price. This is a testnet funding limit, not a protocol or code problem: the contracts build, the full HELD path is proven in tests against producer-originated messages, and the Base half of the generation is already deployed.",
+  "exactRequest": {
+    "command": "forge script contracts/script/DeployCashLeg.s.sol:DeployCashLeg --rpc-url $MONAD_TESTNET_RPC_URL --broadcast --slow",
+    "chain": "monadTestnet",
+    "chainId": 10143
+  },
+  "response": {
+    "error": "Failed to send transaction after 4 attempts: Failed to estimate gas for tx — server returned an error response: error code -32603: out of gas",
+    "note": "The node reports out of gas during estimation because the sender cannot cover the estimate, not because the transaction exceeds the block limit. The block gas limit is 150,000,000 and the deployment needs 8,619,201."
+  },
+  "arithmetic": {
+    "deployerBalanceWei": "305287297033817554",
+    "deployerBalanceMon": 0.3052872970338175,
+    "gasPriceWei": "102000000000",
+    "gasAffordable": 2993012,
+    "gasRequired": 8619201,
+    "breakdown": {
+      "SettlementCoordinator": 5058236,
+      "CashEscrow": 3482663,
+      "setCashEscrow": 78302
+    },
+    "costAtCurrentPriceMon": 0.879158502,
+    "shortfallMon": 0.573871205,
+    "measuredFrom": "broadcast/DeployCashLeg.s.sol/10143/run-1786179289805.json, the generation-1 deployment of the same two contracts"
+  },
+  "whyBothContractsAreNeeded": "The HELD path adds `resolveHeldCash` to CashEscrow, so the escrow must be redeployed. `SettlementCoordinator.setCashEscrow` is callable once and then permanently fixed, by design — it closes the window in which an owner could repoint the coordinator at a different escrow. A new escrow therefore requires a new coordinator, and the coordinator is the expensive half. The lock is correct and this is its cost.",
+  "whyTheBaseHalfDoesNotHelpAlone": "RWACVASettlementAdapter for generation 2 is deployed at 0x51c3D536e94fB5b944c2AF8946d6916543bdf93a with `resolveHeldAsset`, unwired. It could consume COMMIT VAAs from the existing coordinator, because a consumer checks its own configured peer and the producer does not check who consumes. But the existing coordinator's peer emitter is locked to the generation-1 adapter, so it would refuse this adapter's ASSET_PREPARED and its ASSET_RELEASED. The settlement could not reach READY and could not reach a terminal state, so a live asset-side disposition cannot be driven through it.",
+  "faucet": {
+    "endpoint": "https://faucet.monad.xyz/api/claim",
+    "status": 429,
+    "note": "Rate limited, and gated behind a browser challenge. Not automatable from here, and working around a rate limit is not something this run will attempt."
+  },
+  "whatIsProvenWithoutIt": {
+    "heldToTerminal": "contracts/test/CrossChainSettlementSeam.t.sol test_12_AHeldSettlementReachesTerminalThroughDisposition — both legs held after COMMIT, both resolved through REVERIFY_AND_RESUME, ASSET_RELEASED reported back, SETTLED, conservation exact. Driven by producer-originated messages across two chain IDs.",
+    "dispositionRefusesWhenComplianceHasNotChanged": "test_12b — the retry moves nothing and does not revert, so a committed leg is never stranded.",
+    "dispositionCannotTouchAnUnheldLeg": "test_12c",
+    "heldValueHasExactlyOneWayOut": "contracts/test/ExploitRegressions.t.sol test_D_AHeldCashLegHasExactlyOneWayOut — releaseCash and returnCash both refuse a HELD leg, no refund exists because a COMMIT was issued, and resolveHeldCash is the single reachable path.",
+    "thatPathHasNoDestinationParameter": "test_D_TheOneWayOutHasNoDestinationParameter — an attacker calling it sends the value to the intent's receiver, because there is nowhere else it can go."
+  },
+  "toUnblock": [
+    "Fund 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb on Monad Testnet with at least 1 MON. 0.879 covers the deployment at the current price and the rest covers the live scenario's transactions.",
+    "Then: deploy the coordinator and escrow, wire peers, revoke SETTLEMENT_ROLE from the generation-1 adapter, re-register the new escrow for CVI custody, re-emit both manifests under the new deployment id, and run scripts/prove-generation-isolation.mjs.",
+    "The Base adapter at 0x51c3D536e94fB5b944c2AF8946d6916543bdf93a is already deployed and can be reused, or redeployed for 0.0001 ETH if its peer must be locked to a different coordinator."
+  ],
+  "environmentReverted": "`.env` is back on generation 1, the stack phase 06 settled on, so the preflight, the runner and the verifier all still describe what is live. The generation-2 adapter is recorded under PENDING_GENERATION_2_ADAPTER rather than left where a script would pick it up."
+}

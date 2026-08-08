@@ -1,6 +1,6 @@
 import { concatHex, keccak256, toHex, type Address, type Hex } from 'viem';
 
-import { VerifyApassCode } from './codes.js';
+import { policyRefusalIn, VerifyApassCode } from './codes.js';
 import { CleanverseApiError } from './errors.js';
 import { validatorVerifyDataSchema, verifyApassDataSchema } from './schemas.js';
 
@@ -220,19 +220,35 @@ export async function queryEligibility(
 ): Promise<EligibilityDecision> {
   const sources: EligibilitySource[] = [];
 
-  const apass = await client.call(
-    'verifyApass',
-    { chain: request.chain, address: request.subject, atoken: request.atoken },
-    verifyApassDataSchema,
-  );
-  sources.push({
-    endpoint: apass.path,
-    requestId: apass.requestId,
-    eligible: apass.data.code === VerifyApassCode.ALLOWED,
-    answer: `code ${String(apass.data.code)}`,
-    responseHash: apass.responseHash,
-    redactedBody: apass.redactedBody,
-  });
+  try {
+    const apass = await client.call(
+      'verifyApass',
+      { chain: request.chain, address: request.subject, atoken: request.atoken },
+      verifyApassDataSchema,
+    );
+    sources.push({
+      endpoint: apass.path,
+      requestId: apass.requestId,
+      eligible: apass.data.code === VerifyApassCode.ALLOWED,
+      answer: `code ${String(apass.data.code)}`,
+      responseHash: apass.responseHash,
+      redactedBody: apass.redactedBody,
+    });
+  } catch (error) {
+    // A policy refusal arrives through the error envelope. It is a decision and
+    // is recorded as one; anything else is an outage and still throws.
+    if (!(error instanceof CleanverseApiError)) throw error;
+    const marker = policyRefusalIn(error.apiMessage);
+    if (marker === undefined) throw error;
+    sources.push({
+      endpoint: '/verify_apass',
+      requestId: error.requestId ?? 'unknown',
+      eligible: false,
+      answer: `refused by policy: ${marker}`,
+      responseHash: keccak256(toHex(error.apiMessage)),
+      redactedBody: { code: error.code, refusal: marker },
+    });
+  }
 
   if (request.poolAddress !== undefined) {
     const validator = await client.call(

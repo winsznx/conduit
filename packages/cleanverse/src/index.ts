@@ -128,6 +128,8 @@ export {
   type ApplyStatusValue,
 } from './schemas.js';
 
+export { policyRefusalIn, POLICY_REFUSAL_MARKERS } from './codes.js';
+
 export {
   attestDecision,
   attestEligibility,

@@ -85,3 +85,49 @@ export function describeVerifyApassCode(code: number): string {
       return `undocumented verify_apass code ${String(code)}`;
   }
 }
+
+/**
+ * Policy refusals the gateway reports through the *error* envelope.
+ *
+ * `verify_apass` answers a permitted transfer with envelope `0000` and inner
+ * code 4. It answers a refusal the on-chain policy computed with envelope
+ * `0002` and a message carrying the policy's own custom error, observed live:
+ *
+ * ```text
+ *   Failed to validate atoken: failed to check apass: custom err name
+ *   TierTooLow, revert data: 0x9742a8f1…83c130ed…0015…0014
+ * ```
+ *
+ * That is a decision — the subject holds tier 20 and the pool now requires 21 —
+ * arriving down the channel reserved for failures. Treating it as an outage
+ * would make a real refusal look like a retryable fault and fail *open* on the
+ * retry; treating every `0002` as a refusal would turn a genuine outage into a
+ * signed compliance judgement nobody made. So the markers are named
+ * individually, and anything not on this list still throws.
+ *
+ * PRD 2.2 makes non-eligibility a legitimate answer rather than an error, and
+ * this is the shape it actually takes on the wire.
+ */
+export const POLICY_REFUSAL_MARKERS: readonly string[] = Object.freeze([
+  'TierTooLow',
+  'SubTierTooLow',
+  'GroupNotAllowed',
+  'SubGroupNotAllowed',
+  'CountryNotAllowed',
+  'BlackListed',
+  'ComplianceFailed',
+  'NoAPass',
+  'TransferNotAllowed',
+]);
+
+/**
+ * Whether a gateway error message carries a policy decision rather than a fault.
+ *
+ * @returns the marker that matched, so the caller can record which refusal it
+ *          was rather than only that there was one.
+ */
+export function policyRefusalIn(message: string): string | undefined {
+  return POLICY_REFUSAL_MARKERS.find((marker) =>
+    message.toLowerCase().includes(marker.toLowerCase()),
+  );
+}

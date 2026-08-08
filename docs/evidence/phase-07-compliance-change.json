@@ -1,0 +1,107 @@
+{
+  "startedAt": "2026-08-08T13:30:52.162Z",
+  "scenario": "post-COMMIT compliance change, Path B: issuer-controlled RuleV2 transition",
+  "resumedFrom": null,
+  "settlementId": "0x2b8ff0a739d575f9fb680b1df185d65c58ad74aa454de10c4c4f65c9a988e0bd",
+  "outcome": "INCOMPLETE",
+  "intent": {
+    "version": "1",
+    "cashChainId": "10143",
+    "cashEscrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "cashAsset": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "cashAmount": "25000000",
+    "cashPayer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "cashReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "assetChainId": "84532",
+    "assetEscrow": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "assetToken": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "assetAmount": "500000",
+    "assetSeller": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "assetReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "cashPolicyHash": "0xf03ae622483beb58cec471b5013bba399164b26ffd13f91cb8b32098c7b3fc2e",
+    "assetPolicyHash": "0x2d19ad738cb6b4bd7b6097eb701fcbe3a1a15f52ddf9e9535291551c16d98c79",
+    "prepareDeadline": "1786199452",
+    "commitDeadline": "1786206652",
+    "releaseDeadline": "1786210252",
+    "nonce": "7"
+  },
+  "addresses": {
+    "coordinator": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "escrow": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+    "cash": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "rwa": "0x7a78912533b43C483621200b4919806c0B855E5b",
+    "adapter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+    "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+    "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+    "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+    "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
+  },
+  "stages": [
+    {
+      "stage": "Base Sepolia: reserve and announce",
+      "at": "2026-08-08T13:31:34.043Z",
+      "detail": {
+        "reserve": "0xc85a1e27c0f9b50bcc3221368babf8724479f7298d02e5855b171ee0d4957e84",
+        "prepareAsset": "0xb4cf1b9c4c7f0273f16bfd17b3c04d10c19c4ec2993e887d9a34dcd13cd4fd63",
+        "sequence": "2"
+      }
+    },
+    {
+      "stage": "Monad Testnet: the cash enters escrow",
+      "at": "2026-08-08T13:32:35.170Z",
+      "detail": {
+        "prepareCash": "0x1d1b2a07a36bbb0cec02cdbdfdbf7b7a43d909d62e24e7d3a9aa90da92646ba8"
+      }
+    },
+    {
+      "stage": "waiting for the finalized ASSET_PREPARED VAA",
+      "at": "2026-08-08T13:32:42.393Z",
+      "detail": {}
+    }
+  ],
+  "compliance": [
+    {
+      "label": "before preparation",
+      "at": "2026-08-08T13:31:34.041Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "661c4532-0a8a-4861-8ed2-3fc0089250ca",
+          "answer": "code 4",
+          "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    }
+  ],
+  "ruleTransitions": [],
+  "conservation": {
+    "before": {
+      "at": "2026-08-08T13:30:59.877Z",
+      "cash": {
+        "payer": "725000000",
+        "receiver": "725000000",
+        "escrow": "0",
+        "totalEscrowed": "0",
+        "totalSupply": "1000000000"
+      },
+      "rwa": {
+        "sellerNominal": "2000000",
+        "sellerReserved": "0",
+        "sellerAvailable": "2000000",
+        "receiver": "2000000",
+        "totalSupply": "2000000"
+      }
+    }
+  },
+  "adversarial": [],
+  "assetPrepared": {
+    "hash": "0xb4cf1b9c4c7f0273f16bfd17b3c04d10c19c4ec2993e887d9a34dcd13cd4fd63",
+    "sequence": "2",
+    "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE"
+  }
+}
