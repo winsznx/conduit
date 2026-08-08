@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-08-08T00:06:33.938Z",
+  "endpoint": "POST /atoken/register_atoken",
+  "chain": {
+    "slug": "monad",
+    "nativeChainId": 10143
+  },
+  "token": {
+    "address": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+    "name": "Conduit Sandbox Settlement Unit",
+    "symbol": "cSETTLE",
+    "decimals": 6,
+    "policy": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
+  },
+  "ownerOnChain": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "signedPlaintext": "monad0xe32825bb4bf312688233f68abde3eb6dcbc89caf",
+  "recoveredSigner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "recoveredMatchesOwner": true,
+  "requestHash": "0xe5f7cddac1b20cd3772913a68eeb8b059650250cc0e6a86c93c7bff0b28525eb",
+  "submission": {
+    "requestId": "b46234bd-67ed-496d-b2dc-aecd9e0e1609",
+    "code": "0000",
+    "message": "success",
+    "responseHash": "0xf0ee335b02e68e9f8d85ac0bd08127de050f7fda610ba20b5efb900471356570",
+    "redactedBody": {
+      "code": "0000",
+      "message": "success",
+      "data": {
+        "todo": true,
+        "requestId": "IAR20260808080632387119",
+        "issueAssetRegisterId": 297
+      }
+    },
+    "applicationRequestId": "IAR20260808080632387119",
+    "issueAssetRegisterId": 297
+  },
+  "failure": null,
+  "applyStatus": "ISSUED",
+  "registered": true,
+  "applyStatusDetail": {
+    "flowType": "REGISTER_ATOKEN",
+    "requestId": "IAR20260808080632387119",
+    "applyStatus": "ISSUED",
+    "chain": "monad",
+    "atokenAddress": "0xe32825bb4bf312688233f68abde3eb6dcbc89caf",
+    "txHash": "0x998e398489986af9fa490d25d71c78b5eefb56be2b55b8e8d7e64de10c04dfc4",
+    "issueErrorMsg": "",
+    "issuedAt": "2026-08-08 08:06:33"
+  }
+}

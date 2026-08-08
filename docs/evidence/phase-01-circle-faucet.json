@@ -1,0 +1,75 @@
+{
+  "capturedAt": "2026-08-08T00:04:31.997Z",
+  "faucet": "https://faucet.circle.com/",
+  "automation": "Playwright chromium against the official UI. No private Circle API is called.",
+  "recipient": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+  "outcome": "CAPTCHA_BLOCKED",
+  "blockedBy": "Circle reCAPTCHA rejected the automated session, headless and headed alike",
+  "steps": [
+    {
+      "step": "loaded",
+      "detail": "https://faucet.circle.com/",
+      "at": "2026-08-08T00:03:59.981Z"
+    },
+    {
+      "step": "form ready",
+      "detail": "Send 20 USDC",
+      "at": "2026-08-08T00:04:01.889Z"
+    },
+    {
+      "step": "dismissed the consent banner",
+      "at": "2026-08-08T00:04:07.699Z"
+    },
+    {
+      "step": "selected",
+      "detail": "Network Monad Testnet",
+      "at": "2026-08-08T00:04:10.859Z"
+    },
+    {
+      "step": "entered the deposit address",
+      "detail": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+      "at": "2026-08-08T00:04:10.874Z"
+    },
+    {
+      "step": "clicked",
+      "detail": "Send 20 USDC",
+      "at": "2026-08-08T00:04:11.877Z"
+    },
+    {
+      "step": "page changed by",
+      "detail": "1 lines",
+      "at": "2026-08-08T00:04:31.882Z"
+    },
+    {
+      "step": "result",
+      "detail": "CAPTCHA_BLOCKED",
+      "at": "2026-08-08T00:04:31.882Z"
+    }
+  ],
+  "screenshots": ["circle-faucet-filled.png", "circle-faucet-final.png"],
+  "manualCompletion": {
+    "note": "Completed by a human through the official UI after the automated session was refused by reCAPTCHA, so the CAPTCHA gate is not what decided the outcome.",
+    "depositTx": "0x84dcc0f53bfbbbbd19c540282908419324de7f731625185d9830848d4e84fd9a",
+    "sender": "0xa8f55D2E691eC91D0f2325051A51f3d686a3B4F0",
+    "senderIs": "Circle's faucet, a whitelisted origin: query_institution_white_list lists a usdc_faucet service for Monad",
+    "recipient": "0x97E6103C90D4C8Dc76ed6a98f107c1074eEA52d7",
+    "recipientIs": "the per-user Cleanverse deposit wallet bound to 0x83C130ed\u2026065Bb",
+    "amountUsdc": 20,
+    "outcome": "REFUNDED",
+    "refundClassification": "non_whitelist_refund",
+    "refundBlock": 51807591
+  },
+  "conclusion": {
+    "hypothesisTested": "that deposits were refused because our wallet is not a whitelisted sender, and a faucet-origin deposit would therefore be credited",
+    "result": "DISPROVEN",
+    "evidence": "A deposit from Circle's whitelisted faucet to the correct per-user deposit address was refunded with the identical non_whitelist_refund classification as deposits from our own wallet. Three deposits, two senders, one outcome.",
+    "actualGate": "The receiving credential, not the sending address. query_institution_txs answers code 0002 'institution address is empty', so no institution address is bound to this api-id and nothing arriving at its deposit wallet can be credited.",
+    "classification": "SANDBOX_AUTHORIZATION_MISMATCH",
+    "whatWouldUnblockIt": [
+      "bind an institution address to this api-id, or",
+      "whitelist 0x83C130ed9fb92830F09ea2b30E49009EF03065Bb as a depositor, or",
+      "refill the native /faucet source wallet 0xc448042edac1899b023caa0e9da5e4a8833de873, which still holds 0"
+    ]
+  },
+  "routeExhausted": true
+}

@@ -24,7 +24,7 @@
  * never an argv element, never written anywhere. The only artifact that leaves
  * this process is the signature and the evidence below.
  *
- *   node --env-file=.env scripts/register-cva.mjs
+ *   node --env-file=.env scripts/register-cva.mjs [address] [chain]
  */
 import { writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -36,8 +36,16 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { cleanverseClientFromEnv } from './lib/cleanverse.mjs';
 import { ROOT } from './lib/run.mjs';
 
-const CHAIN_SLUG = 'base';
-const TOKEN = process.env['RWA_CVA_ADDRESS'];
+/**
+ * Chain and token are arguments, because this now registers two CVAs: the RWA on
+ * Base and the sandbox settlement unit on Monad. The chain slug goes into the
+ * signed plaintext, so a mismatch produces a signature that recovers to the
+ * wrong signer and a gateway error that names neither half.
+ */
+const CHAIN_SLUG = process.argv[3] ?? 'base';
+const TOKEN = process.argv[2] ?? process.env['RWA_CVA_ADDRESS'];
+const RPC_ENV = CHAIN_SLUG === 'monad' ? 'MONAD_TESTNET_RPC_URL' : 'BASE_SEPOLIA_RPC_URL';
+const EXPECTED_CHAIN_ID = CHAIN_SLUG === 'monad' ? 10143 : 84532;
 const ICON =
   process.env['RWA_CVA_ICON'] ?? 'https://images.cleanverse.com/app/token_icon/A_USDC.svg';
 
@@ -51,10 +59,12 @@ const TOKEN_ABI = parseAbi([
 
 const sha256 = (value) => `0x${createHash('sha256').update(value, 'utf8').digest('hex')}`;
 
-const pub = createPublicClient({ transport: http(process.env['BASE_SEPOLIA_RPC_URL']) });
+const pub = createPublicClient({ transport: http(process.env[RPC_ENV]) });
 
 const chainId = await pub.getChainId();
-if (chainId !== 84532) throw new Error(`RPC reports chain ${chainId}, expected Base Sepolia 84532`);
+if (chainId !== EXPECTED_CHAIN_ID) {
+  throw new Error(`RPC reports chain ${chainId}, expected ${EXPECTED_CHAIN_ID} for ${CHAIN_SLUG}`);
+}
 
 const read = (functionName) =>
   pub.readContract({ address: TOKEN, abi: TOKEN_ABI, functionName, args: [] });
@@ -67,7 +77,7 @@ const [owner, name, symbol, decimals, policy] = await Promise.all([
   read('policy'),
 ]);
 
-console.log(`Base Sepolia ${chainId}`);
+console.log(`${CHAIN_SLUG} ${chainId}`);
 console.log(`token   ${TOKEN}  ${name} (${symbol}) ${decimals}dp`);
 console.log(`policy  ${policy}`);
 console.log(`owner   ${owner}   ← read from chain, not from a manifest`);
@@ -179,7 +189,14 @@ const evidence = {
   applyStatusDetail: outcome?.data ?? null,
 };
 
-const path = join(ROOT, 'docs', 'evidence', 'phase-03-cva-registration.json');
+const path = join(
+  ROOT,
+  'docs',
+  'evidence',
+  CHAIN_SLUG === 'monad'
+    ? 'phase-01-settlement-cva-registration.json'
+    : 'phase-03-cva-registration.json',
+);
 writeFileSync(path, `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(`\nwritten ${path}`);
 process.exitCode = evidence.registered ? 0 : 1;
