@@ -396,7 +396,13 @@ export function renderComposer(
     });
   }
 
-  const STEPS = ['Terms', 'Compliance', 'Signatures', 'Prepare', 'Finality', 'Commit', 'Execute'];
+  // Three steps here, and then the settlement has an id and a workspace. The
+  // stepper used to carry all seven and hide four empty sections behind them,
+  // which promised a flow this page does not run: preparation, finality, commit
+  // and delivery are decided from chain state, and chain state is what the
+  // workspace reads. The last chip says where they happen rather than pretending
+  // they happen here.
+  const STEPS = ['Terms', 'Compliance', 'Signatures', 'Then: the settlement workspace'];
 
   return shell({
     title: 'New settlement',
@@ -484,11 +490,6 @@ export function renderComposer(
     )}
   </section>
 
-  <!-- 4-7 are the settlement workspace, which takes over once signatures exist -->
-  <section data-step hidden class="section"></section>
-  <section data-step hidden class="section"></section>
-  <section data-step hidden class="section"></section>
-  <section data-step hidden class="section"></section>
 </div>`,
   });
 }
