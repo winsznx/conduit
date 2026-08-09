@@ -12,6 +12,15 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
+/**
+ * A generous budget, because these walk seven to ten pages each.
+ *
+ * Every one of those pages is a database read, and the default per-test budget
+ * is sized for a test that opens one. Raising it is the alternative to splitting
+ * a journey into fragments that no longer describe a journey.
+ */
+test.describe.configure({ timeout: 90_000 });
+
 /** The settlement a judge is pointed at: driven from a browser, verified. */
 const CANONICAL = '0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77';
 
@@ -59,9 +68,11 @@ async function installStrangerWallet(page: Page, address: string): Promise<void>
 
 /** Nothing on any journey may 404, and nothing may render an empty shell. */
 async function reaches(page: Page, path: string, heading: RegExp): Promise<void> {
-  const response = await page.goto(path);
+  const response = await page.goto(path, { timeout: 60_000 });
   expect(response?.status(), `${path} must not be an error page`).toBeLessThan(400);
-  await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 test.describe('journey A — a judge with no eligible wallet', () => {

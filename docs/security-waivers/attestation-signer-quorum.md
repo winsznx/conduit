@@ -1,6 +1,7 @@
 # Waiver: the compliance attestation signer is 1-of-1
 
 **Status:** Active
+**Scope:** threat register rows T-08 and T-09 only. No security tool is silenced by this waiver; it records an accepted risk in the deployment's attestation quorum.
 **Expires:** 2026-11-09
 **Threats:** T-08 compromised compliance signer, T-09 signer collusion
 **Invariant at risk:** I8 — no terminal destination is used without current eligibility
