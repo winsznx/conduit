@@ -273,8 +273,41 @@ const STEPS = [
   },
   {
     id: 'e2e',
-    title: 'playwright end-to-end harness',
-    exec: () => run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true }),
+    /**
+     * The browser suite drives a running console; the harness project drives
+     * nothing and needs no browser.
+     *
+     * `apps/web/qa` asserts against a live surface at `WEB_BASE_URL` — real
+     * pages, real Cleanverse answers, real chain reads — which is what makes it
+     * worth having and also what makes it unrunnable on a CI runner with no
+     * database credentials and no deployed worker of its own. Starting one here
+     * would need the production secrets in a public repository.
+     *
+     * So the base URL is probed. If a console answers, everything runs. If none
+     * does, the harness project runs and the step says plainly which half was
+     * skipped rather than reporting a pass that covered less than it looks like.
+     */
+    title: 'playwright end-to-end suite',
+    exec: async () => {
+      const base = process.env['WEB_BASE_URL'] ?? 'http://localhost:8787';
+      let reachable = false;
+      try {
+        const response = await fetch(`${base}/health`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        reachable = response.ok;
+      } catch {
+        reachable = false;
+      }
+
+      if (reachable) return run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true });
+
+      console.log(`no console answering at ${base} — running the harness project only.`);
+      console.log('the browser suite needs a running surface; see playwright.config.ts.');
+      return run('pnpm', ['exec', 'playwright', 'test', '--project=harness'], {
+        allowFailure: true,
+      });
+    },
   },
 ];
 
@@ -292,7 +325,9 @@ const outcomes = [];
 for (const step of selected) {
   heading(`${step.id} — ${step.title}`);
   const started = performance.now();
-  const result = step.exec();
+  // A step may be async — the e2e step probes the network before it decides
+  // what to run — so every result is awaited, which is a no-op for the rest.
+  const result = await step.exec();
   outcomes.push({ id: step.id, ok: result.ok, ms: performance.now() - started });
 
   if (!result.ok && !args.has('--keep-going')) {
