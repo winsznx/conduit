@@ -16,7 +16,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 const ACCOUNT = '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb';
 const MONAD = '0x279f'; // 10143
-const BASE = '0x14a34'; // 84532
 
 /**
  * Installs the mock before any page script runs.
@@ -120,27 +119,37 @@ test.describe('wallet', () => {
     expect(methods).not.toContain('eth_requestAccounts');
   });
 
-  test('switches the wallet to the chain an action needs', async ({ page }) => {
+  /**
+   * The participant panel reports both chains and offers to switch to neither.
+   *
+   * Conduit has no active network. A settlement uses both chains at once, and a
+   * control that let you pick one would be inventing a mode the protocol does
+   * not have — the switch belongs to the action that needs the chain, which is
+   * where `runWrite` asks for it. This asserts the panel states both and stops
+   * there; `settlement.spec.ts` covers the switch a real write triggers.
+   */
+  test('reports both chains without offering a network to choose', async ({ page }) => {
+    // #given a wallet connected while pointing at Monad
     await installMockWallet(page, { chainId: MONAD });
     await page.goto('/app');
     await page.getByRole('button', { name: 'Connect wallet' }).first().click();
     await page.getByText('Mock Wallet').click();
 
-    await page.getByText('0x83C1…65Bb').first().click();
-    const account = page.getByRole('dialog', { name: 'Account' });
+    // #when the participant opens the account panel
+    await page.locator('[data-participant] [data-account]').click();
+    const account = page.getByRole('dialog', { name: 'Participant' });
     await expect(account).toBeVisible();
     await expect(account.getByText(ACCOUNT)).toBeVisible();
 
-    // Monad is where the wallet already is, so only Base is switchable.
-    const monadRow = account.locator('.row-between', { hasText: 'Monad Testnet' });
-    await expect(monadRow.getByRole('button')).toBeDisabled();
+    // #then both chains are stated, and the one the wallet is on is marked
+    const networks = account.locator('.stack-8', { hasText: 'Networks' });
+    await expect(networks.getByText('Monad Testnet')).toBeVisible();
+    await expect(networks.getByText('Base Sepolia')).toBeVisible();
+    await expect(networks.getByText('wallet is here')).toBeVisible();
 
-    await account.locator('.row-between', { hasText: 'Base Sepolia' }).getByRole('button').click();
-
+    // #then no switch was asked for, because nothing asked for a chain
     const calls = await walletCalls(page);
-    const switched = calls.find((call) => call.method === 'wallet_switchEthereumChain');
-    expect(switched, 'the app must ask the wallet to switch chain').toBeDefined();
-    expect(switched?.params).toEqual([{ chainId: BASE }]);
+    expect(calls.map((call) => call.method)).not.toContain('wallet_switchEthereumChain');
   });
 
   test('disconnects', async ({ page }) => {
@@ -150,7 +159,9 @@ test.describe('wallet', () => {
     await page.getByText('Mock Wallet').click();
     await expect(page.getByText('0x83C1…65Bb').first()).toBeVisible();
 
-    await page.getByText('0x83C1…65Bb').first().click();
+    // The sidebar strip reports the same identity and offers no controls, so
+    // the panel is opened from the one control that has them.
+    await page.locator('[data-participant] [data-account]').click();
     await page.getByRole('button', { name: 'Disconnect' }).click();
 
     await expect(page.getByRole('button', { name: 'Connect wallet' }).first()).toBeVisible();

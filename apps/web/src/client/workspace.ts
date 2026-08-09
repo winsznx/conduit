@@ -58,7 +58,8 @@ import type { Address, Hex } from 'viem';
 
 import { mountDisposition, readDispositionCase, type DispositionContext } from './disposition.js';
 import { fromBaseUnits, type Deployment } from './protocol.js';
-import { PrerequisiteMissing, runSequence, type WriteStep } from './tx.js';
+import { session } from './session.js';
+import { PrerequisiteMissing, runSequence, type TxState, type WriteStep } from './tx.js';
 import { publicClient, wallet } from './wallet.js';
 
 export interface WorkspacePayload {
@@ -258,8 +259,17 @@ async function mintProof(
 
 // ── The workspace ───────────────────────────────────────────────────────────
 
-interface Session {
-  /** The commit proof this session holds, minted after finality and short-lived. */
+/**
+ * What this workspace has done in this visit, as distinct from the participant
+ * session.
+ *
+ * These live for as long as the page does and mean nothing anywhere else: a
+ * minted proof expires in fifteen minutes, and a simulated commit is a claim
+ * about one browser at one moment. The participant's identity, balances and
+ * activity are the global session's, and this holds none of them.
+ */
+interface ActionState {
+  /** The commit proof this visit holds, minted after finality and short-lived. */
   commit?: MintedProof;
   /** The prepare-time answer, for the side-by-side the workspace shows at commit. */
   prepare?: MintedProof;
@@ -279,7 +289,7 @@ export function mountWorkspace(): void {
   if (actionHost === null || finalityHost === null) return;
 
   const terms = readableTerms(payload.terms);
-  const session: Session = { commitSimulated: false, busy: false };
+  const actionState: ActionState = { commitSimulated: false, busy: false };
 
   const recomputed = recomputeId(payload);
   const idMatches = recomputed.toLowerCase() === payload.settlementId.toLowerCase();
@@ -290,9 +300,9 @@ export function mountWorkspace(): void {
   const render = (): void => {
     if (snapshot === undefined) return;
     const action = nextAction(snapshot);
-    paintAction(actionHost, action, snapshot, payload, session, idMatches, recomputed, run);
+    paintAction(actionHost, action, snapshot, payload, actionState, idMatches, recomputed, run);
     paintFinality(finalityHost, messages);
-    if (complianceHost !== null) paintCompliance(complianceHost, session);
+    if (complianceHost !== null) paintCompliance(complianceHost, actionState);
     const state = snapshot.settlement?.state;
     if (dispositionHost !== null && (state === 'HELD' || state === 'CONTESTED')) {
       mountDisposition(dispositionHost, dispositionContext(payload, snapshot), refresh);
@@ -301,26 +311,33 @@ export function mountWorkspace(): void {
 
   const refresh = async (): Promise<void> => {
     messages = await loadMessages(payload.settlementId);
-    snapshot = await readSnapshot(payload, terms, messages, session);
+    snapshot = await readSnapshot(payload, terms, messages, actionState);
     render();
   };
 
   const run = (action: NextAction): void => {
-    if (session.busy || snapshot === undefined) return;
-    session.busy = true;
+    if (actionState.busy || snapshot === undefined) return;
+    actionState.busy = true;
     const host = actionHost.querySelector<HTMLElement>('[data-tx]') ?? actionHost;
-    void execute(action, payload, terms, snapshot, session, host)
+    void execute(action, payload, terms, snapshot, actionState, host)
       .catch((error: unknown) => {
         const message = node('div', 't-caption tx-error', errorText(error));
         host.append(message);
       })
       .finally(() => {
-        session.busy = false;
+        actionState.busy = false;
+        // Announced whether the action succeeded or not: a reverted commit still
+        // moves nothing, but a failed release can leave a settlement HELD, and
+        // the surfaces that list this settlement should re-read either way
+        // rather than infer from an outcome this page has not confirmed.
+        session.protocolChanged(payload.settlementId);
         void refresh();
       });
   };
 
-  wallet.subscribe(() => {
+  // The session owns the connection; this page re-reads whenever it changes,
+  // including a change of account, which changes which action is even offered.
+  session.subscribe(() => {
     void refresh();
   });
 
@@ -330,7 +347,7 @@ export function mountWorkspace(): void {
   // controls, and a minute of stale "waiting" after it lands is a page that has
   // stopped telling the truth.
   window.setInterval(() => {
-    if (!session.busy) void refresh();
+    if (!actionState.busy) void refresh();
   }, 10_000);
 }
 
@@ -426,7 +443,7 @@ async function readSnapshot(
   payload: WorkspacePayload,
   terms: Terms,
   messages: readonly MessageRow[],
-  session: Session,
+  actionState: ActionState,
 ): Promise<Snapshot> {
   const monad = publicClient(MONAD_TESTNET);
   const base = publicClient(BASE_SEPOLIA);
@@ -492,14 +509,14 @@ async function readSnapshot(
     messages: seen(messages),
     holdings,
     fresh:
-      session.commit === undefined
+      actionState.commit === undefined
         ? undefined
         : {
-            eligible: session.commit.ok,
-            checkedAt: session.commit.checkedAt,
-            expiresAt: session.commit.expiresAt,
-            unavailable: session.commit.unavailable,
-            refusals: session.commit.eligibility
+            eligible: actionState.commit.ok,
+            checkedAt: actionState.commit.checkedAt,
+            expiresAt: actionState.commit.expiresAt,
+            unavailable: actionState.commit.unavailable,
+            refusals: actionState.commit.eligibility
               .filter((entry) => entry.status !== 'ELIGIBLE')
               .map((entry) => ({
                 subject: entry.subject,
@@ -507,7 +524,7 @@ async function readSnapshot(
                 detail: entry.detail,
               })),
           },
-    commitSimulated: session.commitSimulated,
+    commitSimulated: actionState.commitSimulated,
     dispositionCase,
     contestWindowSeconds: payload.disposition?.contestWindowSeconds ?? 300,
     verifierClass: payload.verifierClass,
@@ -596,7 +613,7 @@ async function execute(
   payload: WorkspacePayload,
   terms: Terms,
   snapshot: Snapshot,
-  session: Session,
+  actionState: ActionState,
   host: HTMLElement,
 ): Promise<void> {
   const account = wallet.current.address;
@@ -604,13 +621,39 @@ async function execute(
   const id = payload.settlementId;
   const intentHash = snapshot.settlement?.intentHash ?? id;
 
+  /**
+   * Every rung of every write, forwarded to the session.
+   *
+   * The workspace still paints its own ladder — that is where a participant is
+   * looking while a transaction runs. This is the copy that outlives the page,
+   * so leaving for the disposition case or the verifier does not lose sight of
+   * a reservation made ninety seconds ago. Keyed by settlement and step, so a
+   * step reports one row that advances rather than six rows that accumulate.
+   */
+  const report = (state: TxState): void => {
+    session.track({
+      id: `${id}:${state.kind}`,
+      kind: state.kind,
+      label: state.label,
+      chainId: state.chainId,
+      phase: state.phase,
+      settlementId: id,
+      ...(state.hash === undefined ? {} : { hash: state.hash }),
+      ...(state.explorerUrl === undefined ? {} : { explorerUrl: state.explorerUrl }),
+      ...(state.observed === undefined ? {} : { detail: state.observed }),
+      ...(state.error === undefined ? {} : { detail: state.error }),
+    });
+  };
+  const sequence = (steps: readonly WriteStep[]): Promise<unknown> =>
+    runSequence(host, steps, report);
+
   switch (action.call) {
     case 'reserve-asset':
-      await runSequence(host, await reserveSteps(payload, terms, snapshot, account));
+      await sequence(await reserveSteps(payload, terms, snapshot, account));
       return;
 
     case 'lock-cash':
-      await runSequence(host, await lockCashSteps(payload, terms, snapshot, account));
+      await sequence(await lockCashSteps(payload, terms, snapshot, account));
       return;
 
     case 'record-asset-prepared': {
@@ -619,7 +662,7 @@ async function execute(
       if (vaa === undefined || bytes === undefined) {
         throw new PrerequisiteMissing('the finalized ASSET_PREPARED VAA is not available yet');
       }
-      await runSequence(host, [
+      await sequence([
         {
           kind: 'record-asset-prepared',
           label: 'Consume the finalized ASSET_PREPARED',
@@ -645,18 +688,18 @@ async function execute(
     }
 
     case 'run-fresh-compliance': {
-      session.commit = await mintProof(id, intentHash, 'commit', [
+      actionState.commit = await mintProof(id, intentHash, 'commit', [
         terms.cashPayer,
         terms.cashReceiver,
       ]);
-      session.commitSimulated = false;
-      if (!session.commit.ok) return;
-      session.commitSimulated = await simulateCommit(payload, snapshot, session, account);
+      actionState.commitSimulated = false;
+      if (!actionState.commit.ok) return;
+      actionState.commitSimulated = await simulateCommit(payload, snapshot, actionState, account);
       return;
     }
 
     case 'issue-commit': {
-      const proof = session.commit;
+      const proof = actionState.commit;
       if (!proof?.ok) {
         throw new PrerequisiteMissing('no fresh compliance proof is held for this settlement');
       }
@@ -668,7 +711,7 @@ async function execute(
         );
       }
       const fee = await messageFee(MONAD_TESTNET, payload.deployment.coordinator);
-      await runSequence(host, [
+      await sequence([
         {
           kind: 'issue-commit',
           label: 'COMMIT',
@@ -715,7 +758,7 @@ async function execute(
         terms.cashReceiver,
         proof.proof,
       );
-      await runSequence(host, [
+      await sequence([
         {
           kind: 'release-cash',
           label: 'Execute the cash release',
@@ -754,7 +797,7 @@ async function execute(
           'Cleanverse did not answer, so no proof exists. That is not a refusal.',
         );
       }
-      await runSequence(host, [
+      await sequence([
         {
           kind: 'release-asset',
           label: 'Execute the asset release',
@@ -787,7 +830,7 @@ async function execute(
 
     case 'report-resolution': {
       const fee = await messageFee(BASE_SEPOLIA, payload.deployment.rwaAdapter);
-      await runSequence(host, [
+      await sequence([
         {
           kind: 'report-resolution',
           label: 'Report the asset outcome',
@@ -830,7 +873,7 @@ async function execute(
         throw new PrerequisiteMissing('the finalized resolution VAA is not available yet');
       }
       const released = resolution.messageType === 'ASSET_RELEASED';
-      await runSequence(host, [
+      await sequence([
         {
           kind: 'record-leg-resolved',
           label: 'Record the asset outcome',
@@ -1103,10 +1146,10 @@ async function requireContractAccepts(
 async function simulateCommit(
   payload: WorkspacePayload,
   snapshot: Snapshot,
-  session: Session,
+  actionState: ActionState,
   account: Address,
 ): Promise<boolean> {
-  const proof = session.commit;
+  const proof = actionState.commit;
   const buyer = payload.signatures.payerSignature;
   const seller = payload.signatures.sellerSignature;
   if (proof === undefined || buyer === undefined || seller === undefined) return false;
@@ -1141,7 +1184,7 @@ function paintAction(
   action: NextAction,
   snapshot: Snapshot,
   payload: WorkspacePayload,
-  session: Session,
+  actionState: ActionState,
   idMatches: boolean,
   recomputed: Hex,
   run: (action: NextAction) => void,
@@ -1237,7 +1280,7 @@ function paintAction(
     cta.type = 'button';
     cta.dataset['actionRun'] = action.call;
     cta.textContent = action.title;
-    cta.disabled = !action.enabled || session.busy;
+    cta.disabled = !action.enabled || actionState.busy;
     cta.addEventListener('click', () => {
       cta.disabled = true;
       run(action);
@@ -1463,9 +1506,9 @@ function paintFinality(host: HTMLElement, messages: readonly MessageRow[]): void
  * protocol turns on the fact that the answers may differ. Showing one number
  * would make the second call look like a formality.
  */
-function paintCompliance(host: HTMLElement, session: Session): void {
+function paintCompliance(host: HTMLElement, actionState: ActionState): void {
   host.replaceChildren();
-  if (session.commit === undefined && session.prepare === undefined) return;
+  if (actionState.commit === undefined && actionState.prepare === undefined) return;
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -1477,13 +1520,13 @@ function paintCompliance(host: HTMLElement, session: Session): void {
   compare.style.marginTop = 'var(--spacing-12)';
 
   for (const [label, proof] of [
-    ['Prepare-time', session.prepare],
-    ['Commit-time', session.commit],
+    ['Prepare-time', actionState.prepare],
+    ['Commit-time', actionState.commit],
   ] as const) {
     const column = document.createElement('div');
     column.append(node('div', 't-caption-upper', label));
     if (proof === undefined) {
-      column.append(node('div', 'muted t-caption', 'not asked in this session'));
+      column.append(node('div', 'muted t-caption', 'not asked in this actionState'));
     } else {
       column.append(
         node(

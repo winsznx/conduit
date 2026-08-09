@@ -48,7 +48,8 @@ import {
 } from '../onchain.js';
 import type { Terms } from '../actions.js';
 import { fromBaseUnits, type Deployment } from './protocol.js';
-import { PrerequisiteMissing, runSequence } from './tx.js';
+import { session } from './session.js';
+import { PrerequisiteMissing, runSequence, type TxState } from './tx.js';
 import { publicClient, wallet } from './wallet.js';
 
 export interface DispositionKernel {
@@ -57,6 +58,29 @@ export interface DispositionKernel {
   readonly policyId: Hex;
   readonly contestWindowSeconds: number;
   readonly chainId: number;
+}
+
+/**
+ * A disposition write, reported to the session as well as to the panel.
+ *
+ * A contest window is measured in hours. Nobody sits on this page for one, so
+ * the record of what was filed has to outlive the page that filed it.
+ */
+function reporter(settlementId: string): (state: TxState) => void {
+  return (state) => {
+    session.track({
+      id: `${settlementId}:${state.kind}`,
+      kind: state.kind,
+      label: state.label,
+      chainId: state.chainId,
+      phase: state.phase,
+      settlementId,
+      ...(state.hash === undefined ? {} : { hash: state.hash }),
+      ...(state.explorerUrl === undefined ? {} : { explorerUrl: state.explorerUrl }),
+      ...(state.observed === undefined ? {} : { detail: state.observed }),
+      ...(state.error === undefined ? {} : { detail: state.error }),
+    });
+  };
 }
 
 export interface DispositionContext {
@@ -186,6 +210,21 @@ async function readAuthority(
 }
 
 /**
+ * Which paint owns which host.
+ *
+ * `paint` clears the host, then awaits four chain reads before it appends
+ * anything. The workspace re-renders on a ten-second poll and on every session
+ * event, so two paints overlap routinely — and when they do, the second clear
+ * lands between the first's clear and its append, and both then append. The
+ * panel renders twice, with two sets of order buttons.
+ *
+ * A token per host means the stale paint discards its work instead of adding
+ * it. Cheaper and more honest than cancelling the reads: they are harmless, and
+ * their answers are simply no longer the current ones.
+ */
+const PAINTS = new WeakMap<HTMLElement, symbol>();
+
+/**
  * Renders the HELD panel and, where the connected wallet has authority, the
  * order it may compose.
  */
@@ -202,6 +241,10 @@ async function paint(
   context: DispositionContext,
   refresh: () => Promise<void>,
 ): Promise<void> {
+  const token = Symbol('paint');
+  PAINTS.set(host, token);
+  const current = (): boolean => PAINTS.get(host) === token;
+
   const kernel = context.kernel;
   host.replaceChildren();
 
@@ -228,7 +271,7 @@ async function paint(
           'and a generation with a kernel can resolve it.',
       ),
     );
-    host.append(card);
+    if (current()) host.append(card);
     return;
   }
 
@@ -319,7 +362,12 @@ async function paint(
   const tx = document.createElement('div');
   tx.dataset['dispositionTx'] = '';
   card.append(tx);
-  host.append(card);
+
+  // A newer paint has already cleared this host and is building its own card.
+  // Appending here would put two panels, and two sets of order buttons, in
+  // front of an authority about to file something irreversible.
+  if (!current()) return;
+  host.replaceChildren(card);
 }
 
 function message(error: unknown): string {
@@ -531,28 +579,33 @@ async function fileOrder(
   ];
 
   const txHost = host.querySelector<HTMLElement>('[data-disposition-tx]') ?? host;
-  await runSequence(txHost, [
-    {
-      kind: 'file-disposition',
-      label: `File ${name}`,
-      chainId: kernel.chainId,
-      target: kernel.controller,
-      expected: 'the case opens and begins its contest window',
-      send: async () =>
-        wallet.walletClient(kernel.chainId).writeContract({
-          chain: null,
-          account,
-          address: kernel.controller,
-          abi: CONTROLLER_ABI,
-          functionName: 'fileOrder',
-          args: [tuple, signature],
-        }),
-      observe: async () => {
-        const filed = await readDispositionCase(kernel, context.deployment, context.settlementId);
-        return { ok: filed !== undefined, observed: filed?.state ?? 'no case' };
+  await runSequence(
+    txHost,
+    [
+      {
+        kind: 'file-disposition',
+        label: `File ${name}`,
+        chainId: kernel.chainId,
+        target: kernel.controller,
+        expected: 'the case opens and begins its contest window',
+        send: async () =>
+          wallet.walletClient(kernel.chainId).writeContract({
+            chain: null,
+            account,
+            address: kernel.controller,
+            abi: CONTROLLER_ABI,
+            functionName: 'fileOrder',
+            args: [tuple, signature],
+          }),
+        observe: async () => {
+          const filed = await readDispositionCase(kernel, context.deployment, context.settlementId);
+          return { ok: filed !== undefined, observed: filed?.state ?? 'no case' };
+        },
       },
-    },
-  ]);
+    ],
+    reporter(context.settlementId),
+  );
+  session.protocolChanged(context.settlementId);
   await refresh();
 }
 
@@ -627,28 +680,33 @@ async function executeOrder(
 
   const caseId = caseIdFor(await deploymentIdOf(kernel), context.settlementId, Leg.ASSET);
   const txHost = host.querySelector<HTMLElement>('[data-disposition-tx]') ?? host;
-  await runSequence(txHost, [
-    {
-      kind: 'execute-disposition',
-      label: 'Execute the disposition',
-      chainId: kernel.chainId,
-      target: kernel.controller,
-      expected: 'the case becomes EXECUTED and the value moves',
-      send: async () =>
-        wallet.walletClient(kernel.chainId).writeContract({
-          chain: null,
-          account,
-          address: kernel.controller,
-          abi: CONTROLLER_ABI,
-          functionName: 'executeOrder',
-          args: [caseId, proof],
-        }),
-      observe: async () => {
-        const after = await readDispositionCase(kernel, context.deployment, context.settlementId);
-        return { ok: after?.state === 'EXECUTED', observed: after?.state ?? 'unreadable' };
+  await runSequence(
+    txHost,
+    [
+      {
+        kind: 'execute-disposition',
+        label: 'Execute the disposition',
+        chainId: kernel.chainId,
+        target: kernel.controller,
+        expected: 'the case becomes EXECUTED and the value moves',
+        send: async () =>
+          wallet.walletClient(kernel.chainId).writeContract({
+            chain: null,
+            account,
+            address: kernel.controller,
+            abi: CONTROLLER_ABI,
+            functionName: 'executeOrder',
+            args: [caseId, proof],
+          }),
+        observe: async () => {
+          const after = await readDispositionCase(kernel, context.deployment, context.settlementId);
+          return { ok: after?.state === 'EXECUTED', observed: after?.state ?? 'unreadable' };
+        },
       },
-    },
-  ]);
+    ],
+    reporter(context.settlementId),
+  );
+  session.protocolChanged(context.settlementId);
 }
 
 export { BASE_SEPOLIA };

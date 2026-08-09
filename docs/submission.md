@@ -224,7 +224,7 @@ Foundry      281 tests across 19 suites
                9 fuzz properties at 256 runs each
               26 disposition invariants
               10 exploit regressions
-Playwright    76 browser tests against the deployed surface
+Playwright    78 browser tests against the deployed surface
                1 opt-in live run against both testnets
 Release gate  17 of 17 steps
 ```
@@ -334,7 +334,7 @@ browser flow        every protocol write from a wallet in a page: reserve,
 verifier            two RPCs, the manifests, the guardian set, no database
 disposition kernel  six order types, contest window, conflict adjudication
 exploit regressions 10 tests pinning defects found during development
-tests               754 Vitest · 281 Foundry · 76 Playwright · 17/17 gate
+tests               762 Vitest · 281 Foundry · 78 Playwright · 19/19 gate
 ```
 
 ## UX / demo — 15

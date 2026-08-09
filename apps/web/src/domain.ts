@@ -40,6 +40,9 @@ export interface MessageView {
   readonly wormholeChainId: number;
   readonly consumed: boolean;
   readonly finalitySeconds: number | undefined;
+  /** The transaction that published it, on the chain that emitted it. */
+  readonly publishedTxHash: string;
+  readonly publishedChainId: number;
 }
 
 export interface ComplianceView {

@@ -334,6 +334,7 @@ const LAYOUT = `
 .row-between{display:flex;align-items:center;justify-content:space-between;gap:var(--spacing-12)}
 .stack-8{display:flex;flex-direction:column;gap:var(--spacing-8)}
 .stack-12{display:flex;flex-direction:column;gap:var(--spacing-12)}
+.stack-4{display:flex;flex-direction:column;gap:var(--spacing-4)}
 .stack-16{display:flex;flex-direction:column;gap:var(--spacing-16)}
 
 /* ── Cross-chain settlement diagram ──────────────────────────────────────── */
@@ -482,6 +483,46 @@ const LAYOUT = `
 .modal-backdrop{position:absolute;inset:0;background:rgba(10,10,10,0.28)}
 .modal{position:relative;width:100%;max-width:420px;max-height:85vh;overflow-y:auto}
 .modal:focus{outline:none}
+
+/* ── Orientation and the personal overview ───────────────────────────────── */
+.onboarding{display:flex;flex-direction:column;gap:var(--spacing-16)}
+.onboarding-title{
+  font-size:var(--text-heading-sm);line-height:var(--leading-heading-sm);
+  letter-spacing:var(--tracking-heading-sm);font-weight:var(--font-weight-semibold);
+  overflow-wrap:anywhere;
+}
+.list-row{
+  display:flex;flex-direction:column;gap:var(--spacing-4);
+  padding:var(--spacing-12);border:1px solid var(--color-hairline);
+  border-radius:var(--radius-nested);background:var(--color-paper);
+}
+
+/* ── Activity ────────────────────────────────────────────────────────────────
+   Fixed to the viewport because the wait it reports is minutes long and the
+   participant is expected to navigate during it. It sits below the modal layer:
+   a wallet dialog must never be obscured by a progress list. */
+.activity{position:fixed;right:var(--spacing-20);bottom:var(--spacing-20);z-index:40;
+  display:flex;flex-direction:column;align-items:flex-end;gap:var(--spacing-8)}
+.activity-toggle{
+  display:inline-flex;align-items:center;gap:var(--spacing-8);height:36px;
+  padding:0 var(--spacing-16);background:var(--color-ink);color:var(--color-paper);
+  border:0;border-radius:var(--radius-buttons);font-size:var(--text-caption);cursor:pointer;
+}
+.activity-panel{width:min(360px,calc(100vw - var(--spacing-20) * 2));
+  max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--spacing-12)}
+.activity-row{display:flex;flex-direction:column;gap:var(--spacing-4);
+  padding-bottom:var(--spacing-12);border-bottom:1px solid var(--color-hairline)}
+.activity-row:last-of-type{border-bottom:0;padding-bottom:0}
+.activity-label{font-weight:var(--font-weight-medium)}
+.notice{width:min(360px,calc(100vw - var(--spacing-20) * 2));
+  display:flex;align-items:flex-start;justify-content:space-between;gap:var(--spacing-12)}
+.notice-attention{font-weight:var(--font-weight-medium)}
+.activity .tx-dot{width:6px;height:6px;border-radius:50%;background:var(--color-ink);flex:none}
+.activity .tx-dot.failed{background:var(--color-ember)}
+@media (max-width:768px){
+  .activity{left:var(--spacing-16);right:var(--spacing-16);align-items:stretch}
+  .activity-panel{width:auto}
+}
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width:1024px){

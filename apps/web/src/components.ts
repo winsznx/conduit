@@ -31,6 +31,7 @@ import {
   icon,
   stateBadge,
   truncate,
+  txHash,
   vaaLink,
 } from './ui.js';
 
@@ -76,19 +77,27 @@ export function sidebar(current: string): string {
 <div class="brand">${wordmark()}</div>
 <nav class="nav" aria-label="Primary">${navList(PRIMARY_NAV, current)}</nav>
 <nav class="nav" aria-label="System"><div class="nav-section">System</div>${navList(SYSTEM_NAV, current)}</nav>
-<div class="sidebar-foot" data-wallet-control>
+<div class="sidebar-foot" data-identity-strip>
   <noscript><span class="t-caption muted">Wallet actions need JavaScript. Everything else on this page does not.</span></noscript>
 </div>
 </aside>`;
 }
 
+/**
+ * The persistent top chrome.
+ *
+ * The participant control lives here, at the top right, on every application
+ * route. It used to be primarily in the sidebar footer, which is where a
+ * product puts something it does not expect anyone to need — and connecting a
+ * wallet is the first thing a participant does.
+ */
 export function topBar(right = ''): string {
   return `<div class="topbar">
 <form class="row" action="/verify" method="get" style="flex:1;max-width:420px;gap:var(--spacing-8)">
   <input class="field field-mono" name="id" placeholder="Verify a settlement id" pattern="0x[0-9a-fA-F]{64}" required aria-label="Settlement id">
   <button class="btn btn-secondary btn-sm" type="submit">Verify</button>
 </form>
-<div class="row">${right}<span data-wallet-control></span></div>
+<div class="row">${right}<span data-participant></span></div>
 </div>`;
 }
 
@@ -200,12 +209,17 @@ export function messageRoute(messages: readonly MessageView[]): string {
 <td>${stateBadge(message.finality)}</td>
 <td style="min-width:140px">${finalityProgress(message.finalitySeconds)}</td>
 <td>${message.consumed ? badge('consumed', 'outline') : '<span class="muted t-caption">no consumer</span>'}</td>
+<td class="mono">${
+        message.publishedTxHash === ''
+          ? '<span class="muted t-caption">not recorded</span>'
+          : txHash(message.publishedTxHash, message.publishedChainId)
+      }</td>
 </tr>`;
     })
     .join('');
 
   return `<div class="table-scroll"><table class="table table-hover">
-<thead><tr><th>Type</th><th>Seq</th><th>Emitter</th><th>Finality</th><th>Observed</th><th>Destination</th></tr></thead>
+<thead><tr><th>Type</th><th>Seq</th><th>Emitter</th><th>Finality</th><th>Observed</th><th>Destination</th><th>Published in</th></tr></thead>
 <tbody>${rows}</tbody></table></div>
 <div class="note">Finality is classified, never compared as a number. Wormhole encodes 200 as instant and 201 as safe; everything else is finalized. Ranking the raw byte would place instant above finalized, which is the substitution a settlement layer cannot afford.</div>`;
 }

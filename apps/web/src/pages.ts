@@ -39,6 +39,7 @@ import {
   emptyState,
   errorState,
   esc,
+  external,
   icon,
   input,
   pageHeader,
@@ -65,7 +66,20 @@ function document_(title: string, body: string): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>${esc(title)} — Conduit</title><style>${STYLESHEET}</style></head>
-<body>${body}<script type="module" src="${esc(CLIENT_PATH)}" defer></script></body></html>`;
+<body${CONDUIT === undefined ? '' : ` data-conduit="${esc(JSON.stringify(CONDUIT))}"`}>${body}<script type="module" src="${esc(CLIENT_PATH)}" defer></script></body></html>`;
+}
+
+/**
+ * The deployment, rendered into every page once.
+ *
+ * The session needs contract addresses to read balances, and it needs them on
+ * routes that have no composer and no workspace. Putting it on the body means
+ * one place rather than a per-page payload each script has to find.
+ */
+let CONDUIT: Record<string, string> | undefined;
+
+export function setDeployment(deployment: Record<string, string> | undefined): void {
+  CONDUIT = deployment;
 }
 
 /** The application shell: sidebar, top bar, content column. */
@@ -266,7 +280,7 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
 <div class="stack-12">
   <div style="font-weight:var(--font-weight-medium)">Connect your own wallet</div>
   <p class="muted">Compose an intent, have every participant checked against Cleanverse, and sign it in your own browser. Conduit never sees your key.</p>
-  <div class="row"><span data-wallet-control></span>${button({ label: 'Compose a settlement', href: '/app/settlements/new', variant: 'outline', small: true })}</div>
+  <div class="row"><span data-participant></span>${button({ label: 'Compose a settlement', href: '/app/settlements/new', variant: 'outline', small: true })}</div>
   <p class="t-caption muted">Whatever Cleanverse answers is what you will see, verbatim and specific: <span class="mono">ELIGIBLE</span>, <span class="mono">NO_APASS</span>, <span class="mono">TIER_TOO_LOW</span>, or <span class="mono">UNAVAILABLE</span> when nobody could be asked. In this sandbox some unknown wallets are cleared and others are refused, and the console reports the answer it got rather than the answer it expected.</p>
 </div>
 <div class="stack-12">
@@ -305,12 +319,18 @@ export function renderOverview(
       caption:
         'Everything on this page is a projection of what two chains and the guardian set say. No value moves from here.',
     })}
+<div data-onboarding></div>
+<div data-overview></div>
+
+<section class="section">
+  ${sectionHeader('Across this deployment')}
 <div class="grid-4">
   ${statBlock({ label: 'Settlements', value: String(totals.settlements), small: true })}
   ${statBlock({ label: 'Held', value: String(totals.held), note: 'awaiting disposition', small: true })}
   ${statBlock({ label: 'Messages', value: String(totals.messages), small: true })}
   ${statBlock({ label: 'Verifications', value: String(totals.verifications), small: true })}
 </div>
+</section>
 
 <section class="section">
   ${sectionHeader('Recent settlements', button({ label: 'All settlements', href: '/app/settlements', variant: 'outline', small: true }))}
@@ -749,7 +769,7 @@ ${card(`<div class="xchain">
     `<div class="t-caption muted" data-sign-request-status>Connect the wallet named in these terms to sign.</div>
     <div class="row" style="margin-top:var(--spacing-16)">
       <button class="btn btn-primary" type="button" data-sign-request-button disabled>Sign with my wallet</button>
-      <span data-wallet-control></span>
+      <span data-participant></span>
     </div>
     <div class="stack-12" style="margin-top:var(--spacing-16)" data-sign-request-result></div>`,
   )}
@@ -1164,6 +1184,15 @@ export function renderDeployments(generation: string, rows: readonly DeploymentV
       caption:
         'Core contracts are non-upgradeable, so a new version is a new generation. Each one stays verifiable for the settlements it knows.',
     })}
+${card(
+  `<div class="t-caption-upper">Checking these yourself</div>
+<p class="muted">Every address below links to its chain’s explorer. Source verification, code hashes and the full generation history are re-checked against Sourcify on every gate run and recorded in the repository, alongside a resolved index of every transaction these deployments have processed.</p>
+<div class="row" style="flex-wrap:wrap">
+${external('https://github.com/winsznx/conduit/blob/main/docs/deployments.md', 'Deployment generations', 'docs/deployments.md — addresses, code hashes and verified source')}
+${external('https://github.com/winsznx/conduit/blob/main/docs/onchain.md', 'On-chain transaction index', 'docs/onchain.md — every transaction, resolved against the chain that mined it')}
+${external('https://github.com/winsznx/conduit/blob/main/docs/evidence/onchain-verification.json', 'Verification evidence', 'docs/evidence/onchain-verification.json — the machine-checked record')}
+</div>`,
+)}
 <div class="stack-16">${rows
       .map((row) =>
         cardWithHeader(

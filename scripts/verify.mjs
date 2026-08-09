@@ -225,6 +225,14 @@ const STEPS = [
       run('node', ['scripts/check-onchain-verification.mjs', '--check'], { allowFailure: true }),
   },
   {
+    id: 'onchain-index',
+    // Every transaction this project claims to have sent, resolved against the
+    // chain that mined it. A link that no longer resolves is a claim that has
+    // quietly stopped being checkable, and this is where that surfaces.
+    title: 'every indexed transaction still resolves on the chain that mined it',
+    exec: () => run('node', ['scripts/build-onchain-index.mjs', '--check'], { allowFailure: true }),
+  },
+  {
     id: 'e2e',
     title: 'playwright end-to-end harness',
     exec: () => run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true }),

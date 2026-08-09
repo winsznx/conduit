@@ -1,19 +1,25 @@
 /**
- * The wallet controls, in Conduit's own visual language.
+ * The participant control, in Conduit's own visual language.
  *
  * No connector library's UI appears anywhere in this product. `design.md` is a
  * monochrome system and the usual wallet modals are not — dropping one in would
  * import a second design system through the side door. These controls are built
- * from the same tokens as every other surface, so the account menu looks like
- * the settlement table it sits above.
+ * from the same tokens as every other surface.
+ *
+ * ## One control, one session
+ *
+ * There is exactly one of these per page, in the top chrome, and it renders from
+ * the session rather than from a wallet subscription of its own. The sidebar
+ * shows a compact identity strip that reads the same state and offers no second
+ * way to connect: two controls that can disagree about who you are is the
+ * problem this replaced.
  *
  * Everything here is progressive enhancement. The pages render and are fully
- * readable server-side; this attaches the parts that need a wallet, and a
- * browser with no wallet at all still sees the whole product.
+ * readable server-side; this attaches the parts that need a wallet.
  */
 
-import { CHAINS, wallet, type DiscoveredWallet, type WalletState } from './wallet.js';
-import { discoverWallets } from './wallet.js';
+import { session, type EligibilityView, type SessionState } from './session.js';
+import { discoverWallets, type DiscoveredWallet } from './wallet.js';
 
 const SHORT = (address: string): string => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
@@ -28,6 +34,15 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/** Base units to a readable figure, without floating point anywhere near it. */
+function units(value: bigint | undefined, decimals = 6): string {
+  if (value === undefined) return '—';
+  const digits = value.toString().padStart(decimals + 1, '0');
+  const whole = digits.slice(0, digits.length - decimals);
+  const fraction = digits.slice(digits.length - decimals).replace(/0+$/, '');
+  return `${whole}${fraction === '' ? '' : `.${fraction}`}`;
+}
+
 // ── Modal ───────────────────────────────────────────────────────────────────
 
 function closeModal(): void {
@@ -39,12 +54,6 @@ function onEscape(event: KeyboardEvent): void {
   if (event.key === 'Escape') closeModal();
 }
 
-/**
- * A dialog that traps nothing and blocks nothing it should not.
- *
- * Escape closes, the backdrop closes, and focus moves to the panel so a
- * keyboard user is not left behind the overlay.
- */
 function openModal(title: string, body: HTMLElement): void {
   closeModal();
   const root = el('div', 'modal-root');
@@ -102,9 +111,7 @@ async function openConnect(): Promise<void> {
     ),
   );
 
-  for (const found of wallets) {
-    body.append(walletRow(found));
-  }
+  for (const found of wallets) body.append(walletRow(found));
 }
 
 function walletRow(found: DiscoveredWallet): HTMLElement {
@@ -113,8 +120,6 @@ function walletRow(found: DiscoveredWallet): HTMLElement {
 
   if (found.icon !== '') {
     const img = el('img', 'wallet-icon');
-    // The icon is a data: URI from the wallet's own announcement. `img-src`
-    // already allows `data:`, so this needs no CSP change.
     img.src = found.icon;
     img.alt = '';
     row.append(img);
@@ -126,7 +131,7 @@ function walletRow(found: DiscoveredWallet): HTMLElement {
 
   row.addEventListener('click', () => {
     status.textContent = 'check your wallet…';
-    void wallet
+    void session
       .connect(found)
       .then(closeModal)
       .catch((error: unknown) => {
@@ -138,19 +143,28 @@ function walletRow(found: DiscoveredWallet): HTMLElement {
   return row;
 }
 
-// ── Account menu ────────────────────────────────────────────────────────────
+// ── Account panel ───────────────────────────────────────────────────────────
 
-function openAccount(state: WalletState): void {
-  const address = state.address ?? '0x';
+function verdict(entry: EligibilityView | undefined): HTMLElement {
+  if (entry === undefined) return el('span', 't-caption muted', 'not checked');
+  const solid = entry.status === 'ELIGIBLE';
+  const badge = el('span', `badge ${solid ? 'badge-solid' : 'badge-soft'}`);
+  if (!solid) badge.append(el('span', 'dot'));
+  badge.append(document.createTextNode(entry.status.replace(/_/g, ' ')));
+  return badge;
+}
+
+function openAccount(state: SessionState): void {
+  const address = state.account ?? '0x';
   const body = el('div', 'stack-16');
   body.style.marginTop = 'var(--spacing-16)';
 
+  // Wallet
   const full = el('div', 'nested mono');
   full.style.wordBreak = 'break-all';
   full.textContent = address;
   body.append(full);
 
-  const actions = el('div', 'row');
   const copy = el('button', 'btn btn-secondary btn-sm');
   copy.type = 'button';
   copy.textContent = 'Copy address';
@@ -160,72 +174,113 @@ function openAccount(state: WalletState): void {
       setTimeout(() => (copy.textContent = 'Copy address'), 1200);
     });
   });
+  const actions = el('div', 'row');
   actions.append(copy);
   body.append(actions);
 
-  // Both chains are listed together because a settlement uses both at once.
-  // This is where the wallet happens to be pointing, not a mode the app is in.
+  // Networks. Both, always — a settlement uses both at once, and where the
+  // wallet happens to point is not a mode the application is in.
   const networks = el('div', 'stack-8');
   networks.append(el('div', 't-caption-upper', 'Networks'));
-  for (const info of Object.values(CHAINS)) {
+  for (const chain of session.chainAccess()) {
     const row = el('div', 'row-between nested');
     const left = el('div', 'row');
-    left.append(el('span', undefined, info.name));
-    if (state.chainId === info.id) left.append(el('span', 'badge badge-outline', 'wallet is here'));
+    left.append(el('span', undefined, chain.name));
+    if (chain.here) left.append(el('span', 'badge badge-outline', 'wallet is here'));
     row.append(left);
-
-    const button = el('button', 'btn btn-outline btn-sm');
-    button.type = 'button';
-    button.textContent = state.chainId === info.id ? 'Current' : 'Switch';
-    button.disabled = state.chainId === info.id;
-    button.addEventListener('click', () => {
-      button.textContent = 'Check wallet…';
-      void wallet
-        .ensureChain(info.id)
-        .then(closeModal)
-        .catch(() => (button.textContent = 'Refused'));
-    });
-    row.append(button);
+    row.append(el('span', 't-caption muted', chain.here ? 'connected' : 'available'));
     networks.append(row);
   }
   body.append(networks);
 
-  body.append(
-    el(
-      'p',
-      't-caption muted',
-      'Conduit does not hold a single active network. Each action asks your wallet for the chain that action needs.',
-    ),
-  );
+  // Cleanverse
+  const compliance = el('div', 'stack-8');
+  compliance.append(el('div', 't-caption-upper', 'Cleanverse'));
+  for (const [label, entry] of [
+    ['Monad Testnet', state.identity.monad],
+    ['Base Sepolia', state.identity.base],
+  ] as const) {
+    const row = el('div', 'row-between nested');
+    row.append(el('span', undefined, label));
+    row.append(verdict(entry));
+    compliance.append(row);
+    if (entry !== undefined && entry.status !== 'ELIGIBLE') {
+      compliance.append(el('div', 't-caption muted', entry.detail));
+    }
+  }
+  if (state.identity.checkedAt !== undefined) {
+    compliance.append(el('div', 't-caption muted', `checked ${state.identity.checkedAt}`));
+  }
+  body.append(compliance);
+
+  // Balances
+  const balances = el('div', 'stack-8');
+  balances.append(el('div', 't-caption-upper', 'Balances'));
+  for (const [label, value] of [
+    ['cSETTLE · Monad', state.balances.settlementAsset],
+    ['cBOND · Base', state.balances.rwa],
+    ['cBOND reserved', state.balances.reserved],
+    ['cBOND available', state.balances.available],
+  ] as const) {
+    const row = el('div', 'row-between nested');
+    row.append(el('span', undefined, label));
+    row.append(el('span', 'mono', units(value)));
+    balances.append(row);
+  }
+  body.append(balances);
+
+  // Actions
+  const refresh = el('button', 'btn btn-secondary btn-sm');
+  refresh.type = 'button';
+  refresh.textContent = 'Refresh eligibility';
+  refresh.addEventListener('click', () => {
+    refresh.disabled = true;
+    refresh.textContent = 'Asking Cleanverse…';
+    void Promise.all([
+      session.refreshEligibility({ force: true }),
+      session.refreshBalances(),
+    ]).finally(() => {
+      closeModal();
+      openAccount(session.current);
+    });
+  });
 
   const disconnect = el('button', 'btn btn-destructive btn-sm');
   disconnect.type = 'button';
   disconnect.textContent = 'Disconnect';
   disconnect.addEventListener('click', () => {
-    wallet.disconnect();
+    session.disconnect();
     closeModal();
   });
-  body.append(disconnect);
 
-  openModal('Account', body);
+  const row = el('div', 'row');
+  row.append(refresh, disconnect);
+  body.append(row);
+
+  body.append(
+    el(
+      'p',
+      't-caption muted',
+      'Conduit holds no single active network. Each action asks your wallet for the chain that ' +
+        'action needs. Eligibility shown here is informational — an irreversible COMMIT asks ' +
+        'Cleanverse again, server-side, whatever this says.',
+    ),
+  );
+
+  openModal('Participant', body);
 }
 
 // ── Mounting ────────────────────────────────────────────────────────────────
 
-/**
- * Renders whatever the wallet control should be right now.
- *
- * Every mount point gets the same treatment, so the sidebar and the top bar
- * cannot disagree about whether a wallet is connected.
- */
-function paint(host: HTMLElement, state: WalletState): void {
+function paintControl(host: HTMLElement, state: SessionState): void {
   host.replaceChildren();
 
-  if (state.status !== 'connected' || state.address === undefined) {
+  if (state.connection !== 'connected' || state.account === undefined) {
     const connect = el('button', 'btn btn-primary btn-sm');
     connect.type = 'button';
-    connect.textContent = state.status === 'connecting' ? 'Connecting…' : 'Connect wallet';
-    connect.disabled = state.status === 'connecting';
+    connect.dataset['connect'] = '';
+    connect.textContent = state.connection === 'connecting' ? 'Connecting…' : 'Connect wallet';
+    connect.disabled = state.connection === 'connecting';
     connect.addEventListener('click', () => void openConnect());
     host.append(connect);
     return;
@@ -233,22 +288,41 @@ function paint(host: HTMLElement, state: WalletState): void {
 
   const button = el('button', 'account-chip');
   button.type = 'button';
-  button.append(el('span', 'mono', SHORT(state.address)));
+  button.dataset['account'] = state.account;
+  button.append(el('span', 'mono', SHORT(state.account)));
 
-  const where = CHAINS[state.chainId ?? 0]?.name;
-  button.append(
-    el('span', 't-caption muted', where ?? `chain ${String(state.chainId ?? 0)} — unsupported`),
-  );
+  const summary = session.eligibilitySummary();
+  button.append(el('span', 't-caption muted', summary ?? 'checking eligibility…'));
+
   button.addEventListener('click', () => {
-    openAccount(state);
+    openAccount(session.current);
   });
   host.append(button);
 }
 
-export function mountWalletControls(): void {
-  const hosts = [...document.querySelectorAll<HTMLElement>('[data-wallet-control]')];
-  if (hosts.length === 0) return;
-  wallet.subscribe((state) => {
-    for (const host of hosts) paint(host, state);
+/** The compact identity in the sidebar. It reports; it never offers a connect. */
+function paintStrip(host: HTMLElement, state: SessionState): void {
+  host.replaceChildren();
+  if (state.connection !== 'connected' || state.account === undefined) {
+    host.append(
+      el('span', 't-caption muted', 'Not connected. The participant control is at the top right.'),
+    );
+    return;
+  }
+  const wrap = el('div', 'stack-4');
+  wrap.append(el('div', 'mono t-caption', SHORT(state.account)));
+  const summary = session.eligibilitySummary();
+  if (summary !== undefined) wrap.append(el('div', 't-caption muted', summary));
+  host.append(wrap);
+}
+
+export function mountParticipantControl(): void {
+  const controls = [...document.querySelectorAll<HTMLElement>('[data-participant]')];
+  const strips = [...document.querySelectorAll<HTMLElement>('[data-identity-strip]')];
+  if (controls.length === 0 && strips.length === 0) return;
+
+  session.subscribe((state) => {
+    for (const host of controls) paintControl(host, state);
+    for (const host of strips) paintStrip(host, state);
   });
 }

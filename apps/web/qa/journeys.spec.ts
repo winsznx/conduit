@@ -169,6 +169,103 @@ test.describe('journey C — compliance changed after the commitment', () => {
   });
 });
 
+/**
+ * The session is the product's memory, so the journey that tests it is the one
+ * where a participant moves around.
+ *
+ * These use the refused wallet on purpose. A judge who connects something the
+ * sandbox will not clear is the most likely first visitor, and every one of
+ * these surfaces has to behave for them: the orientation must name the refusal
+ * rather than hide it, the overview must lead with them rather than with the
+ * database, and the identity must survive navigation without a second prompt.
+ */
+test.describe('journey D — one session, across the whole console', () => {
+  test('orients once, carries identity between pages, and leads with the participant', async ({
+    page,
+  }) => {
+    await installStrangerWallet(page, UNKNOWN);
+
+    // #given a first visit with no wallet connected
+    await page.goto('/app');
+    await expect(page.locator('[data-overview]')).toContainText('Your position', {
+      timeout: 30_000,
+    });
+
+    // #when the participant connects
+    await page
+      .locator('[data-participant]')
+      .getByRole('button', { name: 'Connect wallet' })
+      .click();
+    await page.getByText('Judge Wallet').click();
+
+    // #then orientation explains both chains and names Cleanverse's answer,
+    // and it offers somewhere to go rather than a dead end
+    const onboarding = page.locator('[data-onboarding]');
+    await expect(onboarding).toContainText('Wallet connected', { timeout: 30_000 });
+    await expect(onboarding).toContainText('Monad Testnet');
+    await expect(onboarding).toContainText('Base Sepolia');
+    await expect(onboarding).toContainText(/ELIGIBLE|NO APASS|INELIGIBLE|UNAVAILABLE/, {
+      timeout: 60_000,
+    });
+    await expect(
+      onboarding.getByRole('link', { name: /Explore a proven settlement|New settlement/ }).first(),
+    ).toBeVisible();
+
+    // #then the overview leads with this participant, not with the newest row
+    const overview = page.locator('[data-overview]');
+    await expect(overview).toContainText('Your position', { timeout: 30_000 });
+    await expect(overview).toContainText('cSETTLE');
+    await expect(overview).toContainText('cBOND available');
+    await expect(overview).toContainText('Your settlements', { timeout: 60_000 });
+
+    // #when the participant navigates away
+    await page.goto('/app/verifier');
+
+    // #then the identity is still there, in one control, with no second prompt
+    await expect(page.locator('[data-participant] [data-account]')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.locator('[data-participant] [data-account]')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Connect wallet' })).toHaveCount(0);
+
+    // #and the sidebar reports the same identity and offers no way to connect
+    const strip = page.locator('[data-identity-strip]');
+    // Case-insensitive on purpose: the strip prints what the wallet returned,
+    // and EIP-55 checksumming is the wallet's choice rather than Conduit's.
+    await expect(strip).toContainText(/0xabc0/i);
+    await expect(strip.getByRole('button')).toHaveCount(0);
+
+    // #and orientation does not interrupt a second time
+    await page.goto('/app');
+    await expect(page.locator('[data-participant] [data-account]')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.locator('[data-onboarding]')).not.toContainText('Wallet connected');
+  });
+
+  test('the account panel states both chains and never asks which one to use', async ({ page }) => {
+    await installStrangerWallet(page, UNKNOWN);
+    await page.goto('/app');
+    await page
+      .locator('[data-participant]')
+      .getByRole('button', { name: 'Connect wallet' })
+      .click();
+    await page.getByText('Judge Wallet').click();
+
+    await page.locator('[data-participant] [data-account]').click();
+    const panel = page.getByRole('dialog', { name: 'Participant' });
+    await expect(panel).toBeVisible({ timeout: 30_000 });
+
+    // #then it reports, and does not offer a network to be in
+    await expect(panel).toContainText('Networks');
+    await expect(panel).toContainText('Monad Testnet');
+    await expect(panel).toContainText('Base Sepolia');
+    await expect(panel).toContainText('Conduit holds no single active network');
+    await expect(panel.getByRole('button', { name: /Switch/ })).toHaveCount(0);
+    await expect(panel.getByRole('button', { name: 'Disconnect' })).toBeVisible();
+  });
+});
+
 test.describe('no dead ends', () => {
   test('an unknown settlement says what that does and does not mean', async ({ page }) => {
     const response = await page.goto(`/app/settlements/0x${'11'.repeat(32)}`);

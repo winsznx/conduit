@@ -242,6 +242,7 @@ build if a unique key on a bare address appears in the schema
 | Independently verified                | [SETTLED_FINAL, 18/18](https://conduit.timjosh507.workers.dev/verify/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77)   |
 | Compliance changed after COMMIT       | [`0xc113ad33…`](https://conduit.timjosh507.workers.dev/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0) |
 | Everything, in one document           | [docs/evidence/MANIFEST.md](docs/evidence/MANIFEST.md)                                                                                     |
+| Every transaction, linked             | [docs/onchain.md](docs/onchain.md)                                                                                                         |
 
 The console is the product: a participant connects a wallet, is checked against
 Cleanverse live, composes terms, signs an EIP-712 intent, sends a counterparty a
@@ -308,14 +309,15 @@ Also enforced, and tested:
 ## Testing
 
 ```text
-Vitest      760 assertions, 32 files
+Vitest      762 assertions, 32 files
 Foundry     281 tests, 19 suites — 9 fuzz properties at 256 runs each,
                                    26 disposition invariants,
                                    10 exploit regressions
-Playwright   76 browser tests against the deployed surface, plus 1 opt-in live run
-Gate        17/17 steps: format, lint, typecheck, unit, contracts build/test/gas/
-            layout, trace corpus, Slither, gitleaks, pnpm audit, Trivy, Checkov,
-            manifests, end-to-end
+Playwright   78 browser tests against the deployed surface, plus 1 opt-in live run
+Gate        19/19 steps: toolchain, format, lint, typecheck, unit, contracts
+            build/test/gas/layout, trace corpus, Slither, gitleaks, pnpm audit,
+            Trivy, Checkov, manifests, on-chain verification, on-chain
+            transaction index, end-to-end
 ```
 
 The browser suite drives the whole write flow — reserve, announce, approve,
@@ -372,7 +374,7 @@ message PRD 7.3 does not define, and ADR-0015 forbids inventing one.
 
 ```bash
 pnpm install
-pnpm verify                      # the full 17-step gate
+pnpm verify                      # the full 19-step gate
 pnpm conduit doctor              # environment, both chains, every Cleanverse capability
 pnpm conduit verify <settlementId>
 pnpm evidence:check              # what the site serves still matches docs/evidence
@@ -388,6 +390,7 @@ strict.
 | [docs/submission.md](docs/submission.md)                               | the submission package, and the rubric mapping |
 | [docs/evidence/MANIFEST.md](docs/evidence/MANIFEST.md)                 | every transaction, message and check           |
 | [docs/implementation-status.md](docs/implementation-status.md)         | what is LIVE, tested, blocked or future        |
-| [docs/adr/](docs/adr/)                                                 | 21 decisions, including the ones we got wrong  |
+| [docs/adr/](docs/adr/)                                                 | 22 decisions, including the ones we got wrong  |
+| [docs/onchain.md](docs/onchain.md)                                     | 57 transactions, resolved and linked           |
 | [docs/threat-model/](docs/threat-model/)                               | 48 threats bound to 13 invariants              |
 | [docs/evidence/observed-latency.md](docs/evidence/observed-latency.md) | 12 finality samples, never averaged            |

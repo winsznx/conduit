@@ -26,8 +26,9 @@ import {
   type Deployment,
   type DraftTerms,
 } from './protocol.js';
+import { session } from './session.js';
 import { describe } from './tx.js';
-import { BASE_SEPOLIA, MONAD_TESTNET, publicClient, wallet } from './wallet.js';
+import { BASE_SEPOLIA, MONAD_TESTNET } from './wallet.js';
 
 interface EligibilityRow {
   readonly chain: string;
@@ -39,16 +40,6 @@ interface EligibilityRow {
   readonly checkedAt: string;
   readonly answer?: string;
 }
-
-const ERC20_BALANCE = [
-  {
-    type: 'function',
-    name: 'balanceOf',
-    stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ type: 'uint256' }],
-  },
-] as const;
 
 function q(root: ParentNode, selector: string): HTMLElement {
   const found = root.querySelector<HTMLElement>(selector);
@@ -117,7 +108,7 @@ export function mountComposer(): void {
 
   /** Roles are a claim about the connected wallet, so they autofill from it. */
   const applyRole = (): void => {
-    const account = wallet.current.address;
+    const account = session.current.account;
     if (account === undefined) return;
     const role = qs(root, '#f-role').value;
     if (role === 'payer' || role === 'both') field('cashPayer').value = account;
@@ -131,40 +122,35 @@ export function mountComposer(): void {
   };
   q(root, '#f-role').addEventListener('change', applyRole);
 
-  const loadBalances = async (): Promise<void> => {
-    const account = wallet.current.address;
-    if (account === undefined) return;
-    balances.replaceChildren(node('span', 't-caption muted', 'Reading balances…'));
-    try {
-      const [cash, bond] = await Promise.all([
-        publicClient(MONAD_TESTNET).readContract({
-          address: deployment.cashAsset,
-          abi: ERC20_BALANCE,
-          functionName: 'balanceOf',
-          args: [account],
-        }),
-        publicClient(BASE_SEPOLIA).readContract({
-          address: deployment.rwaToken,
-          abi: ERC20_BALANCE,
-          functionName: 'balanceOf',
-          args: [account],
-        }),
-      ]);
-      balances.replaceChildren(
-        node('span', 't-caption muted', `cSETTLE ${fromBaseUnits(cash)}`),
-        node('span', 't-caption muted', `cBOND ${fromBaseUnits(bond)}`),
-      );
-    } catch {
+  /**
+   * Balances come from the session, not from a read of this component's own.
+   *
+   * They used to be fetched here, and again by the account panel, and again by
+   * the workspace — three RPC round trips for one number, and three chances to
+   * show three different figures on the same screen. The session reads them
+   * once and every surface renders the same answer.
+   */
+  const paintBalances = (): void => {
+    const { settlementAsset, rwa } = session.current.balances;
+    if (settlementAsset === undefined && rwa === undefined) {
       // A balance we could not read is unknown, not zero.
-      balances.replaceChildren(node('span', 't-caption muted', 'Balances unavailable'));
+      balances.replaceChildren(node('span', 't-caption muted', 'Reading balances…'));
+      return;
     }
+    balances.replaceChildren(
+      node(
+        'span',
+        't-caption muted',
+        `cSETTLE ${settlementAsset === undefined ? '—' : fromBaseUnits(settlementAsset)}`,
+      ),
+      node('span', 't-caption muted', `cBOND ${rwa === undefined ? '—' : fromBaseUnits(rwa)}`),
+    );
   };
 
-  wallet.subscribe((state) => {
-    if (state.status === 'connected') {
-      applyRole();
-      void loadBalances();
-    }
+  session.subscribe((state) => {
+    if (state.connection !== 'connected') return;
+    applyRole();
+    paintBalances();
   });
 
   const readDraft = (): DraftTerms => {
@@ -329,7 +315,7 @@ export function mountComposer(): void {
     }
     summary.append(table);
 
-    const roles = rolesFor(intent, wallet.current.address);
+    const roles = rolesFor(intent, session.current.account);
     signButton.disabled = roles.length === 0;
     signStatus.textContent =
       roles.length === 0
@@ -386,6 +372,11 @@ export function mountComposer(): void {
         const actions = node('div', 'row');
         actions.append(copy, open);
         signResult.append(actions);
+
+        // The session carries this to every open tab, so a participant who
+        // composed here and is watching the workspace there sees it appear.
+        session.notify('Settlement signed and shared with your counterparty.');
+        session.protocolChanged(signed.intent.settlementId);
       } catch (error) {
         signStatus.textContent = describe(error);
         signButton.disabled = false;
@@ -435,13 +426,13 @@ export function mountSignRequest(): void {
   };
   const intent = buildIntent(payload.deployment, draft);
 
-  wallet.subscribe((state) => {
-    if (state.status !== 'connected') {
+  session.subscribe((state) => {
+    if (state.connection !== 'connected') {
       button.disabled = true;
       status.textContent = 'Connect the wallet named in these terms to sign.';
       return;
     }
-    const roles = rolesFor(intent, state.address);
+    const roles = rolesFor(intent, state.account);
     button.disabled = roles.length === 0;
     status.textContent =
       roles.length === 0
@@ -466,6 +457,8 @@ export function mountSignRequest(): void {
         });
         if (!response.ok) throw new Error('the signature was rejected by the server');
         status.textContent = `Signed, and the signature recovers to ${signed.signer}.`;
+        session.notify('Countersigned. Both parties have now signed these terms.');
+        session.protocolChanged(signed.intent.settlementId);
         result.replaceChildren(node('div', 'badge badge-solid', 'SIGNED'));
         const open = node('a', 'btn btn-primary btn-sm', 'Open settlement');
         (open as HTMLAnchorElement).href = `/app/settlements/${signed.intent.settlementId}`;

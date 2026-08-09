@@ -15,6 +15,10 @@ contracts/test/fixtures/
 apps/web/src/evidence-index.ts
 docs/evidence/MANIFEST.md
 
+# And the same again: `pnpm onchain:index:check` byte-compares this against what
+# both chains report for every transaction it lists.
+docs/onchain.md
+
 # Run artifacts are records, written by the scripts that produced the runs. A
 # formatter has no business rewriting the bytes of a thing whose whole purpose
 # is to be the record of what happened.

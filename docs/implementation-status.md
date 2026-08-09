@@ -1080,3 +1080,125 @@ run against both testnets is `apps/web/qa/live.spec.ts`, opt-in behind
 3. **Evidence is served from the repository, not from object storage.** The page
    says so and names the path of every package. ASM-039 stays open; replacing the
    storage changes where the bytes live and nothing about what they mean.
+
+---
+
+## Product journey — one session, and proof you can click
+
+**State:** PASS
+**Surface:** <https://conduit.timjosh507.workers.dev>
+
+No protocol scope was added. Every contract, every message, every settlement and
+every attestation is exactly what the participant web flow left. What changed is
+who owns state in the browser, what the console leads with, and whether a reader
+can check a claim without opening a JSON file.
+
+### One participant session
+
+Four surfaces used to discover wallets, restore accounts, read balances and ask
+Cleanverse independently — the top-bar control, the sidebar strip, the composer
+and the workspace. Each was correct alone; together they were four sources of
+truth for one fact, and two of them could render different answers on the same
+screen while an account changed.
+
+`apps/web/src/client/session.ts` now owns identity, connection, per-chain
+eligibility, balances, activity and orientation. Views subscribe and none of them
+fetches for itself. Reads are coalesced by key, eligibility carries a five-minute
+TTL, and a `BroadcastChannel` carries account changes and protocol movement
+between tabs. It wraps the proven `wallet` singleton rather than replacing it:
+`tx.ts` is the code that has driven real settlements on two chains, and a session
+refactor is not a reason to touch it.
+
+[ADR-0022](./adr/0022-one-participant-session-owns-identity-and-nothing-owns-a-chain.md)
+records the decision, including the one that was easiest to get wrong.
+
+### Conduit still has no active network
+
+A settlement uses both chains at once, so "the app is on Base" is never a true
+statement about anything. The session holds no selected chain, the account panel
+offers no network picker, and no view branches on where the wallet points. The
+panel states both chains, both verdicts, and where the wallet currently is —
+information, not a mode. The switch belongs to the action, as its own rung in
+`runWrite`.
+
+Two tests hold that line from opposite directions: `settlement.spec.ts` asserts a
+Base action asks the wallet to move to Base, and `wallet.spec.ts` asserts that
+merely opening the account panel asks for nothing.
+
+### The console leads with the participant
+
+`/app` opened with four counters and the newest rows in the projection, which is
+a fair summary of a database and a poor answer to the question a participant
+arrives with. `GET /api/participant` answers the real one: the settlements this
+address is a party to, which side it is on, and what each is waiting for. The
+deployment-wide numbers stay, below.
+
+Disconnected, the page says what the console is for and offers the routes that
+need no wallet. A judge reading the proof is never asked to install anything.
+
+### Orientation, twice, and never again
+
+A first visit explains what Conduit is. A first connection explains that two
+chains are in play at once and names what Cleanverse answered for this wallet.
+The refused branch is the one that matters: it says the refusal is Cleanverse's
+answer rather than a Conduit error, and offers the proven settlement, the
+compliance-change case and the verifier. Marked seen when it is shown with a real
+answer, not when it is dismissed.
+
+### Activity outlives the page
+
+Base finality on this deployment runs 999–1485 seconds. Every write now reports
+each rung to the session, keyed by settlement and step, and a drawer renders it
+on every route — so opening the verifier during the wait does not lose sight of a
+reservation made ninety seconds ago. The workspace still paints its own ladder.
+The drawer authorises nothing and is never read back as evidence.
+
+### Proof you can click
+
+- Every Wormhole message on a settlement page now links to the transaction that
+  published it, on the chain that emitted it, alongside the signed VAA it
+  produced.
+- [`docs/onchain.md`](./onchain.md) indexes **57 transactions** across five runs.
+  Not one of them is transcribed: `scripts/build-onchain-index.mjs` reads each
+  hash out of an artifact, asks both chains, and takes the chain, block, status
+  and callee from the receipt. A hash neither chain knows stays in the document
+  as `NOT_FOUND`, and an RPC that cannot be reached produces `UNREACHABLE` and
+  refuses to overwrite a good record with a worse one.
+- That check is gate step 18. A link that stops resolving fails the build.
+- `/app/deployments` links the generation history, the transaction index and the
+  machine-checked verification record.
+
+### A defect the session refactor exposed
+
+The HELD panel cleared its host, awaited four chain reads, then appended. Two
+overlapping paints — routine, since the workspace re-renders on a ten-second poll
+— interleaved their clear and their append, and rendered the panel twice with two
+sets of order buttons in front of an authority about to file something
+irreversible. A paint token per host now makes the stale paint discard its work.
+Found by `settlement.spec.ts`, not by reading.
+
+### Test counts
+
+```text
+vitest       762 assertions across 32 files
+foundry      281 tests across 19 suites
+playwright    78 browser tests against the deployed surface
+              of which 8 are the four judge journeys, walked end to end
+gate         19/19 steps green
+```
+
+Journey D is new: it connects a wallet the sandbox refuses, and asserts the
+orientation names the refusal, the overview leads with the participant, the
+identity survives navigation with no second prompt, and the sidebar reports it
+without offering a second way to connect.
+
+### Known limitations
+
+1. **The activity drawer is a browser's record of its own writes.** It survives
+   navigation and reaches other tabs; it does not survive a closed browser, and
+   it is not evidence. The chain is.
+2. **`/api/participant` reads the projection.** A settlement composed a minute
+   ago is not in it, and the empty state says so rather than implying absence.
+3. **The transaction index covers curated runs, not every transaction ever
+   sent.** The five runs are named in the script; funding, wiring and faucet
+   transactions live in their own artifacts under `docs/evidence`.

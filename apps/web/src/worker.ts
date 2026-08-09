@@ -52,16 +52,18 @@ import { isMessageFailure, messagesFor, recordMessage } from './messages.js';
 import { proofPackage } from './evidence.js';
 import type { Env } from './data.js';
 import {
+  consoleOverview,
   deployments,
   dispositionCases,
   evidenceFor,
   latestVerification,
   recentSettlements,
   settlementView,
-  totals,
+  settlementsForParticipant,
   viewFromIntent,
 } from './data.js';
 import {
+  setDeployment,
   renderComposer,
   renderDeployments,
   renderDispositions,
@@ -156,6 +158,24 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, '') || '/';
+
+    // Every page carries the deployment so the session can read balances on
+    // routes that have no composer. This is module state in a shared isolate,
+    // which is safe only because the value is derived from `env` and is
+    // therefore identical for every request this isolate will ever serve.
+    const rendered = deploymentConfig(env);
+    setDeployment(
+      rendered === undefined
+        ? undefined
+        : {
+            deploymentId: rendered.deploymentId,
+            coordinator: rendered.coordinator,
+            cashEscrow: rendered.cashEscrow,
+            cashAsset: rendered.cashAsset,
+            rwaToken: rendered.rwaToken,
+            rwaAdapter: rendered.rwaAdapter,
+          },
+    );
 
     if (request.method === 'POST') {
       try {
@@ -329,10 +349,36 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
     return json({ subject, results });
   }
 
+  /**
+   * The settlements one address is a party to.
+   *
+   * The console needs this to lead with the participant rather than with the
+   * newest row in a table, and it cannot be answered in the browser: it is a
+   * question about an index, not about chain state. Which is exactly why the
+   * answer authorises nothing — it decides what a page lists, and every state
+   * on it is still read back from the chains before anybody acts on it.
+   *
+   * Public, because an intent's parties are on chain in the signed terms. There
+   * is nothing here a settlement page does not already show.
+   */
+  if (path === '/api/participant') {
+    const subject = url.searchParams.get('address') ?? '';
+    if (!isAddress(subject)) {
+      return json(
+        { error: { code: 'invalid_request', message: 'address must be a 20-byte hex address' } },
+        400,
+      );
+    }
+    return json({
+      address: subject.toLowerCase(),
+      settlements: await settlementsForParticipant(env, subject),
+    });
+  }
+
   // ── Landing ───────────────────────────────────────────────────────────────
 
   if (path === '/') {
-    const [counts, recent] = await Promise.all([totals(env), recentSettlements(env, 1)]);
+    const { totals: counts, recent } = await consoleOverview(env, 1);
     // The landing diagram shows a real trade, so it needs the full view. The
     // list query deliberately skips terms, and passing that shallow row
     // straight through rendered a settlement with no chain and no amounts.
@@ -344,7 +390,7 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
   // ── Console ───────────────────────────────────────────────────────────────
 
   if (path === '/app') {
-    const [counts, recent] = await Promise.all([totals(env), recentSettlements(env, 8)]);
+    const { totals: counts, recent } = await consoleOverview(env, 8);
     return html(renderOverview(generationLabel(env), counts, recent));
   }
 

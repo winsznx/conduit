@@ -86,6 +86,8 @@ interface Model {
   caseFiledAt: bigint;
   /** Every selector the browser actually sent, in order. */
   sent: string[];
+  /** Every chain the app asked the wallet to move to, in order. */
+  switched: string[];
 }
 
 const ZERO = '0x0000000000000000000000000000000000000000';
@@ -116,6 +118,7 @@ function freshModel(): Model {
     caseState: 0,
     caseFiledAt: 0n,
     sent: [],
+    switched: [],
   };
 }
 
@@ -457,10 +460,18 @@ async function installWallet(page: Page, model: Model): Promise<void> {
     return TX_HASH;
   });
 
+  // The wallet reports Monad throughout, so every Base action must ask it to
+  // move. This records the asks so a test can prove the app does it per action
+  // rather than holding a network of its own.
+  await page.exposeFunction('__switchChain', (chainId: string) => {
+    model.switched.push(chainId);
+  });
+
   await page.addInitScript((address: string) => {
     const bridge = window as unknown as {
       __signTypedData: (raw: string) => Promise<string>;
       __sendTransaction: (data: string) => Promise<string>;
+      __switchChain: (chainId: string) => Promise<void>;
     };
     const provider = {
       request: async ({ method, params }: { method: string; params?: unknown }) => {
@@ -470,7 +481,11 @@ async function installWallet(page: Page, model: Model): Promise<void> {
             return [address];
           case 'eth_chainId':
             return '0x279f';
-          case 'wallet_switchEthereumChain':
+          case 'wallet_switchEthereumChain': {
+            const [target] = params as [{ chainId: string }];
+            await bridge.__switchChain(target.chainId);
+            return null;
+          }
           case 'wallet_addEthereumChain':
             return null;
           case 'eth_signTypedData_v4': {
@@ -664,6 +679,10 @@ test.describe('settlement workspace', () => {
     // #then both the reservation and the announcement actually happened
     expect(model.sent).toContain('reserveForSettlement');
     expect(model.sent).toContain('prepareAsset');
+
+    // #then the app asked the wallet for Base, because the action needed Base.
+    // There is no network control anywhere in the product; the write asks.
+    expect(model.switched, 'a Base action must ask the wallet to move there').toContain('0x14a34');
 
     // #when the payer locks the cash
     await runAction(page, 'lock-cash');

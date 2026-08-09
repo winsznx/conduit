@@ -174,17 +174,87 @@ interface SettlementRow {
 
 /** Newest first. `created_at` is when the projection saw it, not chain order. */
 export async function recentSettlements(env: Env, limit = 50): Promise<readonly SettlementView[]> {
+  return withDb(env, (sql) => readRecent(sql, limit));
+}
+
+/** One settlement a given address is actually a party to, and which side it is. */
+export interface ParticipantSettlement {
+  readonly settlementId: string;
+  readonly canonicalState: string;
+  readonly verifierClass: string | undefined;
+  readonly generation: number;
+  readonly roles: readonly string[];
+  readonly cashAmount: string;
+  readonly assetAmount: string;
+  readonly termsKnown: boolean;
+}
+
+/**
+ * The settlements one address is a party to.
+ *
+ * The console's landing page listed the newest settlements in the projection,
+ * which is a database view rather than a participant's view — a connected buyer
+ * saw somebody else's trade first and their own further down, if at all. This
+ * asks the question a participant actually has: where am I in this, and what is
+ * waiting on me.
+ *
+ * The roles come from the intent, so they are the terms both parties signed
+ * rather than an inference from who happened to send a transaction. A row whose
+ * `terms_source` is `unknown` reports `termsKnown: false` and no amounts: the
+ * placeholder zeros in that case are not data (see migration 0003).
+ */
+export async function settlementsForParticipant(
+  env: Env,
+  address: string,
+): Promise<readonly ParticipantSettlement[]> {
+  const subject = address.toLowerCase();
   return withDb(env, async (sql) => {
     const rows = (await sql`
-      SELECT s.settlement_id, s.deployment_id, s.intent_hash, s.canonical_state,
-             s.decision, s.verifier_class, d.generation
+      SELECT s.settlement_id, s.canonical_state, s.verifier_class, d.generation,
+             i.cash_payer, i.cash_receiver, i.asset_seller, i.asset_receiver,
+             i.cash_amount, i.asset_amount, i.terms_source
         FROM conduit.settlements s
         JOIN conduit.deployments d USING (deployment_id)
+        JOIN conduit.intents i USING (intent_hash)
+       WHERE lower(i.cash_payer) = ${subject}
+          OR lower(i.cash_receiver) = ${subject}
+          OR lower(i.asset_seller) = ${subject}
+          OR lower(i.asset_receiver) = ${subject}
        ORDER BY s.created_at DESC
-       LIMIT ${limit}
-    `) as unknown as readonly SettlementRow[];
+       LIMIT 25
+    `) as unknown as readonly {
+      readonly settlement_id: string;
+      readonly canonical_state: string;
+      readonly verifier_class: string | null;
+      readonly generation: number;
+      readonly cash_payer: string;
+      readonly cash_receiver: string;
+      readonly asset_seller: string;
+      readonly asset_receiver: string;
+      readonly cash_amount: string;
+      readonly asset_amount: string;
+      readonly terms_source: string;
+    }[];
 
-    return rows.map((row) => shallowView(row));
+    return rows.map((row) => {
+      const roles: string[] = [];
+      if (row.cash_payer.toLowerCase() === subject) roles.push('cash payer');
+      if (row.cash_receiver.toLowerCase() === subject) roles.push('cash receiver');
+      if (row.asset_seller.toLowerCase() === subject) roles.push('asset seller');
+      if (row.asset_receiver.toLowerCase() === subject) roles.push('asset receiver');
+
+      const termsKnown = row.terms_source !== 'unknown';
+      return {
+        settlementId: row.settlement_id,
+        canonicalState: row.canonical_state,
+        verifierClass: row.verifier_class ?? undefined,
+        generation: row.generation,
+        roles,
+        cashAmount: termsKnown ? formatAmount(row.cash_amount) : '',
+        assetAmount: termsKnown ? formatAmount(row.asset_amount) : '',
+        termsKnown,
+      };
+    });
   });
 }
 
@@ -288,7 +358,8 @@ export async function settlementView(
     `) as unknown as readonly { leg: string; chain_id: number; outcome: string }[];
 
     const messageRows = (await sql`
-      SELECT message_type, sequence, finality, emitter, wormhole_chain_id, destination_chain_id
+      SELECT message_type, sequence, finality, emitter, wormhole_chain_id,
+             destination_chain_id, source_chain_id, published_tx_hash
         FROM conduit.messages WHERE settlement_id = ${settlementId}
        ORDER BY wormhole_chain_id, sequence
     `) as unknown as readonly Record<string, unknown>[];
@@ -321,6 +392,8 @@ export async function settlementView(
       wormholeChainId: num(row['wormhole_chain_id']),
       consumed: text(row['destination_chain_id']) !== '',
       finalitySeconds: undefined,
+      publishedTxHash: text(row['published_tx_hash']),
+      publishedChainId: num(row['source_chain_id']),
     }));
 
     return {
@@ -489,22 +562,58 @@ export interface Totals {
   readonly held: number;
 }
 
-export async function totals(env: Env): Promise<Totals> {
-  return withDb(env, async (sql) => {
-    const [row] = (await sql`
+async function readTotals(sql: Sql): Promise<Totals> {
+  const [row] = (await sql`
       SELECT (SELECT count(*) FROM conduit.settlements)                              AS settlements,
              (SELECT count(*) FROM conduit.messages)                                 AS messages,
              (SELECT count(*) FROM conduit.verification_runs)                        AS verifications,
              (SELECT count(*) FROM conduit.deployments)                              AS generations,
              (SELECT count(*) FROM conduit.settlements WHERE canonical_state='HELD') AS held
     `) as unknown as readonly Record<string, unknown>[];
-    return {
-      settlements: Number(row?.['settlements'] ?? 0),
-      messages: Number(row?.['messages'] ?? 0),
-      verifications: Number(row?.['verifications'] ?? 0),
-      generations: Number(row?.['generations'] ?? 0),
-      held: Number(row?.['held'] ?? 0),
-    };
+  return {
+    settlements: Number(row?.['settlements'] ?? 0),
+    messages: Number(row?.['messages'] ?? 0),
+    verifications: Number(row?.['verifications'] ?? 0),
+    generations: Number(row?.['generations'] ?? 0),
+    held: Number(row?.['held'] ?? 0),
+  };
+}
+
+export async function totals(env: Env): Promise<Totals> {
+  return withDb(env, readTotals);
+}
+
+async function readRecent(sql: Sql, limit: number): Promise<readonly SettlementView[]> {
+  const rows = (await sql`
+      SELECT s.settlement_id, s.deployment_id, s.intent_hash, s.canonical_state,
+             s.decision, s.verifier_class, d.generation
+        FROM conduit.settlements s
+        JOIN conduit.deployments d USING (deployment_id)
+       ORDER BY s.created_at DESC
+       LIMIT ${limit}
+    `) as unknown as readonly SettlementRow[];
+  return rows.map((row) => shallowView(row));
+}
+
+/**
+ * The console's front page, on one connection.
+ *
+ * `totals` and `recentSettlements` were two calls, and every call opens its own
+ * socket to the pooler and closes it — so the most-visited route in the product
+ * cost two connections to answer one page. Under a full browser suite that is
+ * the difference between a page that renders in two seconds and a pooler that
+ * starts refusing.
+ *
+ * Nothing about the answers changed. They are the same two queries, asked once,
+ * down one wire.
+ */
+export async function consoleOverview(
+  env: Env,
+  limit: number,
+): Promise<{ readonly totals: Totals; readonly recent: readonly SettlementView[] }> {
+  return withDb(env, async (sql) => {
+    const [counts, recent] = await Promise.all([readTotals(sql), readRecent(sql, limit)]);
+    return { totals: counts, recent };
   });
 }
 
