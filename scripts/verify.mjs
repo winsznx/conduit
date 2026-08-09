@@ -95,14 +95,21 @@ const STEPS = [
     },
   },
   {
+    id: 'typecheck',
+    // Before lint, and the order is load-bearing rather than tidy. The ESLint
+    // config is type-aware, and the type information for a workspace package
+    // comes from the declarations `tsc --build` emits. On a clean checkout those
+    // do not exist yet, so every cross-package import resolves to `error` and
+    // lint reports several hundred no-unsafe-* violations that say nothing about
+    // the code. This is what CI has been failing on: locally the artefacts were
+    // already on disk from a previous build, so lint saw real types and passed.
+    title: 'tsc --build (strict, all workspaces)',
+    exec: () => run('pnpm', ['exec', 'tsc', '--build', '--force'], { allowFailure: true }),
+  },
+  {
     id: 'lint',
     title: 'eslint (type-aware)',
     exec: () => run('pnpm', ['exec', 'eslint', '.', '--max-warnings', '0'], { allowFailure: true }),
-  },
-  {
-    id: 'typecheck',
-    title: 'tsc --build (strict, all workspaces)',
-    exec: () => run('pnpm', ['exec', 'tsc', '--build', '--force'], { allowFailure: true }),
   },
   {
     id: 'unit',

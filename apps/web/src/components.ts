@@ -67,15 +67,25 @@ function navList(items: readonly NavItem[], current: string): string {
     .join('');
 }
 
-export function wordmark(): string {
+/**
+ * The wordmark, which is also the way home.
+ *
+ * `linked` is false only where it would point at the page you are already on —
+ * the landing's own header and footer. Everywhere else the mark is what a
+ * reader reaches for to get out of the console, and it was inert.
+ */
+export function wordmark(linked = false): string {
   // The one Ember mark in the chrome: a supporting graphic detail, which is the
   // role `design.md` gives it. It is not a status and not a brand fill.
-  return `<span class="identity"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="15" height="15" rx="4.5" stroke="var(--color-ink)"/><circle cx="8" cy="8" r="2" fill="var(--color-ember)"/></svg><span style="font-weight:var(--font-weight-semibold)">Conduit</span></span>`;
+  const inner = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="15" height="15" rx="4.5" stroke="var(--color-ink)"/><circle cx="8" cy="8" r="2" fill="var(--color-ember)"/></svg><span style="font-weight:var(--font-weight-semibold)">Conduit</span>`;
+  return linked
+    ? `<a class="identity" href="/" aria-label="Conduit — back to the home page">${inner}</a>`
+    : `<span class="identity">${inner}</span>`;
 }
 
 export function sidebar(current: string): string {
   return `<aside class="sidebar">
-<div class="brand">${wordmark()}</div>
+<div class="brand">${wordmark(true)}</div>
 <nav class="nav" aria-label="Primary">${navList(PRIMARY_NAV, current)}</nav>
 <nav class="nav" aria-label="System"><div class="nav-section">System</div>${navList(SYSTEM_NAV, current)}</nav>
 <div class="sidebar-foot" data-identity-strip>

@@ -24,6 +24,8 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@conduit-protocol/cleanverse": "workspace:*",
+    "@conduit-protocol/domain": "workspace:*",
     "postgres": "3.4.9"
   },
   "devDependencies": {

@@ -19,5 +19,8 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@conduit-protocol/domain": "workspace:*"
   }
 }

@@ -121,6 +121,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@conduit-protocol/cleanverse':
+        specifier: workspace:*
+        version: link:../../packages/cleanverse
+      '@conduit-protocol/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       postgres:
         specifier: 3.4.9
         version: 3.4.9
@@ -194,7 +200,11 @@ importers:
         specifier: 10.3.1
         version: 10.3.1
 
-  packages/sdk: {}
+  packages/sdk:
+    dependencies:
+      '@conduit-protocol/domain':
+        specifier: workspace:*
+        version: link:../domain
 
   packages/ui: {}
 

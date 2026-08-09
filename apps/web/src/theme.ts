@@ -775,6 +775,10 @@ const LAYOUT = `
 }
 
 /* ── Nav links ───────────────────────────────────────────────────────────── */
+a.identity:hover{text-decoration:none}
+a.identity:hover span{text-decoration:underline;text-underline-offset:2px}
+.idlink{border-bottom:1px solid var(--color-hairline)}
+.idlink:hover{text-decoration:none;border-bottom-color:var(--color-ink)}
 .navlinks{display:flex;align-items:center;gap:var(--spacing-20)}
 @media (max-width:1024px){.navlinks{display:none}}
 .navlinks a{font-size:var(--text-body);color:var(--color-mid-gray)}

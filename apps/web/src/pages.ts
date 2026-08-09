@@ -46,6 +46,8 @@ import {
   input,
   pageHeader,
   sectionHeader,
+  settlementLink,
+  deploymentLink,
   stateBadge,
   statBlock,
   truncate,
@@ -436,10 +438,10 @@ function proofSection(totals: Totals, proofs: readonly ProofPackage[]): string {
     ${proofs
       .map((proof) => {
         const facts: readonly [string, string][] = [
-          ['Settlement', truncate(proof.settlementId)],
-          ['Generation', String(proof.generation)],
-          ['Canonical state', proof.verification?.canonicalState ?? 'not verified'],
-          ['Verifier', proof.verification?.classification ?? 'no run'],
+          ['Settlement', settlementLink(proof.settlementId)],
+          ['Generation', deploymentLink(String(proof.generation))],
+          ['Canonical state', esc(proof.verification?.canonicalState ?? 'not verified')],
+          ['Verifier', esc(proof.verification?.classification ?? 'no run')],
           [
             'Checks',
             proof.verification === undefined
@@ -458,7 +460,7 @@ function proofSection(totals: Totals, proofs: readonly ProofPackage[]): string {
     ${facts
       .map(
         ([key, value]) =>
-          `<div class="record-fact"><span class="k">${esc(key)}</span><span class="v">${esc(value)}</span></div>`,
+          `<div class="record-fact"><span class="k">${esc(key)}</span><span class="v">${value}</span></div>`,
       )
       .join('')}
   </div>
@@ -999,7 +1001,7 @@ export function renderSettlement(
         { label: truncate(view.settlementId, 8, 6) },
       ],
       meta: `<div class="row" style="margin-top:var(--spacing-8);flex-wrap:wrap">${stateBadge(view.canonicalState)}${view.verifierClass === undefined ? '' : stateBadge(view.verifierClass)}${badge(`gen ${String(view.generation)}`, 'outline')}<span class="t-caption muted" data-role-chip>role unknown until a wallet connects</span></div>
-<div class="mono muted" style="margin-top:var(--spacing-8);word-break:break-all;font-size:13px">${esc(view.settlementId)}</div>`,
+<div class="muted" style="margin-top:var(--spacing-8);font-size:13px">${settlementLink(view.settlementId, 'verify')}</div>`,
       actions: `${button({ label: 'Evidence', href: `/evidence/${view.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify', href: `/verify/${view.settlementId}`, small: true })}`,
     })}
 
@@ -1099,7 +1101,7 @@ export function renderSignRequest(
         { label: 'Settlements', href: '/app/settlements' },
         { label: 'Sign' },
       ],
-      meta: `<div class="mono muted" style="margin-top:var(--spacing-4);word-break:break-all;font-size:13px">${esc(settlementId)}</div>`,
+      meta: `<div class="muted" style="margin-top:var(--spacing-4);font-size:13px">${settlementLink(settlementId)}</div>`,
     })}
 
 <div data-sign-request="${esc(JSON.stringify({ deployment: request.deployment, intent: request.intent }))}">
@@ -1339,7 +1341,7 @@ export function renderVerification(
         { label: 'Verifier', href: '/app/verifier' },
         { label: truncate(settlementId, 8, 6) },
       ],
-      meta: `<div class="mono muted" style="margin-top:var(--spacing-4);word-break:break-all;font-size:13px">${esc(settlementId)}</div>`,
+      meta: `<div class="muted" style="margin-top:var(--spacing-4);font-size:13px">${settlementLink(settlementId)}</div>`,
       actions: button({
         label: 'Open settlement',
         href: `/app/settlements/${settlementId}`,
@@ -1449,7 +1451,7 @@ export function renderEvidenceHome(generation: string): string {
 <td>${stateBadge(run.canonicalState)}</td>
 <td>${stateBadge(run.classification)}</td>
 <td class="mono">${String(run.passed)}/${String(run.total)}</td>
-<td class="mono muted" style="font-size:13px">${esc(truncate(run.deploymentId, 10, 4))}</td>
+<td style="font-size:13px">${deploymentLink(run.deploymentId)}</td>
 </tr>`,
     ).join('')}</tbody></table></div>`,
     { flush: true },
@@ -1465,7 +1467,7 @@ export function renderEvidenceHome(generation: string): string {
 <tbody>${MANIFESTS.map(
       (manifest) => `<tr>
 <td class="mono" style="font-size:13px">${esc(manifest.file)}</td>
-<td class="mono" style="font-size:13px">${esc(truncate(manifest.deploymentId, 10, 6))}</td>
+<td style="font-size:13px">${deploymentLink(manifest.deploymentId)}</td>
 <td class="mono">${esc(manifest.solcVersion)}</td>
 <td class="mono" style="font-size:13px">${manifest.contracts.map((contract) => esc(contract.role)).join(', ')}</td>
 </tr>`,
@@ -1501,7 +1503,7 @@ export function renderEvidence(
         { label: 'Evidence', href: '/app/evidence' },
         { label: truncate(settlementId, 8, 6) },
       ],
-      meta: `<div class="mono muted" style="margin-top:var(--spacing-4);word-break:break-all;font-size:13px">${esc(settlementId)}</div>`,
+      meta: `<div class="muted" style="margin-top:var(--spacing-4);font-size:13px">${settlementLink(settlementId)}</div>`,
       actions: button({
         label: 'Open settlement',
         href: `/app/settlements/${settlementId}`,
@@ -1574,10 +1576,10 @@ ${external('https://github.com/winsznx/conduit/blob/main/docs/evidence/onchain-v
         cardWithHeader(
           `Generation ${String(row.generation)}`,
           `<table class="kv">
-<tr><td>Deployment</td><td class="mono" style="word-break:break-all">${esc(row.deploymentId)}</td></tr>
+<tr><td>Deployment</td><td>${deploymentLink(row.deploymentId, true)}</td></tr>
 <tr><td>Commit</td><td class="mono">${esc(row.gitCommit)}</td></tr>
 <tr><td>solc</td><td class="mono">${esc(row.solcVersion)}</td></tr>
-<tr><td>Superseded by</td><td class="mono">${row.supersededBy === undefined ? '—' : esc(truncate(row.supersededBy))}</td></tr>
+<tr><td>Superseded by</td><td>${row.supersededBy === undefined ? '<span class="muted">—</span>' : deploymentLink(row.supersededBy)}</td></tr>
 </table>
 <hr class="rule">
 <div class="t-caption-upper" style="margin-bottom:var(--spacing-8)">Contracts</div>
@@ -1615,7 +1617,7 @@ export function renderSystem(
 ${cardWithHeader(
   'This deployment',
   `<table class="kv">
-<tr><td>Deployment</td><td class="mono" style="word-break:break-all">${esc(env.deploymentId)}</td></tr>
+<tr><td>Deployment</td><td>${deploymentLink(env.deploymentId, true)}</td></tr>
 <tr><td>Build</td><td class="mono">${esc(env.commit)}</td></tr>
 <tr><td>Surface</td><td>read-only</td></tr>
 </table>`,

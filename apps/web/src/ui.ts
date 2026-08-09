@@ -288,6 +288,25 @@ export function txHash(hash: string, chainId: number): string {
   return `<span class="addr">${external(href, body, `${hash} — open on ${explorerName(chainId) ?? 'the explorer'}`)}</span>`;
 }
 
+/**
+ * A settlement id, linked to the page that can answer for it.
+ *
+ * Settlement ids are Conduit's own and appear on no explorer, so the honest
+ * destination is the workspace or the verifier rather than a chain. Printing one
+ * as inert text is the thing this replaces: every identifier on a proof surface
+ * should be one click from somewhere it can be checked.
+ */
+export function settlementLink(id: string, to: 'settlement' | 'verify' = 'settlement'): string {
+  const href = to === 'verify' ? `/verify/${id}` : `/app/settlements/${id}`;
+  const where = to === 'verify' ? 'verify this settlement' : 'open this settlement';
+  return `<a class="idlink mono" href="${esc(href)}" title="${esc(id)} — ${where}">${esc(truncate(id))}</a>`;
+}
+
+/** A deployment generation, linked to the page that lists its contracts. */
+export function deploymentLink(id: string, full = false): string {
+  return `<a class="idlink mono" href="/app/deployments" title="${esc(id)} — see this generation's contracts">${esc(full ? id : truncate(id))}</a>`;
+}
+
 /** A signed VAA, linked to Wormholescan by emitter and sequence. */
 export function vaaLink(
   wormholeChainId: number,
