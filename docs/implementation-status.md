@@ -44,8 +44,8 @@ item added upstream fails the build until it appears here.
 | Held post-COMMIT RWA can be dispositioned once.                     | PASS        | 07         |
 | Final demo uses the real registered CVA, not an ERC-3643-only mock. | NOT STARTED | 10         |
 | API compatibility fields are not confused with canonical RuleV2.    | NOT STARTED | 05         |
-| final web matches `design.md`.                                      | NOT STARTED | 06         |
-| staging runs on Cloudflare.                                         | NOT STARTED | 09         |
+| final web matches `design.md`.                                      | PASS        | 06         |
+| staging runs on Cloudflare.                                         | PASS        | 09         |
 
 The first row's wording is upstream text and is quoted verbatim so `tests/docs.test.ts` can
 match it. The asset leg now deploys to **Base Sepolia**: Arbitrum Sepolia has no CCP deployment,
@@ -795,3 +795,95 @@ asset and Monad is not a ramp network. `docs/evidence/asm-010-fiat-ramp.json`.
    demonstration needs a second A-Passed identity, which ASM-035 blocks.
 
 ---
+
+## Participant web flow
+
+**State:** PASS
+**Surface:** <https://conduit.timjosh507.workers.dev>
+
+A participant now composes, checks, signs, prepares, commits, releases and
+disposes a settlement from a browser. No CLI is required at any point, and no
+step is simulated: every button corresponds to a call on a deployed contract.
+
+### What the browser does
+
+```text
+connect wallet          EIP-6963 discovery, silent restore, per-action chain switch
+live eligibility        Cleanverse, through the Worker, with the API key server-side
+build terms             settlement id recomputed from the terms, in the browser
+EIP-712 signature       recovered locally and again on the server before storage
+counterparty signature  from their own machine, over the same digest
+reserve + announce      seller, Base Sepolia, two transactions, each observed
+approve + escrow        payer, Monad Testnet, allowance read rather than assumed
+wait                    Base economic finality, refused below FINALIZED on chain
+consume ASSET_PREPARED  permissionless, and the settlement becomes READY
+fresh compliance        asked again after the wait, never reused from preparation
+COMMIT                  simulated against the coordinator before a wallet is asked
+release cash            permissionless, with a proof the escrow itself accepts
+release asset           permissionless, and it holds rather than reverts if refused
+report + record         the outcome crosses back and the settlement is terminal
+```
+
+### The action resolver
+
+`apps/web/src/actions.ts` is a pure function from canonical protocol state to one
+next action and whether the connected account may take it. Its inputs are the
+coordinator's own record, the escrow leg, the token's reservation, the adapter's
+binding, the observed messages, and the account. The projection supplies the
+terms and the two intent signatures — both of which the coordinator re-verifies
+on chain — and nothing else, because application database state never authorizes
+value movement.
+
+Thirty-three unit tests walk it. Every branch that enables a value-moving button
+has one, including the two the product exists to keep apart: a refused
+participant and an unanswered check.
+
+### The compliance authority moved into the Worker
+
+Every value-moving call demands a quorum of attestations signed by an address the
+contract's registered signer set contains. A browser cannot produce one, and a
+participant who could would be authorising their own settlement. The Worker holds
+that key and signs eligibility answers Cleanverse gave — nothing else.
+[ADR-0021](./adr/0021-the-web-surface-holds-a-compliance-key-and-nothing-else.md)
+states precisely what that key cannot do: it cannot move a token, sign an intent,
+decide a settlement, or release a leg without a canonical COMMIT already on
+chain.
+
+Verified against the deployed generation-3 coordinator: the signer is registered,
+the quorum is one, and `verifyEligible` returns `true` for a proof the production
+endpoint minted.
+
+### Confirmed is not observed
+
+`apps/web/src/client/tx.ts` runs every write through six named rungs and refuses
+to call the last one reached until two things hold: the RPC reports
+`latest >= N` for the receipt's block, and the effect the step was for is present
+in contract state. A failure is classified before it is explained —
+`RPC_STATE_LAG` and `CONTRACT_REVERT` produce the same silence at the call site
+and mean opposite things.
+
+### Test counts
+
+```text
+vitest       752 assertions across 32 files
+playwright    69 browser tests against the deployed surface
+              of which 11 drive the write flow against a scripted chain
+              and  4 cover held value and the disposition kernel
+```
+
+The scripted chain advances only by decoding the selector the browser encoded, so
+an app that skips a call never moves the state and the assertion fails. A live
+run against both testnets is `apps/web/qa/live.spec.ts`, opt-in behind
+`CONDUIT_LIVE=1`.
+
+### Known limitations
+
+1. **The compliance authority runs in the same Worker as the read surface.** A
+   production topology separates it; nothing depends on the co-location, and the
+   endpoint contract is the boundary. ADR-0021.
+2. **`REBIND_RECEIVER` and `AUTHORIZED_SUBSTITUTION` cannot be filed against a
+   live destination.** Both are offered and both read authority correctly; ASM-035
+   means no second A-Passed identity exists to name.
+3. **Evidence is served from the repository, not from object storage.** The page
+   says so and names the path of every package. ASM-039 stays open; replacing the
+   storage changes where the bytes live and nothing about what they mean.

@@ -662,16 +662,15 @@ async function execute(
               args: [termsTuple(payload.terms), id, buyer, seller, proof.proof, 1],
               value: fee,
             }),
+          onConfirmed: async (hash) => {
+            await recordMessage(id, MONAD_TESTNET, hash);
+          },
           observe: async () => {
             const state = await readSettlementState(payload, id);
             return { ok: state?.decision === 'COMMIT', observed: state?.decision ?? 'unreadable' };
           },
         },
-      ]).then(async (result) => {
-        if (result.ok && result.hash !== undefined) {
-          await recordMessage(id, MONAD_TESTNET, result.hash);
-        }
-      });
+      ]);
       return;
     }
 
@@ -782,6 +781,9 @@ async function execute(
               args: [id, BigInt(MONAD_TESTNET), 1],
               value: fee,
             }),
+          onConfirmed: async (hash) => {
+            await recordMessage(id, BASE_SEPOLIA, hash);
+          },
           observe: async () => {
             // The observable effect of a publish is the message. The server
             // re-derives it from the receipt, so this is a protocol read rather
@@ -794,9 +796,7 @@ async function execute(
             };
           },
         },
-      ]).then(async (result) => {
-        if (result.hash !== undefined) await recordMessage(id, BASE_SEPOLIA, result.hash);
-      });
+      ]);
       return;
     }
 
@@ -925,15 +925,14 @@ async function reserveSteps(
   });
 
   // The last step publishes, so its hash is where the sequence lives. Wormhole
-  // keeps it in an event and no contract can give it back.
+  // keeps it in an event and no contract can give it back — and the server
+  // re-derives the sequence from the receipt, so this has to wait for one.
   const announce = steps[steps.length - 1];
   if (announce !== undefined) {
     steps[steps.length - 1] = {
       ...announce,
-      send: async () => {
-        const hash = await announce.send();
-        void recordMessage(id, BASE_SEPOLIA, hash);
-        return hash;
+      onConfirmed: async (hash) => {
+        await recordMessage(id, BASE_SEPOLIA, hash);
       },
     };
   }
@@ -985,8 +984,8 @@ async function lockCashSteps(
     chainId: MONAD_TESTNET,
     target: payload.deployment.cashEscrow,
     expected: 'the coordinator records the cash leg prepared',
-    send: async () => {
-      const hash = await wallet.walletClient(MONAD_TESTNET).writeContract({
+    send: async () =>
+      wallet.walletClient(MONAD_TESTNET).writeContract({
         chain: null,
         account,
         address: payload.deployment.cashEscrow,
@@ -994,9 +993,9 @@ async function lockCashSteps(
         functionName: 'prepareCash',
         args: [id, id, terms.cashReceiver, terms.cashAmount, BigInt(BASE_SEPOLIA), 1],
         value: fee,
-      });
-      void recordMessage(id, MONAD_TESTNET, hash);
-      return hash;
+      }),
+    onConfirmed: async (hash) => {
+      await recordMessage(id, MONAD_TESTNET, hash);
     },
     observe: async () => {
       const state = await readSettlementState(payload, id);
@@ -1223,6 +1222,10 @@ function paintAction(
     body.append(cta);
   }
 
+  if (action.kind === 'AWAITING_ASSET_PREPARATION') {
+    body.append(recoverMessage(payload.settlementId, BASE_SEPOLIA));
+  }
+
   if (!payload.attestationsAvailable) {
     body.append(
       node(
@@ -1242,6 +1245,72 @@ function paintAction(
   panel.append(body);
   host.append(panel);
   host.append(paintHistory(history(snapshot)));
+}
+
+/**
+ * The way out of a lost sequence.
+ *
+ * A Wormhole sequence lives in an event, so a browser that published a message
+ * and then lost the tab is the one case where a settlement can stall with both
+ * legs correctly on chain. The transaction hash is enough to recover it, and the
+ * server re-derives every field from the receipt rather than believing the
+ * number typed here — a hash for somebody else's settlement is refused, not
+ * recorded.
+ */
+function recoverMessage(settlementId: Hex, chainId: number): HTMLElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'stack-8';
+  wrapper.append(
+    node(
+      'div',
+      't-caption muted',
+      'If the transaction that announced this leg is known, its hash is enough to recover the ' +
+        'message. Every field is re-derived from the receipt.',
+    ),
+  );
+
+  const row = document.createElement('div');
+  row.className = 'row';
+  const field = document.createElement('input');
+  field.className = 'field field-mono';
+  field.placeholder = '0x… the prepareAsset transaction';
+  field.dataset['recoverHash'] = '';
+  const submit = document.createElement('button');
+  submit.className = 'btn btn-secondary btn-sm';
+  submit.type = 'button';
+  submit.textContent = 'Recover the message';
+  const status = node('div', 't-caption muted');
+
+  submit.addEventListener('click', () => {
+    const hash = field.value.trim();
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+      status.textContent = 'That is not a 32-byte transaction hash.';
+      return;
+    }
+    submit.disabled = true;
+    status.textContent = 'Reading the receipt…';
+    void fetch(`/api/settlements/${settlementId}/messages`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chainId, txHash: hash }),
+    })
+      .then(async (response) => {
+        const body = (await response.json()) as { error?: { message?: string } };
+        status.textContent = response.ok
+          ? 'Recorded. The panel will pick it up on its next read.'
+          : (body.error?.message ?? 'The message could not be recovered.');
+      })
+      .catch(() => {
+        status.textContent = 'The request did not complete.';
+      })
+      .finally(() => {
+        submit.disabled = false;
+      });
+  });
+
+  row.append(field, submit);
+  wrapper.append(row, status);
+  return wrapper;
 }
 
 function paintHistory(facts: readonly Fact[]): HTMLElement {

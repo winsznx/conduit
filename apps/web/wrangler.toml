@@ -24,5 +24,22 @@ BASE_RPC_URL = "https://sepolia.base.org"
 DEPLOYMENT_ID = "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6"
 COMMIT_SHA = "generation-3"
 
+# The disposition kernel wired to this generation. Public: two contract
+# addresses, a policy identifier that is already in every filed order, and the
+# window length the registry itself reports. The policy's *content* hash is read
+# from the registry rather than pinned here, because the registry is the
+# authority on it and a copy would be a second thing to keep true.
+DISPOSITION_CONTROLLER_BASE = "0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7"
+AUTHORITY_REGISTRY_BASE = "0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45"
+DISPOSITION_POLICY_ID = "0x5eae1a29b5bab0300329f9d58599546ddb24bbbf081f612f6bf762a00f10e2ab"
+DISPOSITION_CONTEST_WINDOW = "300"
+
 # Secrets, set out of band and never written here:
 #   wrangler secret put DATABASE_URL
+#
+# And the compliance authority's signing key. It is not a settlement key: it
+# cannot move a token, sign an intent, decide a settlement, or release a leg
+# without a canonical COMMIT already on chain. It signs eligibility answers
+# Cleanverse gave, which every value-moving call requires alongside protocol
+# state a participant's own wallet produced. ADR-0021.
+#   wrangler secret put COMPLIANCE_SIGNER_PRIVATE_KEY

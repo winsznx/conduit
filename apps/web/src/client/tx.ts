@@ -205,6 +205,16 @@ export interface WriteStep {
   readonly precondition?: () => Promise<void>;
   readonly send: () => Promise<Hex>;
   /**
+   * Runs once, after a successful receipt and before observation.
+   *
+   * This is where anything that needs a *mined* transaction belongs. A Wormhole
+   * sequence lives in an event and no contract can give it back, so recording it
+   * is not optional — and doing it at broadcast, before a receipt exists, means
+   * the server correctly refuses and the number is lost for good. That is not
+   * hypothetical: it is what the first live browser run did.
+   */
+  readonly onConfirmed?: (hash: Hex) => Promise<void>;
+  /**
    * Reads the effect back. Returns what it saw, and whether that is the effect.
    * Called repeatedly until it agrees or the budget runs out.
    */
@@ -326,6 +336,9 @@ export async function runWrite(
     }
 
     paint({ ...withHash, phase: 'confirmed' });
+
+    if (step.onConfirmed !== undefined) await step.onConfirmed(hash);
+
     paint({ ...withHash, phase: 'confirming' });
 
     // Inclusion first, then effect. A read against a node that has not reached

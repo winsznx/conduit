@@ -37,6 +37,7 @@ import {
   WORMHOLE_CHAIN_OF,
   decodeMessageHeader,
   padEmitter,
+  readSettlement,
   readVaaHeader,
 } from './onchain.js';
 import { withDb, type Env } from './data.js';
@@ -143,6 +144,14 @@ export async function recordMessage(
     return fail(400, 'no_message', 'that transaction published no Wormhole message');
   }
 
+  // A settlement composed in a browser exists in `conduit.intents` and nowhere
+  // else: `conduit.settlements` is written by the indexer, which has not run
+  // yet. The message row has a foreign key to it, so without this the first
+  // message a live participant publishes cannot be recorded at all — and the
+  // sequence lives in an event, so nothing on chain could give it back. The row
+  // is read from the coordinator rather than assembled from the request.
+  await ensureSettlementRow(env, settlementId);
+
   const allowed = publishersFor(config, chainId);
   const wormholeChainId = WORMHOLE_CHAIN_OF[chainId] ?? 0;
   const block = await client.getBlock({ blockNumber: receipt.blockNumber });
@@ -216,6 +225,55 @@ export async function recordMessage(
   return { recorded };
 }
 
+/**
+ * Gives the projection a settlement the chain already has.
+ *
+ * Every field comes from `settlementOf` on the coordinator. The caller supplies
+ * an identifier and nothing else, so this cannot be used to invent a settlement:
+ * a coordinator that has never heard of the id reports `NONE`, and the row is
+ * written with `NONE` — which is exactly what the page should then show.
+ */
+async function ensureSettlementRow(env: Env, settlementId: string): Promise<void> {
+  const config = deploymentConfig(env);
+  if (config === undefined) return;
+
+  let state = 'NONE';
+  let decision = 'NONE';
+  let stateVersion = 0;
+  try {
+    const tuple = (await readClient(env, MONAD_TESTNET).readContract({
+      address: config.coordinator,
+      abi: COORDINATOR_ABI,
+      functionName: 'settlementOf',
+      args: [settlementId as Hex],
+    })) as Parameters<typeof readSettlement>[0];
+    const record = readSettlement(tuple);
+    state = record.state;
+    decision = record.decision;
+    stateVersion = Number(record.stateVersion);
+  } catch {
+    // A coordinator we cannot read leaves the row at its defaults rather than
+    // failing the recording: the message is still real and still worth keeping.
+  }
+
+  await withDb(env, async (sql) => {
+    await sql`
+      INSERT INTO conduit.settlements (
+        settlement_id, deployment_id, intent_hash, canonical_state, decision,
+        state_version, chain_read_at
+      ) VALUES (
+        ${settlementId}, ${env.DEPLOYMENT_ID.toLowerCase()}, ${settlementId},
+        ${state}, ${decision}, ${stateVersion}, now()
+      )
+      ON CONFLICT (settlement_id) DO UPDATE SET
+        canonical_state = EXCLUDED.canonical_state,
+        decision        = EXCLUDED.decision,
+        state_version   = EXCLUDED.state_version,
+        chain_read_at   = EXCLUDED.chain_read_at
+    `;
+  });
+}
+
 interface SignedVaa {
   readonly vaa: Hex;
   readonly consistencyLevel: number;
@@ -284,14 +342,18 @@ export async function messagesFor(
     const emitterChainId = Number(row['wormhole_chain_id']);
     const sequence = String(row['sequence']);
     const stored: unknown = row['signed_vaa'];
-    const includedAt = await blockTime(
-      env,
-      evmChainOf(emitterChainId),
-      Number(row['published_at_block']),
-    );
+
+    // A row the bootstrap loader wrote carries no publishing block and no
+    // transaction: a verification artifact proves outcomes and does not record
+    // where the message was published. Reading block zero would date the message
+    // to the genesis of the chain and report a finality interval of nearly three
+    // years, which is worse than saying nothing. So it says nothing.
+    const block = Number(row['published_at_block']);
+    const includedAt =
+      block > 0 ? await blockTime(env, evmChainOf(emitterChainId), block) : undefined;
 
     let vaa = typeof stored === 'string' && stored !== '' ? (stored as Hex) : undefined;
-    let finalizedAt = row['observed_at'] === null ? undefined : String(row['observed_at']);
+    let finalizedAt = isoOf(row['observed_at']);
     let finalitySeconds =
       row['finality_seconds'] === null ? undefined : Number(row['finality_seconds']);
 
@@ -305,7 +367,7 @@ export async function messagesFor(
           emitter,
           sequence,
           vaa: signed.vaa,
-          block: Number(row['published_at_block']),
+          block,
         });
       }
     }
@@ -331,6 +393,13 @@ export async function messagesFor(
 
 function evmChainOf(wormholeChainId: number): number {
   return wormholeChainId === WORMHOLE_CHAIN_OF[MONAD_TESTNET] ? MONAD_TESTNET : BASE_SEPOLIA;
+}
+
+/** A timestamp column, whichever way the driver hands it back. */
+function isoOf(value: unknown): string | undefined {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string' && value !== '') return value;
+  return undefined;
 }
 
 /** When a block was mined, or nothing. An unknown time is never a guessed one. */
@@ -363,8 +432,15 @@ async function persistVaa(
     block: number;
   },
 ): Promise<number | undefined> {
-  const published = await blockTime(env, evmChainOf(record.emitterChainId), record.block);
-  // A block we cannot read leaves the interval unknown rather than wrong.
+  // The interval is only measurable for a message this deployment watched go
+  // out. A row with no publishing block was reconstructed from an artifact, and
+  // the interval between a block nobody recorded and the moment this page
+  // happened to look is not a finality observation — it is the age of the
+  // settlement. Unknown is the correct answer and the only honest one.
+  const published =
+    record.block > 0
+      ? await blockTime(env, evmChainOf(record.emitterChainId), record.block)
+      : undefined;
   const seconds =
     published === undefined
       ? undefined
