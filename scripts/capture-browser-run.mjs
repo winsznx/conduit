@@ -11,11 +11,17 @@
  *
  * So this reads rather than remembers. Every field below is fetched from a
  * coordinator, an escrow, a token, an adapter, or the guardian API at capture
- * time. Nothing is carried over from the run's own log, which means the artifact
- * cannot claim something the chains would not repeat — and a reader who does not
- * trust it can run this script themselves against the same identifier.
+ * time, which means the artifact cannot claim something the chains would not
+ * repeat — and a reader who does not trust it can run this script themselves
+ * against the same identifier.
+ *
+ * `--log` is the one exception, and it is not an exception to the rule. A run
+ * log supplies candidate transaction hashes, which chain state genuinely cannot
+ * give back; every one of them is then fetched, required to have succeeded, and
+ * required to have been sent to one of this deployment's own contracts. The log
+ * proposes and the chain disposes.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { createPublicClient, http } from 'viem';
@@ -36,9 +42,22 @@ import { ROOT } from './lib/run.mjs';
 
 const settlementId = process.argv[2];
 if (settlementId === undefined || !/^0x[0-9a-fA-F]{64}$/.test(settlementId)) {
-  console.error('usage: capture-browser-run.mjs <settlementId>');
+  console.error('usage: capture-browser-run.mjs <settlementId> [--log <run.log>]');
   process.exit(1);
 }
+
+/**
+ * Transaction hashes the run reported, verified rather than believed.
+ *
+ * Chain state cannot give these back: an approval, a release and a consumed VAA
+ * leave their effect in storage and their identity only in a receipt. So the run
+ * log supplies candidates and every one is fetched, required to have succeeded,
+ * and required to have been sent to one of this deployment's own contracts. A
+ * hash the log invented does not survive that, and the artifact says which check
+ * each one passed.
+ */
+const logFlag = process.argv.indexOf('--log');
+const logPath = logFlag === -1 ? undefined : process.argv[logFlag + 1];
 
 const surface = process.env['CONDUIT_WEB_URL'] ?? 'https://conduit.timjosh507.workers.dev';
 
@@ -154,6 +173,34 @@ const balances = {
   }),
 };
 
+const known = new Set(Object.values(addresses).map((address) => address.toLowerCase()));
+const claimed =
+  logPath === undefined
+    ? []
+    : [...new Set(readFileSync(logPath, 'utf8').match(/0x[0-9a-f]{64}/g) ?? [])];
+
+const transactions = [];
+for (const hash of claimed) {
+  for (const [chainName, client] of [
+    ['monadTestnet', monad],
+    ['baseSepolia', base],
+  ]) {
+    const receipt = await client.getTransactionReceipt({ hash }).catch(() => undefined);
+    if (receipt === undefined) continue;
+    const to = (receipt.to ?? '').toLowerCase();
+    transactions.push({
+      hash,
+      chain: chainName,
+      chainId: chainName === 'monadTestnet' ? MONAD_EVM_CHAIN_ID : BASE_EVM_CHAIN_ID,
+      to: receipt.to,
+      block: stringify(receipt.blockNumber),
+      succeeded: receipt.status === 'success',
+      toThisDeployment: known.has(to),
+    });
+    break;
+  }
+}
+
 const evidence = {
   capturedAt: new Date().toISOString(),
   settlementId,
@@ -187,6 +234,7 @@ const evidence = {
     cancelled: reserved.cancelled,
   },
   intendedReceiver: receiver,
+  transactions,
   messages,
   balances: Object.fromEntries(
     Object.entries(balances).map(([key, value]) => [key, stringify(value)]),

@@ -162,6 +162,13 @@ export async function recordMessage(
     const sender = log.args.sender.toLowerCase();
     if (!allowed.includes(sender)) continue;
 
+    // A Wormhole emitter is thirty-two bytes, and the primary key is
+    // (chain, emitter, sequence). Storing the twenty-byte sender instead put the
+    // same message in the table twice under two spellings — once from the
+    // bootstrap loader, which writes the padded form the guardian API uses, and
+    // once from here. One message, one row, one encoding.
+    const emitter: Hex = padEmitter(sender);
+
     let header;
     try {
       header = decodeMessageHeader(log.args.payload);
@@ -185,7 +192,7 @@ export async function recordMessage(
           intent_hash, source_chain_id, destination_chain_id, state_version, consistency_level,
           finality, published_at_block, published_tx_hash
         ) VALUES (
-          ${wormholeChainId}, ${sender}, ${Number(log.args.sequence)},
+          ${wormholeChainId}, ${emitter}, ${Number(log.args.sequence)},
           ${settlementId.toLowerCase()}, ${header.deploymentId.toLowerCase()},
           ${header.messageType}, ${header.intentHash.toLowerCase()},
           ${Number(header.sourceChainId)}, ${Number(header.destinationChainId)},
@@ -201,7 +208,7 @@ export async function recordMessage(
     recorded.push({
       messageType: header.messageType,
       sequence: String(log.args.sequence),
-      emitter: sender as Address,
+      emitter,
       emitterChainId: wormholeChainId,
       txHash: txHash as Hex,
       block: receipt.blockNumber.toString(),
@@ -391,7 +398,7 @@ export async function messagesFor(
 
   const out: MessageRecord[] = [];
   for (const row of rows) {
-    const emitter = String(row['emitter']);
+    const emitter = String(row['emitter']) as Address;
     const emitterChainId = Number(row['wormhole_chain_id']);
     const sequence = String(row['sequence']);
     const stored: unknown = row['signed_vaa'];
@@ -428,7 +435,7 @@ export async function messagesFor(
     out.push({
       messageType: String(row['message_type']),
       sequence,
-      emitter: emitter as Address,
+      emitter,
       emitterChainId,
       txHash: String(row['published_tx_hash']) as Hex,
       block: String(row['published_at_block']),

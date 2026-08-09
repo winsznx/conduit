@@ -850,6 +850,65 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
       ]
     },
     {
+      "settlementId": "0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385",
+      "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+      "classification": "SETTLED_FINAL",
+      "canonicalState": "SETTLED",
+      "verifiedAt": "2026-08-09T13:33:48.810Z",
+      "passed": 18,
+      "total": 18,
+      "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.",
+      "searchedBlockRanges": {
+        "10143": {
+          "from": "52227882",
+          "to": "52247882"
+        },
+        "84532": {
+          "from": "45236986",
+          "to": "45256986"
+        }
+      },
+      "source": "docs/evidence/verification-3f9b03f41d.json",
+      "messages": [
+        {
+          "messageType": "ASSET_PREPARED",
+          "sequence": "6",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x3262412b6909efec286dee4ce05fe39f4f804932ada45f6b063ea4a21cce2120",
+          "finality": "FINALIZED",
+          "consumed": true
+        },
+        {
+          "messageType": "ASSET_RELEASED",
+          "sequence": "7",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x108166884f3314daa32ab8722b68edb6716799fa327abb66cc2aab647687b34e",
+          "finality": "FINALIZED",
+          "consumed": true
+        },
+        {
+          "messageType": "CASH_PREPARED",
+          "sequence": "3",
+          "emitterChainId": 10009,
+          "emitter": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+          "vaaHash": "0xee0b81dea499babe70c0368d9cab9cba87e57e6642c363a364a7c922337cbafa",
+          "finality": "FINALIZED",
+          "consumed": false
+        },
+        {
+          "messageType": "COMMIT",
+          "sequence": "2",
+          "emitterChainId": 10009,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0xcdef13ee2342135d5335a1fbcc2906de7dca177fc22743daae9b977ef76522ef",
+          "finality": "FINALIZED",
+          "consumed": true
+        }
+      ]
+    },
+    {
       "settlementId": "0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858",
       "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
       "classification": "SETTLED_FINAL",

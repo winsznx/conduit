@@ -379,13 +379,31 @@ async function loadMessages(settlementId: Hex): Promise<readonly MessageRow[]> {
   }
 }
 
-/** Tells the projection where a message lives, having proved it from the receipt. */
+/**
+ * Tells the projection where a message lives, having proved it from the receipt.
+ *
+ * Retried, because the browser and the server do not read the same node. This
+ * runs the moment the browser's RPC returns a receipt, and the Worker's RPC may
+ * be a few seconds behind — which comes back as `receipt_unavailable`, is
+ * entirely transient, and cost a live run its ASSET_PREPARED sequence. The
+ * endpoint is idempotent by (chain, emitter, sequence), so a retry rewrites one
+ * row with the same facts.
+ */
 async function recordMessage(settlementId: Hex, chainId: number, txHash: Hex): Promise<void> {
-  await fetch(`/api/settlements/${settlementId}/messages`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ chainId, txHash }),
-  });
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      const response = await fetch(`/api/settlements/${settlementId}/messages`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ chainId, txHash }),
+      });
+      if (response.ok) return;
+    } catch {
+      // A request that did not complete is the same as one that failed: try
+      // again. Nothing about the settlement depends on this succeeding now.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 4_000));
+  }
 }
 
 function observationOf(rows: readonly MessageRow[], type: string): MessageObservation | undefined {
