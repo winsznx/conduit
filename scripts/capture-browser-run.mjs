@@ -173,6 +173,67 @@ const balances = {
   }),
 };
 
+/**
+ * The two things the chains do not hold: the intent signatures the coordinator
+ * verified in calldata, and the attestations the authority signed.
+ *
+ * Both are real artifacts of the settlement and neither survives in storage —
+ * `issueCommit` checks the signatures and keeps none, and an attestation is
+ * calldata the contract recovers and discards. The projection kept them, so
+ * they are read from there and labelled as coming from there. Attestations are
+ * recorded redacted: the subject, the window, the endpoint that answered and
+ * the hash of the answer, never the answer.
+ */
+async function fromProjection() {
+  const url = process.env['DATABASE_URL'];
+  if (url === undefined || url === '') return { signatures: null, attestations: [] };
+  const { default: postgres } = await import(
+    new URL('../packages/db/node_modules/postgres/src/index.js', import.meta.url).href
+  );
+  const sql = postgres(url, { max: 1, prepare: false, onnotice: () => undefined });
+  try {
+    const [intent] = await sql`
+      SELECT buyer_signature, seller_signature, terms_source, nonce,
+             cash_policy_hash, asset_policy_hash
+        FROM conduit.intents WHERE intent_hash = ${settlementId}`;
+    const attestations = await sql`
+      SELECT subject, eligible, issued_at, expires_at, evidence_hash, signer,
+             verifying_contract, cleanverse_endpoint, cleanverse_code, created_at
+        FROM conduit.compliance_attestations
+       WHERE settlement_id = ${settlementId} ORDER BY issued_at`;
+    return {
+      signatures:
+        intent === undefined
+          ? null
+          : {
+              source: 'conduit.intents — recorded when each party signed in their browser',
+              termsSource: intent.terms_source,
+              nonce: String(intent.nonce),
+              cashPolicyHash: intent.cash_policy_hash,
+              assetPolicyHash: intent.asset_policy_hash,
+              payer: intent.buyer_signature,
+              seller: intent.seller_signature,
+            },
+      attestations: attestations.map((row) => ({
+        subject: row.subject,
+        eligible: row.eligible,
+        issuedAt: String(row.issued_at),
+        expiresAt: String(row.expires_at),
+        evidenceHash: row.evidence_hash,
+        signer: row.signer,
+        verifyingContract: row.verifying_contract,
+        cleanverseEndpoint: row.cleanverse_endpoint,
+        cleanverseAnswer: row.cleanverse_code,
+        recordedAt: row.created_at instanceof Date ? row.created_at.toISOString() : null,
+      })),
+    };
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+const projection = await fromProjection();
+
 const known = new Set(Object.values(addresses).map((address) => address.toLowerCase()));
 const claimed =
   logPath === undefined
@@ -234,6 +295,8 @@ const evidence = {
     cancelled: reserved.cancelled,
   },
   intendedReceiver: receiver,
+  intentSignatures: projection.signatures,
+  attestations: projection.attestations,
   transactions,
   messages,
   balances: Object.fromEntries(

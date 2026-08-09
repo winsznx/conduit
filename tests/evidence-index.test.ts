@@ -36,6 +36,20 @@ describe('evidence index', () => {
     expect(run()).toContain('evidence index matches');
   });
 
+  it('keeps the canonical manifest in step with the artifacts it quotes', () => {
+    // #given a manifest generated from docs/evidence and contracts/deployments
+    // #when the generator is asked to compare them
+    const run = (): string =>
+      execFileSync(
+        process.execPath,
+        [join(ROOT, 'scripts', 'build-evidence-manifest.mjs'), '--check'],
+        { cwd: ROOT, encoding: 'utf8' },
+      );
+
+    // #then nothing in it has drifted from its source
+    expect(run()).toContain('evidence manifest matches');
+  });
+
   it('never claims a publication that does not exist', () => {
     // #given the module that turns the index into pages
     const source = readFileSync(join(ROOT, 'apps', 'web', 'src', 'evidence.ts'), 'utf8');

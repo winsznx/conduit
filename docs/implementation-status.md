@@ -4,11 +4,81 @@ Maintained per CLAUDE.md after every phase. PRD 19 defines the phases; a phase i
 when its PRD gate has real evidence, never because code compiles.
 
 **Source of truth date:** 2026-08-05 (PRD v1.0), amended 2026-08-07 (v1.1 override)
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-09
 
 `CONDUIT_PRD_v1.1_OVERRIDE.md` arrived during phase 00 and wins wherever it conflicts with v1.0.
 Its adoption is recorded in [ADR-0004](./adr/0004-prd-v1-1-override-adoption.md). The phase
 structure below is unchanged; what each phase must deliver is amended.
+
+## Capability status
+
+Five states, and no checkmarks. A checkmark cannot distinguish "runs in
+production" from "has a passing unit test", and that distinction is the whole
+difference between a claim and evidence.
+
+```text
+LIVE                  running in the deployed product, with on-chain evidence
+LIVE DEMONSTRATED     executed once against live chains, with a settlement id
+IMPLEMENTED + TESTED  built and covered by tests; never run against live chains
+PARTIAL               works, with a named gap
+EXTERNAL BLOCKER      blocked by something outside this repository
+FUTURE                not built, and named here so nobody assumes it is
+```
+
+### Product
+
+| Capability                                                              | State    | Evidence                          |
+| ----------------------------------------------------------------------- | -------- | --------------------------------- |
+| Browser DvP flow, compose → sign → prepare → commit → release → SETTLED | **LIVE** | `0xd46775dc…`, `0x3f9b03f4…`      |
+| Wallet connection, EIP-6963, silent restore, per-action chain switching | **LIVE** | 70 browser tests                  |
+| Live Cleanverse eligibility, server-side credential                     | **LIVE** | every settlement's preflight      |
+| Commit-time compliance minted after finality                            | **LIVE** | attestation table in the manifest |
+| Counterparty signing from a second machine                              | **LIVE** | `/app/settlements/:id/sign`       |
+| Settlement workspace and next-action resolver                           | **LIVE** | 34 unit tests over the resolver   |
+| Cross-chain finality UX from real guardian state                        | **LIVE** | 12 samples, `observed-latency.md` |
+| Independent verifier                                                    | **LIVE** | `/verify/:id`, 18 checks          |
+| Evidence explorer                                                       | **LIVE** | `/app/evidence`, 4 packages       |
+| Disposition center and the six order types                              | **LIVE** | `/app/dispositions`               |
+
+### Protocol
+
+| Capability                                                                  | State                    | Evidence                               |
+| --------------------------------------------------------------------------- | ------------------------ | -------------------------------------- |
+| Two-chain DvP under one signed intent                                       | **LIVE**                 | generation 3, four settlements         |
+| Wormhole transport, both directions, replay refused                         | **LIVE**                 | `phase-02-wormhole-seam.json`          |
+| FINALIZED-only consumption for value-moving messages                        | **LIVE**                 | immutable per message class            |
+| Post-COMMIT compliance change → HELD                                        | **LIVE DEMONSTRATED**    | `0xc113ad33…`                          |
+| `REVERIFY_AND_RESUME`                                                       | **LIVE DEMONSTRATED**    | same settlement                        |
+| `RETURN_TO_ELIGIBLE_SENDER`, `RESTRICTED_HOLD`, `OPERATOR_ASSISTED_OFFRAMP` | **IMPLEMENTED + TESTED** | `DispositionKernel.t.sol`              |
+| `REBIND_RECEIVER`, `AUTHORIZED_SUBSTITUTION`                                | **IMPLEMENTED + TESTED** | no live destination — see blockers     |
+| Contest window and `CONTESTED` adjudication                                 | **IMPLEMENTED + TESTED** | `DispositionConflicts.t.sol`           |
+| Generation isolation                                                        | **LIVE**                 | `phase-06-generation-isolation.json`   |
+| Reference model ↔ contract equivalence                                      | **IMPLEMENTED + TESTED** | `Differential.t.sol`, generated corpus |
+
+### Compliance
+
+| Capability                                                   | State                 | Evidence                                 |
+| ------------------------------------------------------------ | --------------------- | ---------------------------------------- |
+| Both settlement assets registered as Cleanverse CVAs, ISSUED | **LIVE**              | `phase-03-cva-registration.json`         |
+| RuleV2 configured and independently queryable                | **LIVE**              | `phase-03-cva-rulev2.json`               |
+| RuleV2 change refuses a real delivery                        | **LIVE DEMONSTRATED** | TierTooLow, `0xc113ad33…`                |
+| `verify_apass` result-code discipline, code 4 only           | **LIVE**              | `packages/cleanverse` + 22 tests         |
+| Outage vs refusal kept distinct end to end                   | **LIVE**              | resolver tests + browser tests           |
+| Attestation quorum above one                                 | **FUTURE**            | contract supports it; no second operator |
+| Directly verifiable Cleanverse signatures                    | **FUTURE**            | would remove the intermediary entirely   |
+| TEE-backed attestor                                          | **FUTURE**            | not built                                |
+
+### Blocked, and by what
+
+| Capability                                         | State                      | Blocker                                                    |
+| -------------------------------------------------- | -------------------------- | ---------------------------------------------------------- |
+| Distinct A-Pass buyer and seller                   | **EXTERNAL BLOCKER**       | `generate_apass` returns 403 for this credential — ASM-035 |
+| Live `REBIND_RECEIVER` / `AUTHORIZED_SUBSTITUTION` | **EXTERNAL BLOCKER**       | needs a second A-Passed identity, same cause               |
+| CCP validator pool on the asset chain              | **EXTERNAL BLOCKER**       | `validator/grant` refused on Base — ASM-037                |
+| aUSDC as the cash leg                              | **EXTERNAL BLOCKER**       | sandbox faucet reverts on its own empty wallet — ASM-035   |
+| Fiat off-ramp completion                           | **EXTERNAL BLOCKER**       | `RM_003 Unable to verify APass on chain` — ASM-010         |
+| R2 evidence storage                                | **PARTIAL / NOT DEPLOYED** | repository-backed and labelled as such — ASM-039           |
+| Mainnet                                            | **FUTURE**                 | no deployment, no claim                                    |
 
 ## Phase summary
 
@@ -889,6 +959,25 @@ value movement.
 Thirty-three unit tests walk it. Every branch that enables a value-moving button
 has one, including the two the product exists to keep apart: a refused
 participant and an unanswered check.
+
+### The attestation layer is a trust assumption, and is labelled as one
+
+Every value-moving call demands a quorum of compliance attestations signed by an
+address the contract's registered signer set contains. The contract proves an
+authorised signer asserted eligibility and bound it to this settlement, this
+intent and a window it cannot widen. It cannot prove the signer asked Cleanverse.
+
+This deployment runs one Conduit-operated signer at quorum 1, so compromise of
+that key is compromise of the eligibility verdict for every uncommitted
+settlement. It is not compromise of custody. Recorded as **T-08** and **T-09**,
+`ACCEPTED` with a written waiver, stated on `/app/system`, on the verifier page,
+in the verifier package README and in the evidence manifest. Nothing in this
+repository describes the attestation layer as trustless.
+
+Multiple independent attestors, a threshold quorum, TEE-backed attestors and
+directly verifiable Cleanverse signatures are `FUTURE`. `setComplianceQuorum` and
+`addComplianceSigner` are live owner functions on the deployed contracts; what is
+missing is a second independent operator.
 
 ### The compliance authority moved into the Worker
 

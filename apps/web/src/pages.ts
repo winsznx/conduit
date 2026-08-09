@@ -904,7 +904,8 @@ ${card(`<form action="/verify" method="get" class="stack-16">
 ${input({ name: 'id', label: 'Settlement id', placeholder: '0x…', mono: true, pattern: '0x[0-9a-fA-F]{64}', required: true })}
 <div class="row">${button({ label: 'Verify', type: 'submit' })}${button({ label: 'Browse settlements', href: '/app/settlements', variant: 'secondary' })}</div>
 </form>
-<div class="note">A verification is a claim about a settlement under one deployment generation. A generation-1 settlement stays verifiable against generation-1 contracts forever, and the current generation cannot answer for it.</div>`)}`,
+<div class="note">A verification is a claim about a settlement under one deployment generation. A generation-1 settlement stays verifiable against generation-1 contracts forever, and the current generation cannot answer for it.</div>
+<div class="note">It proves what the chains and the guardian set say. It does not prove that the compliance attestation behind a COMMIT was honestly obtained: the contract checks that an authorised signer asserted eligibility and bound it to this settlement, and nothing on chain can check that the signer asked Cleanverse. With this deployment’s quorum of one, that is a trust assumption in the signer’s operator, recorded as T-08 in the threat register.</div>`)}`,
   });
 }
 
@@ -1201,8 +1202,12 @@ ${cardWithHeader(
 )}
 ${cardWithHeader(
   'Trust boundary',
-  `<p class="muted">This console holds no key, exposes no write path, and cannot authorise anything. Its database is a projection: convenient, and never evidence. A reader who wants proof should run the verifier against the chains.</p>
-<div class="note">Application database state never authorizes value movement.</div>`,
+  `<p class="muted">This console holds no settlement key. Signatures come from your own wallet, and its database is a projection: convenient, and never evidence. A reader who wants proof runs the verifier against the chains.</p>
+<div class="note">Application database state never authorizes value movement.</div>
+<hr class="rule">
+<div class="t-caption-upper" style="margin-bottom:var(--spacing-8)">One key, and what it cannot do</div>
+<p class="muted">Every value-moving call demands a quorum of compliance attestations signed by an address the contract’s registered signer set contains. A browser cannot produce one, so this deployment’s Worker holds that signer. It signs eligibility answers Cleanverse gave and nothing else: it cannot move a token, sign a settlement intent, create a settlement, decide one without both parties’ signatures and a canonical READY state, or release a leg without a COMMIT already on chain.</p>
+<div class="note">The contract proves an authorised signer asserted eligibility. It cannot prove the signer asked Cleanverse. At this deployment’s quorum of one, that is a trust assumption in the signer’s operator — threat register T-08 and T-09, accepted with a written waiver, and not described anywhere as trustless.</div>`,
 )}
 </div>`,
   });

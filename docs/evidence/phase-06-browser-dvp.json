@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-09T14:03:56.277Z",
+  "capturedAt": "2026-08-09T15:59:43.114Z",
   "settlementId": "0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77",
   "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
   "surface": "https://conduit.timjosh507.workers.dev",
@@ -35,6 +35,53 @@
     "cancelled": false
   },
   "intendedReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "intentSignatures": {
+    "source": "conduit.intents — recorded when each party signed in their browser",
+    "termsSource": "signed",
+    "nonce": "1786281501",
+    "cashPolicyHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "assetPolicyHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "payer": "0x09fc5f4247956c467082c5576bfd1e1ac21fba9892c4ff28fefe7e2e0966d93a202129d700858f7e8486e1452b809e3ecb1b3bd3f9cd63c14f9e934effc9ad9a1b",
+    "seller": "0x09fc5f4247956c467082c5576bfd1e1ac21fba9892c4ff28fefe7e2e0966d93a202129d700858f7e8486e1452b809e3ecb1b3bd3f9cd63c14f9e934effc9ad9a1b"
+  },
+  "attestations": [
+    {
+      "subject": "0x83c130ed9fb92830f09ea2b30e49009ef03065bb",
+      "eligible": true,
+      "issuedAt": "1786282843",
+      "expiresAt": "1786283443",
+      "evidenceHash": "0xb5ae2b1f55e0bf277b55f1794fa76ad7f01dcd75903f4d2f81e6eb754ccb2d95",
+      "signer": "0xec16ead9832292fefc95bc94c3d536eed98ed26c",
+      "verifyingContract": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "cleanverseEndpoint": "/verify_apass",
+      "cleanverseAnswer": "code 4",
+      "recordedAt": "2026-08-09T13:41:15.693Z"
+    },
+    {
+      "subject": "0x83c130ed9fb92830f09ea2b30e49009ef03065bb",
+      "eligible": true,
+      "issuedAt": "1786282854",
+      "expiresAt": "1786283454",
+      "evidenceHash": "0xb5ae2b1f55e0bf277b55f1794fa76ad7f01dcd75903f4d2f81e6eb754ccb2d95",
+      "signer": "0xec16ead9832292fefc95bc94c3d536eed98ed26c",
+      "verifyingContract": "0x8151d682836f5b7106181bc8e48dc899ab538930",
+      "cleanverseEndpoint": "/verify_apass",
+      "cleanverseAnswer": "code 4",
+      "recordedAt": "2026-08-09T13:41:26.653Z"
+    },
+    {
+      "subject": "0x83c130ed9fb92830f09ea2b30e49009ef03065bb",
+      "eligible": true,
+      "issuedAt": "1786282862",
+      "expiresAt": "1786283462",
+      "evidenceHash": "0x088501cdfc462a4bf621fc2f7cd68514ae346e129aeae1e98d852eaa0712e3cd",
+      "signer": "0xec16ead9832292fefc95bc94c3d536eed98ed26c",
+      "verifyingContract": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "cleanverseEndpoint": "/verify_apass",
+      "cleanverseAnswer": "code 4",
+      "recordedAt": "2026-08-09T13:41:33.263Z"
+    }
+  ],
   "transactions": [
     {
       "hash": "0x3e489002ebc31de1b9a7e929e579eff996f46eb21f5daf43610890355072c1f4",

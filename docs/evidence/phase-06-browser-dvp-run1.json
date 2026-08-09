@@ -1,0 +1,196 @@
+{
+  "capturedAt": "2026-08-09T15:59:30.171Z",
+  "settlementId": "0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385",
+  "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+  "surface": "https://conduit.timjosh507.workers.dev",
+  "driver": "a browser. Every transaction below was sent by a wallet in a page, through the settlement workspace, with the next action decided from chain state rather than from a script.",
+  "addresses": {
+    "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "cash": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+    "rwa": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+    "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61"
+  },
+  "coordinator": {
+    "state": "SETTLED",
+    "decision": "COMMIT",
+    "cashPrepared": true,
+    "assetPrepared": true,
+    "cashOutcome": "RELEASED",
+    "assetOutcome": "RELEASED",
+    "stateVersion": "5"
+  },
+  "cashLeg": {
+    "payer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "receiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "amount": "1000000",
+    "state": "RELEASED"
+  },
+  "reservation": {
+    "owner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "amount": "100000",
+    "announced": true,
+    "committed": true,
+    "released": true,
+    "cancelled": false
+  },
+  "intendedReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "intentSignatures": {
+    "source": "conduit.intents — recorded when each party signed in their browser",
+    "termsSource": "signed",
+    "nonce": "1786279231",
+    "cashPolicyHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "assetPolicyHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "payer": "0x7e74295efa3e1d5e78f5faba0def451c4fd1993ccfb7057f4c53081c482bc1bd129ad293d62abfcb1647c763253b0072166e19069c8f2ef3eac5052899b338631b",
+    "seller": "0x7e74295efa3e1d5e78f5faba0def451c4fd1993ccfb7057f4c53081c482bc1bd129ad293d62abfcb1647c763253b0072166e19069c8f2ef3eac5052899b338631b"
+  },
+  "attestations": [],
+  "transactions": [
+    {
+      "hash": "0x8083ae026fe8ae7945869776b115429130ab916f2b74330e2d0a12dccfe99502",
+      "chain": "baseSepolia",
+      "chainId": 84532,
+      "to": "0xddb1ae5685f4033ed10b3dfce5e9dc13d3e4989b",
+      "block": "45255479",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0x17974d04e5ba1374eced146f5ace8e240331d33d2a6ec54f29215fade28596e2",
+      "chain": "baseSepolia",
+      "chainId": 84532,
+      "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "block": "45255486",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0xf0e95f1f6c801b643a9fcb92e104fb03a780c79af5ec0aacfd7c70c0c9805da9",
+      "chain": "monadTestnet",
+      "chainId": 10143,
+      "to": "0x8151d682836f5b7106181bc8e48dc899ab538930",
+      "block": "52238050",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0x85885d6dcef9ca6db73b9ed2233a69512ba297faf7875f2849a88f0271a068bf",
+      "chain": "monadTestnet",
+      "chainId": 10143,
+      "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "block": "52242687",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0x074981c25006bfb19e8426d0c3156b737e7e4721f6b3feacc9b91c557ec2c379",
+      "chain": "monadTestnet",
+      "chainId": 10143,
+      "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "block": "52242725",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0xb15c6d891d658a2d7bce8d69df82487d4902d3324440d8e3f8fedd0c03f039f8",
+      "chain": "monadTestnet",
+      "chainId": 10143,
+      "to": "0x8151d682836f5b7106181bc8e48dc899ab538930",
+      "block": "52242767",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0x673132ad84661e6e034e1c99343b24115af62b5b105fa17c4fe5a178ddf6437a",
+      "chain": "baseSepolia",
+      "chainId": 84532,
+      "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "block": "45256217",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0x1d9e365354dd9c158769606e82b1ae567f7543aecbac2b74b0300f41d3c5a5d4",
+      "chain": "baseSepolia",
+      "chainId": 84532,
+      "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "block": "45256224",
+      "succeeded": true,
+      "toThisDeployment": true
+    },
+    {
+      "hash": "0xa31cc183e5ee855f9271efb98c9fc522d1d1a2bb10efcb819f73dc7fbfdd94dc",
+      "chain": "monadTestnet",
+      "chainId": 10143,
+      "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "block": "52247671",
+      "succeeded": true,
+      "toThisDeployment": true
+    }
+  ],
+  "messages": [
+    {
+      "messageType": "ASSET_PREPARED",
+      "sequence": "6",
+      "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "emitterChainId": 10004,
+      "publishedTx": "",
+      "publishedAtBlock": "0",
+      "includedAt": null,
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": null
+    },
+    {
+      "messageType": "ASSET_RELEASED",
+      "sequence": "7",
+      "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "emitterChainId": 10004,
+      "publishedTx": "",
+      "publishedAtBlock": "0",
+      "includedAt": null,
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": null
+    },
+    {
+      "messageType": "COMMIT",
+      "sequence": "2",
+      "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "emitterChainId": 10009,
+      "publishedTx": "",
+      "publishedAtBlock": "0",
+      "includedAt": null,
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": null
+    },
+    {
+      "messageType": "CASH_PREPARED",
+      "sequence": "3",
+      "emitter": "0x0000000000000000000000008151d682836f5b7106181bc8e48dc899ab538930",
+      "emitterChainId": 10009,
+      "publishedTx": "",
+      "publishedAtBlock": "0",
+      "includedAt": null,
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": null
+    }
+  ],
+  "balances": {
+    "cashPayer": "75000000",
+    "cashReceiver": "75000000",
+    "escrow": "25000000",
+    "assetHolder": "4000000",
+    "assetReserved": "500000"
+  },
+  "chains": {
+    "monad": 10143,
+    "base": 84532
+  },
+  "limitations": [
+    "The payer and the seller are one key. `generate_apass` returns 403 for this credential (ASM-035), so no second A-Passed identity exists and both intent signatures come from one wallet. Each leg still moves value into and out of a settlement contract; conservation is proven at the escrow balance and at the reservation rather than at a wallet delta.",
+    "The wallet is a real key signing real payloads through an EIP-1193 provider Playwright can drive. A browser extension cannot be automated, so the extension UI itself is covered by a manual smoke test rather than by this run."
+  ]
+}

@@ -11,8 +11,9 @@ design.md
 # would fail the gate for a whitespace change.
 contracts/test/fixtures/
 
-# Same reason: `pnpm evidence:check` byte-compares this against docs/evidence.
+# Same reason: `pnpm evidence:check` byte-compares these against docs/evidence.
 apps/web/src/evidence-index.ts
+docs/evidence/MANIFEST.md
 
 # Run artifacts are records, written by the scripts that produced the runs. A
 # formatter has no business rewriting the bytes of a thing whose whole purpose

@@ -5,12 +5,13 @@ PRD 15.5: _"No security tool result may be silenced without a documented waiver 
 
 ## Current waivers
 
-| Waiver                                                                     | Tool     | Scope                                                                                    | Expires    |
-| -------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- | ---------- |
-| [gitleaks-env-templates.md](./gitleaks-env-templates.md)                   | gitleaks | worktree scan of `.env` and `.env.example` only                                          | 2026-11-07 |
-| [slither-timestamp-conduitrwacva.md](./slither-timestamp-conduitrwacva.md) | Slither  | `timestamp` detector, `ConduitRWACVA` only                                               | 2026-11-07 |
-| [slither-transport-and-codec.md](./slither-transport-and-codec.md)         | Slither  | `assembly` on `MessageCodec.decode`, `reentrancy-events` on `WormholeTransport._publish` | 2026-11-07 |
-| [slither-disposition-kernel.md](./slither-disposition-kernel.md)           | Slither  | `operator-fee-outlier` on `DispositionController.resolveConflict`                        | 2026-11-08 |
+| Waiver                                                                     | Tool     | Scope                                                                                                | Expires    |
+| -------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- | ---------- |
+| [gitleaks-env-templates.md](./gitleaks-env-templates.md)                   | gitleaks | worktree scan of `.env` and `.env.example` only                                                      | 2026-11-07 |
+| [slither-timestamp-conduitrwacva.md](./slither-timestamp-conduitrwacva.md) | Slither  | `timestamp` detector, `ConduitRWACVA` only                                                           | 2026-11-07 |
+| [slither-transport-and-codec.md](./slither-transport-and-codec.md)         | Slither  | `assembly` on `MessageCodec.decode`, `reentrancy-events` on `WormholeTransport._publish`             | 2026-11-07 |
+| [slither-disposition-kernel.md](./slither-disposition-kernel.md)           | Slither  | `operator-fee-outlier` on `DispositionController.resolveConflict`                                    | 2026-11-08 |
+| [attestation-signer-quorum.md](./attestation-signer-quorum.md)             | —        | threat register T-08 and T-09 moved to `ACCEPTED`: one Conduit-operated attestation signer, quorum 1 | 2026-11-09 |
 
 `tests/docs.test.ts` fails if a waiver file appears without a status and an expiry, or if an
 expiry has passed.

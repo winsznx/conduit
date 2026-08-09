@@ -21,9 +21,9 @@ written waiver in [docs/security-waivers](../security-waivers/README.md).
 | T-04 | webhook spoofing                          | Cleanverse  | I11                | 05         | NOT ANALYSED |
 | T-05 | webhook replay                            | Cleanverse  | I11                | 05         | NOT ANALYSED |
 | T-06 | response-code confusion                   | Cleanverse  | I8                 | 01         | NOT ANALYSED |
-| T-07 | stale compliance attestation              | Attestation | I8                 | 05         | NOT ANALYSED |
-| T-08 | compromised compliance signer             | Attestation | I8                 | 09         | NOT ANALYSED |
-| T-09 | signer collusion                          | Attestation | I8                 | 09         | NOT ANALYSED |
+| T-07 | stale compliance attestation              | Attestation | I8                 | 05         | MITIGATED    |
+| T-08 | compromised compliance signer             | Attestation | I8                 | 09         | ACCEPTED     |
+| T-09 | signer collusion                          | Attestation | I8                 | 09         | ACCEPTED     |
 | T-10 | VAA replay                                | Wormhole    | I6                 | 02         | NOT ANALYSED |
 | T-11 | wrong emitter                             | Wormhole    | I6, I12            | 02         | NOT ANALYSED |
 | T-12 | wrong chain                               | Wormhole    | I6, I12            | 02         | NOT ANALYSED |
@@ -262,3 +262,81 @@ after the decrement is exactly the owner's other open settlements.
 contracts because the chain was missing from the key. The verifier's false
 negative was one balance meaning two settlements because the settlement was
 missing from the key. This is the same sentence a third time, in Solidity.
+
+---
+
+# The attestation signer is a trust assumption
+
+**T-07 MITIGATED. T-08 and T-09 ACCEPTED**, with the waiver in
+[docs/security-waivers/attestation-signer-quorum.md](../security-waivers/attestation-signer-quorum.md).
+
+This is the most important sentence in this document, so it is not buried: **the
+compliance attestation layer of this deployment is not trustless.**
+
+## What the contract proves
+
+`ComplianceAuthority` verifies four things about every attestation, on chain, and
+refuses the call if any of them fails:
+
+```text
+the signature recovers to an address in the registered signer set
+the attestation names this settlement and this intent hash
+it was issued in the past and has not expired
+its validity window does not exceed maxAttestationValidity — 900 seconds,
+  an immutable in the deployed bytecode that no signer can widen
+```
+
+Those are real properties and they close T-07. A stale attestation cannot
+authorise a commit, and the 900-second window is shorter than every Base finality
+observation this deployment has recorded, so a prepare-time answer _structurally_
+cannot reach a COMMIT. That is enforced by the bytecode, not by discipline.
+
+## What the contract cannot prove
+
+The contract verifies that an authorised signer said something. It cannot verify
+that the signer **asked Cleanverse**, or that Cleanverse **answered that way**.
+
+`evidenceHash` is the keccak of the normalised Cleanverse response, and it binds
+the attestation to a specific answer — but only for a reader who already holds
+that response. A verifier reading two chains and a guardian set can check that
+the hash committed at commit time matches the response in the evidence package.
+It cannot check that the response was ever received. Nothing on chain can.
+
+## Therefore
+
+The current deployment runs **one Conduit-operated signer with a quorum of one**.
+Compromise of that key is compromise of the eligibility decision for every
+settlement that has not yet committed. It buys an attacker:
+
+```text
+the ability to assert eligibility for a subject Cleanverse refuses
+the ability to assert refusal for a subject Cleanverse permits
+```
+
+It does not buy custody. The key cannot move a token, sign a settlement intent,
+create a settlement, decide one without both parties' signatures and a canonical
+READY state, or release a leg without a COMMIT already on chain. The blast radius
+is the compliance verdict and nothing else.
+
+T-09, signer collusion, is trivially satisfied at a quorum of one: there is
+nobody to collude with, and a single signer _is_ the collusion. Both rows are
+`ACCEPTED` rather than `MITIGATED` because a waiver is the honest status for a
+risk that is understood, bounded, and deliberately carried.
+
+## What would change it, and none of it is built
+
+These are future architecture. This repository implements none of them, and any
+copy that implies otherwise is wrong:
+
+```text
+multiple independent attestors, operated by different parties
+a threshold quorum above one, which the contract already supports
+attestors running in a TEE, so the query itself is attested
+a Cleanverse-signed response the contract can verify directly, which would
+  remove the intermediary from the trust path entirely
+```
+
+`complianceQuorum` and `addComplianceSigner` exist on chain today and take
+effect immediately when an owner raises them. The missing piece is not contract
+support. It is a second independent operator, which a hackathon deployment with
+one credential does not have.

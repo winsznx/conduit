@@ -786,7 +786,7 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
       "summary": "One intent composed, checked, signed, prepared, committed, released and settled from the settlement workspace. Every transaction was sent by a wallet in a page, with each next step decided from chain state rather than by a script.",
       "outcome": "SETTLED",
       "startedAt": null,
-      "finishedAt": "2026-08-09T14:03:56.277Z",
+      "finishedAt": "2026-08-09T15:59:43.114Z",
       "source": "docs/evidence/phase-06-browser-dvp.json",
       "addresses": {
         "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
