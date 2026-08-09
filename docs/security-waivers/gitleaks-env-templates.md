@@ -68,3 +68,24 @@ Delete this waiver and the `[allowlist]` block in `.gitleaks.toml` when either b
   `.env.example` entry.
 
 Re-run `gitleaks dir . --no-banner --redact` with the allowlist removed to check.
+
+## `apps/web/.dev.vars`
+
+**Added:** 2026-08-09
+**Expires:** 2026-11-09
+**Rule:** `generic-api-key`
+
+Wrangler's local secrets file. It holds the Cleanverse credential and the
+compliance authority key so `wrangler dev` answers the way production does, and
+it is the Worker's exact equivalent of `.env`, which this allowlist already
+scopes for the same reason.
+
+It cannot reach a commit. `.gitignore` excludes it four ways — `.dev.vars`,
+`.dev.vars.*`, `**/.dev.vars` and `**/.dev.vars.*` — and the history half of
+this gate, `gitleaks git .`, runs with no allowlist at all and reports no leak
+across every commit in the repository. That is the check that matters for what
+has actually been published; this entry scopes only the worktree scan, where the
+file exists by design on a developer machine.
+
+The entry expires in three months. If a Worker ever needs a secret that is not
+in this file, the review that adds it is the review that re-reads this waiver.

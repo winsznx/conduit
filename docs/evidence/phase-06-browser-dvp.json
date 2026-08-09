@@ -1,6 +1,6 @@
 {
-  "capturedAt": "2026-08-09T13:41:16.840Z",
-  "settlementId": "0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385",
+  "capturedAt": "2026-08-09T14:03:56.277Z",
+  "settlementId": "0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77",
   "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
   "surface": "https://conduit.timjosh507.workers.dev",
   "driver": "a browser. Every transaction below was sent by a wallet in a page, through the settlement workspace, with the next action decided from chain state rather than from a script.",
@@ -37,83 +37,83 @@
   "intendedReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
   "transactions": [
     {
-      "hash": "0x8083ae026fe8ae7945869776b115429130ab916f2b74330e2d0a12dccfe99502",
+      "hash": "0x3e489002ebc31de1b9a7e929e579eff996f46eb21f5daf43610890355072c1f4",
       "chain": "baseSepolia",
       "chainId": 84532,
       "to": "0xddb1ae5685f4033ed10b3dfce5e9dc13d3e4989b",
-      "block": "45255479",
+      "block": "45256613",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0x17974d04e5ba1374eced146f5ace8e240331d33d2a6ec54f29215fade28596e2",
+      "hash": "0xc01352063e7a440bd33b282c36895fe12802d56dc89bc027b8aa61b5fbc75e2e",
       "chain": "baseSepolia",
       "chainId": 84532,
       "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
-      "block": "45255486",
+      "block": "45256618",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0xf0e95f1f6c801b643a9fcb92e104fb03a780c79af5ec0aacfd7c70c0c9805da9",
+      "hash": "0x3fd4bf43555270b9dd5b190548ca4350032011fbdd462b42872fdaec62da3305",
       "chain": "monadTestnet",
       "chainId": 10143,
       "to": "0x8151d682836f5b7106181bc8e48dc899ab538930",
-      "block": "52238050",
+      "block": "52245480",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0x85885d6dcef9ca6db73b9ed2233a69512ba297faf7875f2849a88f0271a068bf",
+      "hash": "0x4badfdf83524759d0d7ecc0d207e90e743f065ffd40428296c6d0151431d5fe5",
       "chain": "monadTestnet",
       "chainId": 10143,
       "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
-      "block": "52242687",
+      "block": "52249846",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0x074981c25006bfb19e8426d0c3156b737e7e4721f6b3feacc9b91c557ec2c379",
+      "hash": "0xc5689f2f65ad708620944cc9370794c727284bed825226dbdd72b84566e36874",
       "chain": "monadTestnet",
       "chainId": 10143,
       "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
-      "block": "52242725",
+      "block": "52249878",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0xb15c6d891d658a2d7bce8d69df82487d4902d3324440d8e3f8fedd0c03f039f8",
+      "hash": "0x8fe4082f1bdfde62920a35b01b5dc7b984fa44e05af94ec369d1e94018c2dd73",
       "chain": "monadTestnet",
       "chainId": 10143,
       "to": "0x8151d682836f5b7106181bc8e48dc899ab538930",
-      "block": "52242767",
+      "block": "52249903",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0x673132ad84661e6e034e1c99343b24115af62b5b105fa17c4fe5a178ddf6437a",
+      "hash": "0xd432abe5f858450ba8d90e3bb1ec2651e5311c575ae716f49f49fccc7efe1cee",
       "chain": "baseSepolia",
       "chainId": 84532,
       "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
-      "block": "45256217",
+      "block": "45257305",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0x1d9e365354dd9c158769606e82b1ae567f7543aecbac2b74b0300f41d3c5a5d4",
+      "hash": "0x5b1afd4149d57b17f9f24569b530087f6afc976d1fb44d077a2c4dbed5837e0f",
       "chain": "baseSepolia",
       "chainId": 84532,
       "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
-      "block": "45256224",
+      "block": "45257311",
       "succeeded": true,
       "toThisDeployment": true
     },
     {
-      "hash": "0xa31cc183e5ee855f9271efb98c9fc522d1d1a2bb10efcb819f73dc7fbfdd94dc",
+      "hash": "0x39e73d28ef95ca43031f869016a2f9e305e1d3ea22403a769a235ae1053d1943",
       "chain": "monadTestnet",
       "chainId": 10143,
       "to": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
-      "block": "52247671",
+      "block": "52253586",
       "succeeded": true,
       "toThisDeployment": true
     }
@@ -121,59 +121,59 @@
   "messages": [
     {
       "messageType": "ASSET_PREPARED",
-      "sequence": "6",
+      "sequence": "8",
       "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
       "emitterChainId": 10004,
-      "publishedTx": "",
-      "publishedAtBlock": "0",
-      "includedAt": null,
+      "publishedTx": "0xc01352063e7a440bd33b282c36895fe12802d56dc89bc027b8aa61b5fbc75e2e",
+      "publishedAtBlock": "45256618",
+      "includedAt": "2026-08-09T13:18:44.000Z",
       "finality": "FINALIZED",
       "finalized": true,
-      "observedSecondsAfterPublication": null
+      "observedSecondsAfterPublication": 1343
     },
     {
       "messageType": "ASSET_RELEASED",
-      "sequence": "7",
+      "sequence": "9",
       "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
       "emitterChainId": 10004,
-      "publishedTx": "",
-      "publishedAtBlock": "0",
-      "includedAt": null,
+      "publishedTx": "0x5b1afd4149d57b17f9f24569b530087f6afc976d1fb44d077a2c4dbed5837e0f",
+      "publishedAtBlock": "45257311",
+      "includedAt": "2026-08-09T13:41:50.000Z",
       "finality": "FINALIZED",
       "finalized": true,
-      "observedSecondsAfterPublication": null
+      "observedSecondsAfterPublication": 1107
     },
     {
       "messageType": "COMMIT",
-      "sequence": "2",
+      "sequence": "3",
       "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
       "emitterChainId": 10009,
-      "publishedTx": "",
-      "publishedAtBlock": "0",
-      "includedAt": null,
+      "publishedTx": "0xc5689f2f65ad708620944cc9370794c727284bed825226dbdd72b84566e36874",
+      "publishedAtBlock": "52249878",
+      "includedAt": "2026-08-09T13:41:20.000Z",
       "finality": "FINALIZED",
       "finalized": true,
-      "observedSecondsAfterPublication": null
+      "observedSecondsAfterPublication": 3
     },
     {
       "messageType": "CASH_PREPARED",
-      "sequence": "3",
+      "sequence": "4",
       "emitter": "0x0000000000000000000000008151d682836f5b7106181bc8e48dc899ab538930",
       "emitterChainId": 10009,
-      "publishedTx": "",
-      "publishedAtBlock": "0",
-      "includedAt": null,
+      "publishedTx": "0x3fd4bf43555270b9dd5b190548ca4350032011fbdd462b42872fdaec62da3305",
+      "publishedAtBlock": "52245480",
+      "includedAt": "2026-08-09T13:18:56.000Z",
       "finality": "FINALIZED",
       "finalized": true,
-      "observedSecondsAfterPublication": null
+      "observedSecondsAfterPublication": 1282
     }
   ],
   "balances": {
-    "cashPayer": "74000000",
-    "cashReceiver": "74000000",
-    "escrow": "26000000",
+    "cashPayer": "75000000",
+    "cashReceiver": "75000000",
+    "escrow": "25000000",
     "assetHolder": "4000000",
-    "assetReserved": "600000"
+    "assetReserved": "500000"
   },
   "chains": {
     "monad": 10143,

@@ -731,20 +731,29 @@ are the public endpoints, the compliance answers came from Cleanverse through
 the Worker, the guardian signatures came from the guardian set, and every
 transaction was broadcast and mined.
 
+Two of them, in fact. The first found four defects and needed help past them;
+the second ran start to finish with none.
+
 ```text
-settlement   0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385
-coordinator  SETTLED · decision COMMIT · cash RELEASED · asset RELEASED
-verifier     SETTLED_FINAL, 18 of 18 checks, no scan gaps
-messages     ASSET_PREPARED 6, CASH_PREPARED 3, COMMIT 2, ASSET_RELEASED 7
-             all FINALIZED, each consumed exactly once
-artifact     docs/evidence/phase-06-browser-dvp.json
-verification docs/evidence/verification-3f9b03f41d.json
+run 1        0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385
+             SETTLED · SETTLED_FINAL, 18 of 18 checks
+             found D-07 and D-08 below, and needed two messages recorded by hand
+
+run 2        0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77
+             SETTLED · SETTLED_FINAL, 18 of 18 checks
+             composed, signed, prepared, committed, released and settled with no
+             intervention of any kind, in 42 minutes of which 22 were waiting
+             for Base economic finality
+
+artifact     docs/evidence/phase-06-browser-dvp.json           (run 2)
+verification docs/evidence/verification-d46775dc9c.json        (run 2)
+             docs/evidence/verification-3f9b03f41d.json        (run 1)
 ```
 
-Nine transactions, each fetched back and required to have succeeded and to have
-been sent to one of this deployment's own contracts. Base economic finality was
-observed at 1384 seconds with a 45-second measurement tolerance, and the
-workspace offered nothing at all until the guardian set had signed.
+Nine transactions per run, each fetched back and required to have succeeded and
+to have been sent to one of this deployment's own contracts. Run 2's four
+messages were all FINALIZED and each consumed exactly once: ASSET_PREPARED 8
+after 1343 seconds, CASH_PREPARED 4, COMMIT 3 after 3, ASSET_RELEASED 9 after 1107. The workspace offered nothing at all until the guardian set had signed.
 
 ### Defects the live run found, which the deterministic suite could not
 
@@ -913,20 +922,29 @@ are the public endpoints, the compliance answers came from Cleanverse through
 the Worker, the guardian signatures came from the guardian set, and every
 transaction was broadcast and mined.
 
+Two of them, in fact. The first found four defects and needed help past them;
+the second ran start to finish with none.
+
 ```text
-settlement   0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385
-coordinator  SETTLED · decision COMMIT · cash RELEASED · asset RELEASED
-verifier     SETTLED_FINAL, 18 of 18 checks, no scan gaps
-messages     ASSET_PREPARED 6, CASH_PREPARED 3, COMMIT 2, ASSET_RELEASED 7
-             all FINALIZED, each consumed exactly once
-artifact     docs/evidence/phase-06-browser-dvp.json
-verification docs/evidence/verification-3f9b03f41d.json
+run 1        0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385
+             SETTLED · SETTLED_FINAL, 18 of 18 checks
+             found D-07 and D-08 below, and needed two messages recorded by hand
+
+run 2        0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77
+             SETTLED · SETTLED_FINAL, 18 of 18 checks
+             composed, signed, prepared, committed, released and settled with no
+             intervention of any kind, in 42 minutes of which 22 were waiting
+             for Base economic finality
+
+artifact     docs/evidence/phase-06-browser-dvp.json           (run 2)
+verification docs/evidence/verification-d46775dc9c.json        (run 2)
+             docs/evidence/verification-3f9b03f41d.json        (run 1)
 ```
 
-Nine transactions, each fetched back and required to have succeeded and to have
-been sent to one of this deployment's own contracts. Base economic finality was
-observed at 1384 seconds with a 45-second measurement tolerance, and the
-workspace offered nothing at all until the guardian set had signed.
+Nine transactions per run, each fetched back and required to have succeeded and
+to have been sent to one of this deployment's own contracts. Run 2's four
+messages were all FINALIZED and each consumed exactly once: ASSET_PREPARED 8
+after 1343 seconds, CASH_PREPARED 4, COMMIT 3 after 3, ASSET_RELEASED 9 after 1107. The workspace offered nothing at all until the guardian set had signed.
 
 ### Defects the live run found, which the deterministic suite could not
 

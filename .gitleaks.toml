@@ -22,6 +22,14 @@ paths = [
   # this allowlist dangerous.
   '''^\.env$''',
 
+  # `.dev.vars` is the same thing for a Worker: wrangler's local secrets file,
+  # holding the Cleanverse credential and the compliance authority key so
+  # `wrangler dev` can answer as production does. Gitignored four ways — `.env`,
+  # `.dev.vars`, `.dev.vars.*` and `**/.dev.vars` are all in `.gitignore` — and
+  # `gitleaks git .` over the full history confirms independently that no
+  # version of it has ever been committed.
+  '''(^|/)\.dev\.vars$''',
+
   # `.env.example` is committed and must be scanned for content, but the default
   # `generic-api-key` rule fires on variable *names* such as CLOUDFLARE_API_TOKEN
   # even when the value is empty. tests/repo-structure.test.ts asserts every

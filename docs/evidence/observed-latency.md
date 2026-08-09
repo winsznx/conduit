@@ -25,14 +25,15 @@ rests on has to be too.
 | 9      | ASSET_HELD     | 1483    | disposition (gen 3), `phase-07-compliance-change-0xdcb9db12.json` |
 | 10     | ASSET_PREPARED | 1384±45 | live browser run 1, `phase-06-browser-dvp.json` — see below       |
 | 11     | ASSET_PREPARED | 1343    | live browser run 2, measured by the surface's own 10-second poll  |
+| 12     | ASSET_RELEASED | 1107    | live browser run 2, same measurement                              |
 
-Eleven samples: 999, 1093, 1189, 1223, 1275, 1343, 1350, 1384, 1483, 1483, 1485
-seconds. All are roughly twenty minutes and none of them is "the" number. The
-spread is 486 seconds across eleven observations, which is the honest thing to
+Twelve samples: 999, 1093, 1107, 1189, 1223, 1275, 1343, 1350, 1384, 1483, 1483,
+1485 seconds. All are roughly twenty minutes and none of them is "the" number. The
+spread is 486 seconds across twelve observations, which is the honest thing to
 say about a testnet's finality and the reason these are listed rather than
 reduced to one figure.
 
-Sample 11 is the tightest measurement on this page. A browser sat on the
+Samples 11 and 12 are the tightest measurements on this page. A browser sat on the
 settlement for the whole wait, polling the surface every ten seconds, and the
 surface asked the guardian API on each poll — so the interval from publication
 to first signature is known to within that poll.
@@ -109,5 +110,5 @@ with both, and less credible with either one alone.
 
 The rule for anything derived from this page: quote a sample and say which run
 it came from. Do not average across message classes, do not average across
-chains, and do not present a range as a guarantee — eleven samples of a
-testnet's finality are eleven samples.
+chains, and do not present a range as a guarantee — twelve samples of a
+testnet's finality are twelve samples.

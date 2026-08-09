@@ -780,13 +780,13 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
       "failure": null
     },
     {
-      "settlementId": "0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385",
+      "settlementId": "0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77",
       "generation": 3,
       "title": "Settled from a browser",
       "summary": "One intent composed, checked, signed, prepared, committed, released and settled from the settlement workspace. Every transaction was sent by a wallet in a page, with each next step decided from chain state rather than by a script.",
       "outcome": "SETTLED",
       "startedAt": null,
-      "finishedAt": "2026-08-09T13:41:16.840Z",
+      "finishedAt": "2026-08-09T14:03:56.277Z",
       "source": "docs/evidence/phase-06-browser-dvp.json",
       "addresses": {
         "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
@@ -799,90 +799,90 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
         {
           "stage": "baseSepolia — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0x8083ae026fe8ae7945869776b115429130ab916f2b74330e2d0a12dccfe99502",
+          "hash": "0x3e489002ebc31de1b9a7e929e579eff996f46eb21f5daf43610890355072c1f4",
           "chainId": 84532
         },
         {
           "stage": "baseSepolia — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0x17974d04e5ba1374eced146f5ace8e240331d33d2a6ec54f29215fade28596e2",
+          "hash": "0xc01352063e7a440bd33b282c36895fe12802d56dc89bc027b8aa61b5fbc75e2e",
           "chainId": 84532
         },
         {
           "stage": "monadTestnet — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0xf0e95f1f6c801b643a9fcb92e104fb03a780c79af5ec0aacfd7c70c0c9805da9",
+          "hash": "0x3fd4bf43555270b9dd5b190548ca4350032011fbdd462b42872fdaec62da3305",
           "chainId": 10143
         },
         {
           "stage": "monadTestnet — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0x85885d6dcef9ca6db73b9ed2233a69512ba297faf7875f2849a88f0271a068bf",
+          "hash": "0x4badfdf83524759d0d7ecc0d207e90e743f065ffd40428296c6d0151431d5fe5",
           "chainId": 10143
         },
         {
           "stage": "monadTestnet — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0x074981c25006bfb19e8426d0c3156b737e7e4721f6b3feacc9b91c557ec2c379",
+          "hash": "0xc5689f2f65ad708620944cc9370794c727284bed825226dbdd72b84566e36874",
           "chainId": 10143
         },
         {
           "stage": "monadTestnet — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0xb15c6d891d658a2d7bce8d69df82487d4902d3324440d8e3f8fedd0c03f039f8",
+          "hash": "0x8fe4082f1bdfde62920a35b01b5dc7b984fa44e05af94ec369d1e94018c2dd73",
           "chainId": 10143
         },
         {
           "stage": "baseSepolia — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0x673132ad84661e6e034e1c99343b24115af62b5b105fa17c4fe5a178ddf6437a",
+          "hash": "0xd432abe5f858450ba8d90e3bb1ec2651e5311c575ae716f49f49fccc7efe1cee",
           "chainId": 84532
         },
         {
           "stage": "baseSepolia — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0x1d9e365354dd9c158769606e82b1ae567f7543aecbac2b74b0300f41d3c5a5d4",
+          "hash": "0x5b1afd4149d57b17f9f24569b530087f6afc976d1fb44d077a2c4dbed5837e0f",
           "chainId": 84532
         },
         {
           "stage": "monadTestnet — verified against its receipt",
           "key": "to this deployment",
-          "hash": "0xa31cc183e5ee855f9271efb98c9fc522d1d1a2bb10efcb819f73dc7fbfdd94dc",
+          "hash": "0x39e73d28ef95ca43031f869016a2f9e305e1d3ea22403a769a235ae1053d1943",
           "chainId": 10143
         }
       ],
       "messages": [
         {
           "messageType": "ASSET_PREPARED",
-          "sequence": "6",
+          "sequence": "8",
           "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
           "emitterChainId": 10004,
-          "publishedTx": "",
-          "finalitySeconds": null
+          "publishedTx": "0xc01352063e7a440bd33b282c36895fe12802d56dc89bc027b8aa61b5fbc75e2e",
+          "finalitySeconds": 1343
         },
         {
           "messageType": "ASSET_RELEASED",
-          "sequence": "7",
+          "sequence": "9",
           "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
           "emitterChainId": 10004,
-          "publishedTx": "",
-          "finalitySeconds": null
+          "publishedTx": "0x5b1afd4149d57b17f9f24569b530087f6afc976d1fb44d077a2c4dbed5837e0f",
+          "finalitySeconds": 1107
         },
         {
           "messageType": "COMMIT",
-          "sequence": "2",
+          "sequence": "3",
           "emitter": "0x000000000000000000000000b08bc7f285dd3fc1047798b661e93ab7427a7a61",
           "emitterChainId": 10009,
-          "publishedTx": "",
-          "finalitySeconds": null
+          "publishedTx": "0xc5689f2f65ad708620944cc9370794c727284bed825226dbdd72b84566e36874",
+          "finalitySeconds": 3
         },
         {
           "messageType": "CASH_PREPARED",
-          "sequence": "3",
+          "sequence": "4",
           "emitter": "0x0000000000000000000000008151d682836f5b7106181bc8e48dc899ab538930",
           "emitterChainId": 10009,
-          "publishedTx": "",
-          "finalitySeconds": null
+          "publishedTx": "0x3fd4bf43555270b9dd5b190548ca4350032011fbdd462b42872fdaec62da3305",
+          "finalitySeconds": 1282
         }
       ],
       "compliance": [],
@@ -891,11 +891,11 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
       "adversarial": [],
       "conservation": {
         "closing": {
-          "cashPayer": "74000000",
-          "cashReceiver": "74000000",
-          "escrow": "26000000",
+          "cashPayer": "75000000",
+          "cashReceiver": "75000000",
+          "escrow": "25000000",
           "assetHolder": "4000000",
-          "assetReserved": "600000"
+          "assetReserved": "500000"
         }
       },
       "limitations": [
@@ -1155,6 +1155,65 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
           "emitterChainId": 10009,
           "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
           "vaaHash": "0x1bcf6ae74cf6c0596cbb162059b11902b52eef068a9ab16573035a1bb5473ac0",
+          "finality": "FINALIZED",
+          "consumed": true
+        }
+      ]
+    },
+    {
+      "settlementId": "0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77",
+      "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+      "classification": "SETTLED_FINAL",
+      "canonicalState": "SETTLED",
+      "verifiedAt": "2026-08-09T14:03:32.286Z",
+      "passed": 18,
+      "total": 18,
+      "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.",
+      "searchedBlockRanges": {
+        "10143": {
+          "from": "52233758",
+          "to": "52253758"
+        },
+        "84532": {
+          "from": "45237888",
+          "to": "45257888"
+        }
+      },
+      "source": "docs/evidence/verification-d46775dc9c.json",
+      "messages": [
+        {
+          "messageType": "ASSET_PREPARED",
+          "sequence": "8",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0xea8e27d5b72a27e7c58b62d1e6cf76c31d9ca2d92fbeb6193259996ca1f3cc80",
+          "finality": "FINALIZED",
+          "consumed": true
+        },
+        {
+          "messageType": "ASSET_RELEASED",
+          "sequence": "9",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x7f60e9ab1e251f7c4913fb6e31189a1a776374e8d8c56d0751c356e71fcb1876",
+          "finality": "FINALIZED",
+          "consumed": true
+        },
+        {
+          "messageType": "CASH_PREPARED",
+          "sequence": "4",
+          "emitterChainId": 10009,
+          "emitter": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+          "vaaHash": "0xe146ae515eea70969c788fb2b1348cfc04bc55f296cd78a9e5c8606d19af72dc",
+          "finality": "FINALIZED",
+          "consumed": false
+        },
+        {
+          "messageType": "COMMIT",
+          "sequence": "3",
+          "emitterChainId": 10009,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x71fc98d758c35130e09a3c445a8dafd8899f02751d123d13fc32b6a1dabfa8e0",
           "finality": "FINALIZED",
           "consumed": true
         }
