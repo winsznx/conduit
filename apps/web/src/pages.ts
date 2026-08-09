@@ -100,9 +100,24 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
 
 <header class="hero">
   <h1 class="t-display">Delivery versus payment, across two chains, without bridging either asset.</h1>
-  <p>A restricted RWA on Base and a Cleanverse settlement unit on Monad move under one signed intent. What crosses is authenticated settlement state — and commitment becomes irreversible only after economic finality and a fresh compliance answer.</p>
+  <p>A restricted RWA on Base and a Cleanverse settlement unit on Monad settle under one signed intent. Neither asset leaves the chain that issued it. What crosses is authenticated settlement state — and the commitment becomes irreversible only after economic finality and a fresh compliance answer.</p>
   <div class="actions">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}${button({ label: 'Verify independently', href: '/app/verifier', variant: 'secondary' })}</div>
 </header>
+
+<section class="landing-section">
+  ${sectionHeader('The problem')}
+  <div class="grid-2" style="align-items:start">
+    ${card(
+      `<div class="stack-8"><div class="t-caption-upper">Two chains, one obligation</div>
+<p class="muted">Cash and restricted ownership can live on different chains, and those chains do not finalize at the same moment. Whoever moves first is exposed for the difference — on this deployment, between 999 and 1485 seconds.</p></div>`,
+    )}
+    ${card(
+      `<div class="stack-8"><div class="t-caption-upper">Eligibility is an answer, not a property</div>
+<p class="muted">A transfer rule can change while a settlement is in flight. A participant who was eligible when the trade was agreed can be refused at the moment of delivery, and on this deployment one was.</p></div>`,
+    )}
+  </div>
+  <div class="note">Bridging solves neither. It replaces a settlement problem with a custody problem and a wrapped supply to attack. Conduit bridges nothing: both assets stay where they were issued, and one authenticated settlement commitment is coordinated across the two chains.</div>
+</section>
 
 <section class="landing-section">
   <div class="grid-4">
@@ -252,7 +267,7 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
   <div style="font-weight:var(--font-weight-medium)">Connect your own wallet</div>
   <p class="muted">Compose an intent, have every participant checked against Cleanverse, and sign it in your own browser. Conduit never sees your key.</p>
   <div class="row"><span data-wallet-control></span>${button({ label: 'Compose a settlement', href: '/app/settlements/new', variant: 'outline', small: true })}</div>
-  <p class="t-caption muted">A wallet the Cleanverse hackathon sandbox has never issued an A-Pass to will be refused, and the console will say so precisely rather than failing vaguely. That refusal is the product working.</p>
+  <p class="t-caption muted">Whatever Cleanverse answers is what you will see, verbatim and specific: <span class="mono">ELIGIBLE</span>, <span class="mono">NO_APASS</span>, <span class="mono">TIER_TOO_LOW</span>, or <span class="mono">UNAVAILABLE</span> when nobody could be asked. In this sandbox some unknown wallets are cleared and others are refused, and the console reports the answer it got rather than the answer it expected.</p>
 </div>
 <div class="stack-12">
   <div style="font-weight:var(--font-weight-medium)">Or explore a settlement that already happened</div>

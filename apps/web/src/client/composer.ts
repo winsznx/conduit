@@ -14,7 +14,7 @@
  */
 
 import type { SettlementIntent } from '@conduit-protocol/domain';
-import type { Address } from 'viem';
+import { isAddress, type Address } from 'viem';
 
 import {
   buildIntent,
@@ -172,6 +172,16 @@ export function mountComposer(): void {
     const address = (name: string): Address => {
       const value = field(name).value.trim();
       if (!/^0x[0-9a-fA-F]{40}$/.test(value)) throw new Error(`${name} is not a valid address`);
+      // A mixed-case address is an EIP-55 checksum, and a wrong one is a typo
+      // the standard is designed to catch. viem rejects it when the digest is
+      // built, several steps later and in its own words; saying so here names
+      // the field and the fix.
+      if (value !== value.toLowerCase() && !isAddress(value, { strict: true })) {
+        throw new Error(
+          `${name} has a mixed-case address whose EIP-55 checksum does not match. Paste it in ` +
+            `lower case, or copy the checksummed form from an explorer.`,
+        );
+      }
       return value as Address;
     };
     // Deadlines are generous on purpose. Observed Base finality on this
@@ -255,19 +265,27 @@ export function mountComposer(): void {
     table.append(body);
     matrix.replaceChildren(table);
 
-    const refused = rows.filter(
-      ({ result }) => result !== undefined && result.status !== 'ELIGIBLE',
-    );
+    // A missing result is a refusal, not a skip. The filter used to require
+    // `result !== undefined`, so four participants the endpoint said nothing
+    // about would have counted as zero refusals and enabled signing — an outage
+    // read as approval, which is the one mistake this codebase exists to avoid.
+    const refused = rows.filter(({ result }) => result?.status !== 'ELIGIBLE');
     if (refused.length > 0) {
       const notice = node('div', 'note');
-      const outage = refused.some(({ result }) => result?.status === 'UNAVAILABLE');
+      const outage = refused.some(
+        ({ result }) => result === undefined || result.status === 'UNAVAILABLE',
+      );
       notice.textContent = outage
         ? 'At least one check did not complete. That is not a refusal — nothing can be concluded about those participants until Cleanverse answers.'
         : `${String(refused.length)} participant(s) cannot receive their leg. A settlement signed on these terms could not be delivered, so signing is not offered.`;
       matrix.append(notice);
       for (const { participant, result } of refused) {
         matrix.append(
-          node('div', 't-caption muted', `${participant.label}: ${result?.detail ?? 'no answer'}`),
+          node(
+            'div',
+            't-caption muted',
+            `${participant.label}: ${result?.detail ?? 'the endpoint returned no verdict for this participant, so nothing is known about them'}`,
+          ),
         );
       }
       return;
