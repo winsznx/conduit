@@ -290,15 +290,9 @@ const STEPS = [
     title: 'playwright end-to-end suite',
     exec: async () => {
       const base = process.env['WEB_BASE_URL'] ?? 'http://localhost:8787';
-      let reachable = false;
-      try {
-        const response = await fetch(`${base}/health`, {
-          signal: AbortSignal.timeout(4000),
-        });
-        reachable = response.ok;
-      } catch {
-        reachable = false;
-      }
+      const reachable = await fetch(`${base}/health`, { signal: AbortSignal.timeout(4000) })
+        .then((response) => response.ok)
+        .catch(() => false);
 
       if (reachable) return run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true });
 
