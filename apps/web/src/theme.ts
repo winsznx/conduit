@@ -371,10 +371,52 @@ const LAYOUT = `
 
 /* ── Landing ─────────────────────────────────────────────────────────────── */
 .landing{max-width:var(--page-max-width);margin:0 auto;padding:0 var(--spacing-24)}
-.landing-nav{display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-20) 0}
-.hero{padding:80px 0 var(--spacing-48);max-width:52ch}
+
+/* ── The landing header stays put ─────────────────────────────────────────────
+   position:sticky and nothing else: no scroll listener, no class toggled by
+   JavaScript, and therefore nothing to go wrong when the bundle has not loaded.
+
+   The background is the page's own canvas at full opacity rather than a blurred
+   pane. design.md rules out frosted glass, and full opacity is also the only
+   thing that reliably stops type from ghosting through as it passes underneath.
+
+   The hairline is permanent. Revealing one on scroll needs either JavaScript or
+   a scroll-driven animation that most browsers still do not run, and a header
+   whose height changes when you scroll is the layout jump this is meant to
+   avoid. One px, always there, is quieter than either. */
+.landing-nav{
+  position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:var(--spacing-20) 0;
+  background:var(--surface-canvas);
+  border-bottom:1px solid var(--color-hairline);
+}
+
+/* Anchors land below the sticky header rather than under it. Sized to the
+   header: 20 + 28 + 20 + 1 = 69px, plus room to breathe. */
+.landing-section,.hero{scroll-margin-top:88px}
+
+/* ── Hero ─────────────────────────────────────────────────────────────────────
+   Two columns on desktop, and the artwork's track is a percentage so it holds
+   the 45% the layout was designed around at every width. 1fr takes what is
+   left, so the gap can never push the row wider than the container.
+
+   minmax(0,...) on both tracks is what stops a long unbroken string or an image
+   with an intrinsic width from establishing a floor wider than the viewport. */
+.hero{
+  padding:80px 0 var(--spacing-48);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,45%);
+  gap:var(--spacing-48);align-items:center;
+}
+.hero-copy{max-width:52ch;min-width:0}
 .hero p{margin-top:var(--spacing-16);font-size:var(--text-body-lg);line-height:var(--leading-body-lg);color:var(--color-mid-gray)}
 .hero .actions{display:flex;gap:var(--spacing-8);margin-top:var(--spacing-24)}
+
+/* The artwork sits on the canvas. No card, no frame, no backing, no shadow:
+   its own alpha is the edge, and anything painted behind it would replace a
+   transparent falloff with a rectangle. */
+.hero-art{min-width:0;justify-self:end;width:100%}
+.hero-art img{display:block;width:100%;height:auto}
 /* One 80px gap between sections, not two stacked. Landing may breathe; it may
    not leave 160px of nothing. */
 .landing-section{padding:0 0 80px}
@@ -526,6 +568,12 @@ const LAYOUT = `
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width:1024px){
+  /* The copy needs the room before the artwork does, so the artwork gives it
+     up first rather than both columns shrinking together. */
+  .hero{
+    grid-template-columns:minmax(0,1fr) minmax(0,38%);gap:var(--spacing-24);
+    padding:var(--spacing-48) 0 var(--spacing-24);
+  }
   .shell{grid-template-columns:1fr}
   .sidebar{
     position:static;height:auto;flex-direction:row;align-items:center;
@@ -555,7 +603,15 @@ const LAYOUT = `
   .xchain-mid{flex-direction:row;padding:var(--spacing-4) 0}
   .xchain-mid .connector{width:1px;min-width:0;height:24px}
   .page-head{flex-direction:column;align-items:stretch}
-  .hero{padding:var(--spacing-48) 0 var(--spacing-24)}
+  /* One column, so the artwork falls below the CTA in source order and is
+     centred under it. Capped so it does not become the whole first screen. */
+  .hero{
+    grid-template-columns:minmax(0,1fr);gap:var(--spacing-24);
+    padding:var(--spacing-24) 0 var(--spacing-24);
+  }
+  .hero-art{justify-self:center;max-width:min(100%,420px)}
+  .landing-nav{padding:var(--spacing-12) 0}
+  .landing-section,.hero{scroll-margin-top:64px}
   .landing-section{padding:var(--spacing-48) 0}
   /* Deliberate reduction inside the scale, not a shrink. */
   .t-display{font-size:var(--text-heading-lg);line-height:var(--leading-heading-lg);letter-spacing:var(--tracking-heading-lg)}

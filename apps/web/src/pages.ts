@@ -12,6 +12,8 @@ import {
   crossChainDiagram,
   dispositionCase,
   evidenceTimeline,
+  heroArtwork,
+  heroPreload,
   messageRoute,
   settlementLegCard,
   settlementTimeline,
@@ -61,11 +63,11 @@ import { CLIENT_PATH } from './client-manifest.js';
 import { STYLESHEET } from './theme.js';
 
 /** The document. One stylesheet, inline, because the CSP forbids external origins. */
-function document_(title: string, body: string): string {
+function document_(title: string, body: string, head = ''): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>${esc(title)} — Conduit</title><style>${STYLESHEET}</style></head>
+<title>${esc(title)} — Conduit</title>${head}<style>${STYLESHEET}</style></head>
 <body${CONDUIT === undefined ? '' : ` data-conduit="${esc(JSON.stringify(CONDUIT))}"`}>${body}<script type="module" src="${esc(CLIENT_PATH)}" defer></script></body></html>`;
 }
 
@@ -113,9 +115,12 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
 <nav class="landing-nav">${wordmark()}<div class="row">${button({ label: 'Verify a settlement', href: '/app/verifier', variant: 'outline', small: true })}${button({ label: 'Open console', href: '/app', small: true })}</div></nav>
 
 <header class="hero">
-  <h1 class="t-display">Delivery versus payment, across two chains, without bridging either asset.</h1>
-  <p>A restricted RWA on Base and a Cleanverse settlement unit on Monad settle under one signed intent. Neither asset leaves the chain that issued it. What crosses is authenticated settlement state — and the commitment becomes irreversible only after economic finality and a fresh compliance answer.</p>
-  <div class="actions">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}${button({ label: 'Verify independently', href: '/app/verifier', variant: 'secondary' })}</div>
+  <div class="hero-copy">
+    <h1 class="t-display">Delivery versus payment, across two chains, without bridging either asset.</h1>
+    <p>A restricted RWA on Base and a Cleanverse settlement unit on Monad settle under one signed intent. Neither asset leaves the chain that issued it. What crosses is authenticated settlement state — and the commitment becomes irreversible only after economic finality and a fresh compliance answer.</p>
+    <div class="actions">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}${button({ label: 'Verify independently', href: '/app/verifier', variant: 'secondary' })}</div>
+  </div>
+  ${heroArtwork()}
 </header>
 
 <section class="landing-section">
@@ -294,6 +299,7 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
 
 <footer class="landing-foot"><div class="row-between">${wordmark()}<span class="t-caption">Conduit holds no key that can move your value. Signatures come from your wallet; authority comes from the chains.</span></div></footer>
 </div>`,
+    heroPreload(),
   );
 }
 

@@ -19,6 +19,10 @@ docs/evidence/MANIFEST.md
 # both chains report for every transaction it lists.
 docs/onchain.md
 
+# Written by `pnpm hero:build` from the source artwork. Reformatting it makes
+# the next regeneration a diff, which is noise rather than information.
+apps/web/assets/hero.json
+
 # Run artifacts are records, written by the scripts that produced the runs. A
 # formatter has no business rewriting the bytes of a thing whose whole purpose
 # is to be the record of what happened.

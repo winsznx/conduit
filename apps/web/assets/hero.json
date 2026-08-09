@@ -1,0 +1,49 @@
+{
+  "source": "apps/web/assets/hero-source.png",
+  "sourceSha256": "1002e518a483679e",
+  "sourceSize": [
+    1536,
+    1024
+  ],
+  "crop": {
+    "x": 48,
+    "y": 296,
+    "width": 1440,
+    "height": 448
+  },
+  "intrinsic": [
+    1440,
+    448
+  ],
+  "pngFallbackWidth": 840,
+  "variants": [
+    {
+      "width": 560,
+      "height": 174,
+      "png": 0,
+      "webp": 15172,
+      "avif": 7121
+    },
+    {
+      "width": 840,
+      "height": 261,
+      "png": 136721,
+      "webp": 29790,
+      "avif": 11610
+    },
+    {
+      "width": 1120,
+      "height": 348,
+      "png": 0,
+      "webp": 48832,
+      "avif": 16572
+    },
+    {
+      "width": 1440,
+      "height": 448,
+      "png": 0,
+      "webp": 101204,
+      "avif": 23799
+    }
+  ]
+}

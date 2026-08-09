@@ -44,6 +44,7 @@
 
 import CLIENT_BUNDLE from './client.bundle.js.txt';
 import { CLIENT_PATH } from './client-manifest.js';
+import { IMAGES } from './image-manifest.js';
 import { checkTargets, deploymentConfig, dispositionConfig, targetForChain } from './deployment.js';
 import { checkEligibility, isAddress } from './eligibility.js';
 import { signRequest, storeSignedIntent, workspaceIntent } from './intents.js';
@@ -142,6 +143,39 @@ function script(body: string): Response {
   return new Response(body, {
     headers: {
       'content-type': 'text/javascript; charset=utf-8',
+      'cache-control': 'public, max-age=31536000, immutable',
+      ...SECURITY_HEADERS,
+    },
+  });
+}
+
+/**
+ * The hero artwork, decoded once per isolate rather than once per request.
+ *
+ * The variants ship inside the Worker as base64 because the same argument that
+ * put the client bundle here applies to them: one deployment surface, one set of
+ * bytes, and a content hash in the path so `immutable` is a true claim.
+ */
+const IMAGE_BYTES = new Map<string, Uint8Array>();
+
+function imageAt(path: string): { bytes: Uint8Array; type: string } | undefined {
+  const asset = Object.values(IMAGES).find((image) => image.path === path);
+  if (asset === undefined) return undefined;
+
+  let bytes = IMAGE_BYTES.get(path);
+  if (bytes === undefined) {
+    const binary = atob(asset.base64);
+    bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    IMAGE_BYTES.set(path, bytes);
+  }
+  return { bytes, type: asset.type };
+}
+
+function image(bytes: Uint8Array, type: string): Response {
+  return new Response(bytes, {
+    headers: {
+      'content-type': type,
       'cache-control': 'public, max-age=31536000, immutable',
       ...SECURITY_HEADERS,
     },
@@ -284,6 +318,11 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
   // ── Static ────────────────────────────────────────────────────────────────
 
   if (path === CLIENT_PATH) return script(CLIENT_BUNDLE);
+
+  if (path.startsWith('/assets/hero-')) {
+    const asset = imageAt(path);
+    if (asset !== undefined) return image(asset.bytes, asset.type);
+  }
 
   // ── API ───────────────────────────────────────────────────────────────────
 

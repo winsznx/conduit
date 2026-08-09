@@ -38,7 +38,9 @@
     "onchain:capture": "node scripts/check-onchain-verification.mjs",
     "onchain:check": "node scripts/check-onchain-verification.mjs --check",
     "onchain:index": "node scripts/build-onchain-index.mjs",
-    "onchain:index:check": "node scripts/build-onchain-index.mjs --check"
+    "onchain:index:check": "node scripts/build-onchain-index.mjs --check",
+    "hero:build": "node scripts/build-hero-image.mjs",
+    "hero:check": "node scripts/build-hero-image.mjs --check"
   },
   "devDependencies": {
     "@conduit-protocol/app-api": "workspace:*",

@@ -19,6 +19,7 @@ import {
   type SettlementView,
 } from './domain.js';
 import { evmChainFor } from './explorers.js';
+import { HERO_INTRINSIC, IMAGES } from './image-manifest.js';
 import {
   address,
   assetIdentity,
@@ -184,6 +185,68 @@ export function settlementLegCard(title: string, value: LegView): string {
 </table>`,
     stateBadge(value.outcome),
   );
+}
+
+/**
+ * The hero artwork: two settlement legs and the authenticated link between them.
+ *
+ * Decorative, so `alt` is empty. It restates the sentence beside it and carries
+ * nothing a reader would miss, and an alt text that narrated it would make a
+ * screen reader read the headline twice.
+ *
+ * ## Why `<picture>` and not one file
+ *
+ * The artwork is a smooth gradient against transparency at 1440×448. As a PNG
+ * that is 137kb at the fallback width alone; as AVIF it is 24kb at full width.
+ * Every browser that matters reads at least WebP, so the PNG exists as the last
+ * resort and is never the one a modern browser downloads.
+ *
+ * `sizes` describes the layout rather than the file: 45% of the content column
+ * on desktop, 38% on tablet, and the full column below the CTA on a phone. The
+ * intrinsic `width` and `height` are the crop's, so the browser reserves the
+ * right box before a byte of image arrives and the hero does not shift.
+ */
+export function heroArtwork(): string {
+  const set = (extension: 'avif' | 'webp'): string =>
+    HERO_WIDTHS.map((width) => {
+      const asset = IMAGES[`hero-${String(width)}.${extension}`];
+      return asset === undefined ? '' : `${asset.path} ${String(width)}w`;
+    })
+      .filter((entry) => entry !== '')
+      .join(', ');
+
+  const fallback = IMAGES['hero-840.png'];
+
+  return `<div class="hero-art">
+<picture>
+<source type="image/avif" srcset="${esc(set('avif'))}" sizes="${esc(HERO_SIZES)}">
+<source type="image/webp" srcset="${esc(set('webp'))}" sizes="${esc(HERO_SIZES)}">
+<img src="${esc(fallback?.path ?? '')}" alt="" width="${String(HERO_INTRINSIC.width)}" height="${String(HERO_INTRINSIC.height)}" decoding="async" fetchpriority="high">
+</picture>
+</div>`;
+}
+
+const HERO_WIDTHS = [560, 840, 1120, 1440] as const;
+
+/**
+ * What the layout will actually ask for, in the order the browser tests it.
+ *
+ * A 390px phone at 3x wants 1026 device pixels and gets the 1120; a 1440 desktop
+ * at 2x wants 1108 and gets the same file. Nothing downloads the 1440 unless the
+ * display genuinely resolves it.
+ */
+const HERO_SIZES =
+  '(max-width: 768px) calc(100vw - 48px), (max-width: 1024px) 38vw, min(45vw, 554px)';
+
+/** The `<link rel=preload>` for the hero, which is the landing page's LCP element. */
+export function heroPreload(): string {
+  const set = HERO_WIDTHS.map((width) => {
+    const asset = IMAGES[`hero-${String(width)}.avif`];
+    return asset === undefined ? '' : `${asset.path} ${String(width)}w`;
+  })
+    .filter((entry) => entry !== '')
+    .join(', ');
+  return `<link rel="preload" as="image" type="image/avif" imagesrcset="${esc(set)}" imagesizes="${esc(HERO_SIZES)}" fetchpriority="high">`;
 }
 
 // ── Messages ────────────────────────────────────────────────────────────────

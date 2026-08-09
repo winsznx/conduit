@@ -225,6 +225,14 @@ const STEPS = [
       run('node', ['scripts/check-onchain-verification.mjs', '--check'], { allowFailure: true }),
   },
   {
+    id: 'hero-image',
+    // The shipped hero variants must still be what the committed source and the
+    // committed crop produce. An artwork swapped without regenerating them is a
+    // page serving one picture and a repository describing another.
+    title: 'hero image variants match the source and crop they were generated from',
+    exec: () => run('node', ['scripts/build-hero-image.mjs', '--check'], { allowFailure: true }),
+  },
+  {
     id: 'onchain-index',
     // Every transaction this project claims to have sent, resolved against the
     // chain that mined it. A link that no longer resolves is a claim that has
