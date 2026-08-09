@@ -240,6 +240,8 @@ async function ensureSettlementRow(env: Env, settlementId: string): Promise<void
   let state = 'NONE';
   let decision = 'NONE';
   let stateVersion = 0;
+  let cashOutcome = 'NONE';
+  let assetOutcome = 'NONE';
   try {
     const tuple = (await readClient(env, MONAD_TESTNET).readContract({
       address: config.coordinator,
@@ -251,6 +253,8 @@ async function ensureSettlementRow(env: Env, settlementId: string): Promise<void
     state = record.state;
     decision = record.decision;
     stateVersion = Number(record.stateVersion);
+    cashOutcome = record.cashOutcome;
+    assetOutcome = record.assetOutcome;
   } catch {
     // A coordinator we cannot read leaves the row at its defaults rather than
     // failing the recording: the message is still real and still worth keeping.
@@ -271,6 +275,55 @@ async function ensureSettlementRow(env: Env, settlementId: string): Promise<void
         state_version   = EXCLUDED.state_version,
         chain_read_at   = EXCLUDED.chain_read_at
     `;
+
+    // The two legs, so the read pages have something true to show. Amounts and
+    // parties come from the signed intent; the outcomes come from the
+    // coordinator. Without these the settlement renders with an outcome of
+    // UNKNOWN, which is accurate about the projection and misleading about the
+    // settlement — the coordinator knows perfectly well that neither leg has
+    // resolved.
+    const [terms] = await sql`
+      SELECT cash_chain_id, cash_escrow, cash_asset, cash_amount, cash_payer, cash_receiver,
+             asset_chain_id, asset_escrow, asset_token, asset_amount, asset_seller, asset_receiver
+        FROM conduit.intents WHERE intent_hash = ${settlementId}
+    `;
+    if (terms === undefined) return;
+
+    for (const leg of [
+      {
+        leg: 'CASH',
+        chainId: Number(terms['cash_chain_id']),
+        escrow: String(terms['cash_escrow']),
+        asset: String(terms['cash_asset']),
+        amount: String(terms['cash_amount']),
+        receiver: String(terms['cash_receiver']),
+        sender: String(terms['cash_payer']),
+        outcome: cashOutcome,
+      },
+      {
+        leg: 'ASSET',
+        chainId: Number(terms['asset_chain_id']),
+        escrow: String(terms['asset_escrow']),
+        asset: String(terms['asset_token']),
+        amount: String(terms['asset_amount']),
+        receiver: String(terms['asset_receiver']),
+        sender: String(terms['asset_seller']),
+        outcome: assetOutcome,
+      },
+    ]) {
+      await sql`
+        INSERT INTO conduit.settlement_legs (
+          settlement_id, leg, chain_id, escrow_address, asset_address, amount,
+          outcome, current_receiver, original_sender, chain_read_at
+        ) VALUES (
+          ${settlementId}, ${leg.leg}, ${leg.chainId}, ${leg.escrow}, ${leg.asset},
+          ${leg.amount}, ${leg.outcome}, ${leg.receiver}, ${leg.sender}, now()
+        )
+        ON CONFLICT (settlement_id, leg) DO UPDATE SET
+          outcome       = EXCLUDED.outcome,
+          chain_read_at = EXCLUDED.chain_read_at
+      `;
+    }
   });
 }
 
