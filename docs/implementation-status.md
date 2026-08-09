@@ -723,6 +723,49 @@ and that nothing moved. That is the property the contest window exists for, and
 [ADR-0020](./adr/0020-the-disposition-kernel-rests-orders-before-it-executes-them.md)
 records why an immediate-execution kernel cannot satisfy PRD FR-012's last line.
 
+### Live evidence
+
+One settlement composed, checked, signed, prepared, committed, released and
+settled entirely from the deployed surface. Nothing was intercepted: the RPCs
+are the public endpoints, the compliance answers came from Cleanverse through
+the Worker, the guardian signatures came from the guardian set, and every
+transaction was broadcast and mined.
+
+```text
+settlement   0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385
+coordinator  SETTLED · decision COMMIT · cash RELEASED · asset RELEASED
+verifier     SETTLED_FINAL, 18 of 18 checks, no scan gaps
+messages     ASSET_PREPARED 6, CASH_PREPARED 3, COMMIT 2, ASSET_RELEASED 7
+             all FINALIZED, each consumed exactly once
+artifact     docs/evidence/phase-06-browser-dvp.json
+verification docs/evidence/verification-3f9b03f41d.json
+```
+
+Nine transactions, each fetched back and required to have succeeded and to have
+been sent to one of this deployment's own contracts. Base economic finality was
+observed at 1384 seconds with a 45-second measurement tolerance, and the
+workspace offered nothing at all until the guardian set had signed.
+
+### Defects the live run found, which the deterministic suite could not
+
+Both are about a database and a receipt that a scripted chain does not have.
+
+**D-07. The sequence was recorded at broadcast.** Wormhole keeps a sequence in
+an event, so the browser tells the server where the message is — and it was
+telling it before the transaction was mined. The server correctly refused with
+`receipt_unavailable` and the number was gone. Writes now carry an `onConfirmed`
+hook that runs once, on a successful receipt, before observation.
+
+**D-08. The message row has a foreign key the browser had not satisfied.**
+`conduit.settlements` is written by the indexer and does not exist for a
+settlement composed thirty seconds ago. The endpoint now reads `settlementOf`
+from the coordinator and writes the row from what the chain says.
+
+Two more surfaced while the run was in flight: the browser and the Worker do not
+read the same node, so the recording is retried across RPC lag; and a Wormhole
+emitter is thirty-two bytes, so storing the twenty-byte sender put every live
+message in the table twice under two spellings.
+
 ### Test counts
 
 ```text
@@ -861,6 +904,49 @@ to call the last one reached until two things hold: the RPC reports
 in contract state. A failure is classified before it is explained —
 `RPC_STATE_LAG` and `CONTRACT_REVERT` produce the same silence at the call site
 and mean opposite things.
+
+### Live evidence
+
+One settlement composed, checked, signed, prepared, committed, released and
+settled entirely from the deployed surface. Nothing was intercepted: the RPCs
+are the public endpoints, the compliance answers came from Cleanverse through
+the Worker, the guardian signatures came from the guardian set, and every
+transaction was broadcast and mined.
+
+```text
+settlement   0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385
+coordinator  SETTLED · decision COMMIT · cash RELEASED · asset RELEASED
+verifier     SETTLED_FINAL, 18 of 18 checks, no scan gaps
+messages     ASSET_PREPARED 6, CASH_PREPARED 3, COMMIT 2, ASSET_RELEASED 7
+             all FINALIZED, each consumed exactly once
+artifact     docs/evidence/phase-06-browser-dvp.json
+verification docs/evidence/verification-3f9b03f41d.json
+```
+
+Nine transactions, each fetched back and required to have succeeded and to have
+been sent to one of this deployment's own contracts. Base economic finality was
+observed at 1384 seconds with a 45-second measurement tolerance, and the
+workspace offered nothing at all until the guardian set had signed.
+
+### Defects the live run found, which the deterministic suite could not
+
+Both are about a database and a receipt that a scripted chain does not have.
+
+**D-07. The sequence was recorded at broadcast.** Wormhole keeps a sequence in
+an event, so the browser tells the server where the message is — and it was
+telling it before the transaction was mined. The server correctly refused with
+`receipt_unavailable` and the number was gone. Writes now carry an `onConfirmed`
+hook that runs once, on a successful receipt, before observation.
+
+**D-08. The message row has a foreign key the browser had not satisfied.**
+`conduit.settlements` is written by the indexer and does not exist for a
+settlement composed thirty seconds ago. The endpoint now reads `settlementOf`
+from the coordinator and writes the row from what the chain says.
+
+Two more surfaced while the run was in flight: the browser and the Worker do not
+read the same node, so the recording is retried across RPC lag; and a Wormhole
+emitter is thirty-two bytes, so storing the twenty-byte sender put every live
+message in the table twice under two spellings.
 
 ### Test counts
 
