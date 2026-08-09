@@ -185,6 +185,68 @@ const RUNS = [
   }),
 ];
 
+/**
+ * The browser run, whose artifact was captured rather than written as it went.
+ *
+ * It carries no stages and no compliance section: a page has no vantage point
+ * over its own run, so `capture-browser-run.mjs` reads the outcome from the
+ * chains afterwards. The package therefore shows what the chains say — the
+ * transactions, verified against their receipts, and the messages with their
+ * measured finality — and claims nothing about the steps in between beyond what
+ * the coordinator's own state implies.
+ */
+function capturedPackage({ file, generation, title, summary }) {
+  const artifact = read(join(EVIDENCE, file));
+  return {
+    settlementId: artifact.settlementId,
+    generation,
+    title,
+    summary,
+    outcome: artifact.coordinator.state,
+    startedAt: null,
+    finishedAt: artifact.capturedAt ?? null,
+    source: `docs/evidence/${file}`,
+    addresses: artifact.addresses ?? {},
+    transactions: (artifact.transactions ?? []).map((entry) => ({
+      stage: `${entry.chain} — verified against its receipt`,
+      key: entry.toThisDeployment ? 'to this deployment' : 'external',
+      hash: entry.hash,
+      chainId: entry.chainId,
+    })),
+    messages: (artifact.messages ?? []).map((message) => ({
+      messageType: message.messageType,
+      sequence: String(message.sequence),
+      emitter: message.emitter,
+      emitterChainId: message.emitterChainId,
+      publishedTx: message.publishedTx,
+      finalitySeconds: message.observedSecondsAfterPublication ?? null,
+    })),
+    compliance: [],
+    ruleTransitions: [],
+    disposition: null,
+    adversarial: [],
+    conservation: {
+      closing: Object.fromEntries(
+        Object.entries(artifact.balances ?? {}).map(([key, value]) => [key, String(value)]),
+      ),
+    },
+    limitations: artifact.limitations ?? [],
+    failure: null,
+  };
+}
+
+RUNS.push(
+  capturedPackage({
+    file: 'phase-06-browser-dvp.json',
+    generation: 3,
+    title: 'Settled from a browser',
+    summary:
+      'One intent composed, checked, signed, prepared, committed, released and settled from the ' +
+      'settlement workspace. Every transaction was sent by a wallet in a page, with each next step ' +
+      'decided from chain state rather than by a script.',
+  }),
+);
+
 const VERIFICATIONS = readdirSync(EVIDENCE)
   .filter((name) => name.startsWith('verification-') && name.endsWith('.json'))
   .map((name) => {
