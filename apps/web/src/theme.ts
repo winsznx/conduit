@@ -409,6 +409,51 @@ const LAYOUT = `
 /* The single place a transaction turns chromatic: it actually failed. */
 .txstate .tx-dot.failed{background:var(--color-ember)}
 .txstate .tx-error{color:var(--color-ember)}
+/* Six rungs, drawn as hairline segments. A write that stopped shows where. */
+.tx-ladder{display:flex;gap:3px}
+.tx-rung{flex:1;height:2px;background:var(--color-hairline);border-radius:999px}
+.tx-rung.done{background:var(--color-ink)}
+
+/* ── Next action ─────────────────────────────────────────────────────────── */
+/* The dominant element on a settlement. It is a card at the container radius
+   with a heavier inner rule, not a coloured callout — design.md has no accent
+   fill and the emphasis comes from scale and position instead. */
+.action{border:1px solid var(--color-hairline);border-radius:var(--radius-cards);background:var(--color-paper);box-shadow:var(--shadow-subtle);overflow:hidden}
+.action-head{padding:var(--spacing-20);border-bottom:1px solid var(--color-hairline);display:flex;align-items:flex-start;justify-content:space-between;gap:var(--spacing-16)}
+.action-title{font-size:var(--text-heading-sm);line-height:var(--leading-heading-sm);letter-spacing:var(--tracking-heading-sm);font-weight:var(--font-weight-semibold)}
+.action-body{padding:var(--spacing-20);display:flex;flex-direction:column;gap:var(--spacing-16)}
+.action-why{color:var(--color-mid-gray);max-width:74ch}
+.action-amount{font-size:var(--text-heading-lg);line-height:var(--leading-heading-lg);letter-spacing:var(--tracking-heading-lg);font-weight:var(--font-weight-semibold)}
+.action-blocked{border-left:1px solid var(--color-hairline);padding-left:var(--spacing-12);color:var(--color-mid-gray);max-width:70ch}
+
+/* The one place a panel is allowed to shout, and it does it with a rule and a
+   caption rather than with colour: COMMIT cannot be undone. */
+.boundary{border:1px solid var(--color-ink);border-radius:var(--radius-nested);padding:var(--spacing-16);display:flex;flex-direction:column;gap:var(--spacing-8)}
+.boundary .boundary-title{font-weight:var(--font-weight-semibold);letter-spacing:var(--tracking-caption);text-transform:uppercase;font-size:var(--text-caption)}
+
+/* ── Finality flow ───────────────────────────────────────────────────────── */
+.flow{display:flex;flex-direction:column;gap:0}
+.flow-stage{display:grid;grid-template-columns:20px 1fr;gap:var(--spacing-12)}
+.flow-rail{display:flex;flex-direction:column;align-items:center}
+.flow-node{width:9px;height:9px;border-radius:50%;border:1px solid var(--color-hairline);background:var(--color-paper);flex:none;margin-top:5px}
+.flow-node.done{background:var(--color-ink);border-color:var(--color-ink)}
+.flow-node.active{border-color:var(--color-ink)}
+.flow-line{width:1px;flex:1;background:var(--color-hairline);min-height:18px}
+.flow-stage:last-child .flow-line{display:none}
+.flow-body{padding-bottom:var(--spacing-16);min-width:0}
+.flow-stage:last-child .flow-body{padding-bottom:0}
+.flow-title{font-size:var(--text-body);font-weight:var(--font-weight-medium)}
+.flow-meta{font-size:var(--text-caption);color:var(--color-mid-gray);margin-top:2px}
+
+/* ── Disposition types ───────────────────────────────────────────────────── */
+.dtype{border:1px solid var(--color-hairline);border-radius:var(--radius-nested);padding:var(--spacing-16);display:flex;flex-direction:column;gap:var(--spacing-8);min-width:0}
+.dtype[data-enabled='false']{background:var(--color-surface-alt)}
+.dtype .dtype-name{font-weight:var(--font-weight-medium);font-family:var(--font-mono);font-size:13px}
+
+/* ── Side-by-side compliance ─────────────────────────────────────────────── */
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--spacing-16)}
+.compare > div{border:1px solid var(--color-hairline);border-radius:var(--radius-nested);padding:var(--spacing-16)}
+@media (max-width:768px){.compare{grid-template-columns:minmax(0,1fr)}}
 
 /* ── Wallet controls ─────────────────────────────────────────────────────── */
 .account-chip{

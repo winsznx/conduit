@@ -45,12 +45,27 @@ export interface Env {
   readonly CLEANVERSE_API_ID?: string;
   readonly CLEANVERSE_API_KEY_BASE64?: string;
   readonly CLEANVERSE_REQUEST_TIMEOUT_MS?: string;
+  /**
+   * The compliance authority's signing key.
+   *
+   * Not a settlement key: it cannot move value, decide a settlement, or sign an
+   * intent. It signs eligibility answers Cleanverse gave, which every
+   * value-moving call requires alongside canonical protocol state a
+   * participant's own wallet produced. Absent, the console is read-and-prepare
+   * only and says so. ADR-0021.
+   */
+  readonly COMPLIANCE_SIGNER_PRIVATE_KEY?: string;
   /** Generation-3 contract addresses the composer and eligibility checks need. */
   readonly SETTLEMENT_CVA_ADDRESS?: string;
   readonly RWA_CVA_ADDRESS?: string;
   readonly CASH_ESCROW_ADDRESS?: string;
   readonly SETTLEMENT_COORDINATOR_ADDRESS?: string;
   readonly RWA_CVA_ADAPTER_ADDRESS?: string;
+  /** The disposition kernel on the asset chain, where one is wired. */
+  readonly DISPOSITION_CONTROLLER_BASE?: string;
+  readonly AUTHORITY_REGISTRY_BASE?: string;
+  readonly DISPOSITION_POLICY_ID?: string;
+  readonly DISPOSITION_CONTEST_WINDOW?: string;
 }
 
 type Sql = ReturnType<typeof postgres>;
@@ -198,6 +213,51 @@ function shallowView(row: SettlementRow): SettlementView {
     disposition: undefined,
     conservation: [],
     termsKnown: false,
+  };
+}
+
+/**
+ * A settlement that exists as a signed intent and nothing else yet.
+ *
+ * The indexer writes `conduit.settlements` from what it reads off both chains,
+ * so a settlement composed thirty seconds ago is not there — and 404 would be
+ * the wrong answer, because the terms are real, both parties may have signed
+ * them, and the workspace is exactly where the next step happens. The outcomes
+ * read `UNKNOWN` rather than `NONE`: nothing has been read from a chain here.
+ */
+export function viewFromIntent(
+  settlementId: string,
+  deploymentId: string,
+  terms: Record<string, string>,
+): SettlementView {
+  const leg = (side: 'cash' | 'asset'): LegView => {
+    const chainId = Number(terms[`${side}ChainId`] ?? '0') || (side === 'cash' ? 10143 : 84532);
+    const asset = terms[side === 'cash' ? 'cashAsset' : 'assetToken'] ?? '';
+    return {
+      chain: '',
+      chainId,
+      asset,
+      assetSymbol: asset === '' ? '—' : symbolFor(asset),
+      amount: formatAmount(terms[`${side}Amount`] ?? '0'),
+      outcome: 'UNKNOWN',
+      counterparty: terms[side === 'cash' ? 'cashPayer' : 'assetReceiver'] ?? '',
+    };
+  };
+
+  return {
+    settlementId,
+    deploymentId,
+    generation: 3,
+    canonicalState: 'NONE',
+    decision: 'NONE',
+    verifierClass: undefined,
+    cash: leg('cash'),
+    asset: leg('asset'),
+    messages: [],
+    compliance: [],
+    disposition: undefined,
+    conservation: [],
+    termsKnown: true,
   };
 }
 

@@ -6,19 +6,30 @@
  * same data, and splitting them would double the configuration for no isolation
  * benefit — none of them can write anything.
  *
- * ## Nothing here decides anything
+ * ## Nothing here can move value
  *
- * There is no signer in this Worker and no private key. That has not changed
- * now that participants can act: signing happens in the user's own wallet, in
- * their browser, and this Worker sees a signature and a settlement id — both of
- * which anyone can re-derive. A service that could sign on a user's behalf
- * would be custody rather than settlement.
+ * No settlement key lives in this Worker. A participant's signature comes from
+ * their own wallet, in their own browser, and this Worker sees a signature and a
+ * settlement id — both of which anyone can re-derive. A service that could sign
+ * on a user's behalf would be custody rather than settlement.
  *
- * One route accepts a write, `POST /api/intents`, and it writes to the
- * projection only. Storing a signed intent lets a counterparty open the same
- * settlement from their own browser. It authorises nothing: the coordinator
- * verifies both signatures against the digest itself, and a database that
- * disagreed with the chain would simply be wrong.
+ * It does hold one key, and this comment used to say it held none. That was
+ * true when the surface was read-only and it is not true now: every
+ * value-moving call demands a quorum of compliance attestations signed by an
+ * address the contract's registered signer set contains, a browser cannot
+ * produce one, and a participant who could would be authorising their own
+ * settlement. So the Worker signs eligibility answers Cleanverse gave, and
+ * nothing else. That key cannot move a token, sign an intent, decide a
+ * settlement, or release a leg without a canonical COMMIT already on chain.
+ * ADR-0021 states what it can and cannot do, precisely.
+ *
+ * Three routes accept a write and none of them authorises anything.
+ * `POST /api/intents` records a signature so a counterparty can find the
+ * settlement; the coordinator verifies both signatures against the digest on
+ * chain and a table that disagreed would simply be wrong.
+ * `POST /api/settlements/:id/messages` records where a published message lives,
+ * having re-derived every field from the transaction receipt.
+ * `POST /api/attestations` mints the compliance answer described above.
  *
  * The projection this reads is convenient and is never evidence. A settlement's
  * authority is the coordinator on chain, and a reader who wants proof runs the
@@ -33,9 +44,12 @@
 
 import CLIENT_BUNDLE from './client.bundle.js.txt';
 import { CLIENT_PATH } from './client-manifest.js';
-import { checkTargets, deploymentConfig, targetForChain } from './deployment.js';
+import { checkTargets, deploymentConfig, dispositionConfig, targetForChain } from './deployment.js';
 import { checkEligibility, isAddress } from './eligibility.js';
-import { signRequest, storeSignedIntent } from './intents.js';
+import { signRequest, storeSignedIntent, workspaceIntent } from './intents.js';
+import { isAttestationFailure, mintAttestations } from './attestations.js';
+import { isMessageFailure, messagesFor, recordMessage } from './messages.js';
+import { proofPackage } from './evidence.js';
 import type { Env } from './data.js';
 import {
   deployments,
@@ -45,6 +59,7 @@ import {
   recentSettlements,
   settlementView,
   totals,
+  viewFromIntent,
 } from './data.js';
 import {
   renderComposer,
@@ -142,13 +157,14 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
-    if (request.method === 'POST' && path === '/api/intents') {
+    if (request.method === 'POST') {
       try {
-        return await storeIntent(request, env);
+        const written = await write(path, request, env);
+        if (written !== undefined) return written;
       } catch (error) {
-        console.error('storeIntent failed', error);
+        console.error('write failed', path, error);
         return json(
-          { error: { code: 'store_failed', message: 'the signed intent could not be stored' } },
+          { error: { code: 'write_failed', message: 'the request could not be completed' } },
           500,
         );
       }
@@ -192,22 +208,51 @@ export default {
   },
 };
 
+const MESSAGES_ROUTE = /^\/api\/settlements\/(0x[0-9a-fA-F]{64})\/messages$/;
+
 /**
- * The one write this Worker accepts.
+ * The three writes this Worker accepts, and what each of them is not.
  *
- * It records a signature so a counterparty can find the settlement. Every field
- * is revalidated: the id is recomputed from the terms rather than trusted, the
- * signature is recovered, and only the payer or seller the terms name may sign.
+ * None of them authorises anything. `POST /api/intents` records a signature so a
+ * counterparty can find the settlement; the coordinator verifies both signatures
+ * against the digest on chain and a table that disagreed would simply be wrong.
+ * `POST /api/settlements/:id/messages` records where a published message lives,
+ * having re-derived every field from the transaction receipt rather than
+ * believing the caller. `POST /api/attestations` mints a compliance answer the
+ * authority signed — a statement about eligibility, which a contract requires
+ * *in addition to* canonical protocol state a participant's own wallet produced.
+ *
+ * A caller who lies to any of them gets a refusal, and a caller who compromises
+ * all three still cannot move a token.
  */
-async function storeIntent(request: Request, env: Env): Promise<Response> {
+async function write(path: string, request: Request, env: Env): Promise<Response | undefined> {
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     return json({ error: { code: 'invalid_request', message: 'body is not JSON' } }, 400);
   }
-  const result = await storeSignedIntent(env, body);
-  return json(result.body, result.status);
+
+  if (path === '/api/intents') {
+    const result = await storeSignedIntent(env, body);
+    return json(result.body, result.status);
+  }
+
+  if (path === '/api/attestations') {
+    const result = await mintAttestations(env, body);
+    if (isAttestationFailure(result)) return json(result.body, result.status);
+    return json(result);
+  }
+
+  const messages = MESSAGES_ROUTE.exec(path);
+  const messagesId = messages?.[1];
+  if (messagesId !== undefined) {
+    const result = await recordMessage(env, messagesId.toLowerCase(), body);
+    if (isMessageFailure(result)) return json(result.body, result.status);
+    return json(result);
+  }
+
+  return undefined;
 }
 
 /** The generation label shown in the shell, short enough to read at a glance. */
@@ -311,10 +356,28 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
     return html(renderComposer(generationLabel(env), deploymentConfig(env)));
   }
 
+  const messagesRead = MESSAGES_ROUTE.exec(path);
+  const messagesReadId = messagesRead?.[1];
+  if (messagesReadId !== undefined) {
+    return json({ messages: await messagesFor(env, messagesReadId.toLowerCase()) });
+  }
+
   const settlementMatch = /^\/app\/settlements\/(0x[0-9a-fA-F]{64})$/.exec(path);
   const settlementId = settlementMatch?.[1];
   if (settlementId !== undefined) {
-    const view = await settlementView(env, settlementId.toLowerCase());
+    const id = settlementId.toLowerCase();
+    const [indexed, intent] = await Promise.all([
+      settlementView(env, id),
+      workspaceIntent(env, id),
+    ]);
+
+    // An intent with no indexed settlement is the normal state of a settlement
+    // composed a minute ago. The workspace is exactly where its next step
+    // happens, so a 404 here would send a participant away from the page they
+    // need. A settlement with neither is genuinely unknown to this projection.
+    const view =
+      indexed ??
+      (intent === undefined ? undefined : viewFromIntent(id, env.DEPLOYMENT_ID, intent.terms));
     if (view === undefined) {
       return html(
         renderNotFound(
@@ -324,7 +387,34 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
         404,
       );
     }
-    return html(renderSettlement(generationLabel(env), view));
+
+    const config = deploymentConfig(env);
+    const kernel = dispositionConfig(env);
+    const workspace =
+      config === undefined || intent === undefined
+        ? undefined
+        : {
+            settlementId: id,
+            deployment: config,
+            ...(kernel === undefined ? {} : { disposition: kernel }),
+            terms: intent.terms,
+            signatures: {
+              payer: intent.payerSigned,
+              seller: intent.sellerSigned,
+              ...(intent.payerSignature === undefined
+                ? {}
+                : { payerSignature: intent.payerSignature }),
+              ...(intent.sellerSignature === undefined
+                ? {}
+                : { sellerSignature: intent.sellerSignature }),
+            },
+            termsSource: intent.termsSource,
+            ...(view.verifierClass === undefined ? {} : { verifierClass: view.verifierClass }),
+            canonicalState: view.canonicalState,
+            attestationsAvailable: env.COMPLIANCE_SIGNER_PRIVATE_KEY !== undefined,
+          };
+
+    return html(renderSettlement(generationLabel(env), view, workspace));
   }
 
   const signMatch = /^\/app\/settlements\/(0x[0-9a-fA-F]{64})\/sign$/.exec(path);
@@ -423,7 +513,8 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
   const evidenceId = evidenceMatch?.[1];
   if (evidenceId !== undefined) {
     const id = evidenceId.toLowerCase();
-    return html(renderEvidence(generationLabel(env), id, await evidenceFor(env, id)));
+    const proof = proofPackage(id);
+    return html(renderEvidence(generationLabel(env), id, await evidenceFor(env, id), proof));
   }
 
   // ── Legacy paths ──────────────────────────────────────────────────────────

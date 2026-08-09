@@ -231,6 +231,76 @@ export async function storeSignedIntent(env: Env, submission: unknown): Promise<
   };
 }
 
+export interface WorkspaceIntent {
+  readonly terms: Record<string, string>;
+  readonly payerSigned: boolean;
+  readonly sellerSigned: boolean;
+  readonly payerSignature: string | undefined;
+  readonly sellerSignature: string | undefined;
+  readonly termsSource: string;
+}
+
+/**
+ * The terms a workspace acts on, whatever produced them.
+ *
+ * `signRequest` deliberately serves only intents a party signed, because
+ * offering a reconstructed one for countersignature would invite somebody to
+ * agree to terms the first party never proposed. The workspace has the opposite
+ * need: a settlement recovered from a run artifact still has to be readable, and
+ * its terms are what the chain acted on. So this serves both and says which it
+ * is, and the resolver refuses to prepare anything that is not `signed`.
+ */
+export async function workspaceIntent(
+  env: Env,
+  settlementId: string,
+): Promise<WorkspaceIntent | undefined> {
+  return withDb(env, async (sql) => {
+    const [row] = (await sql`
+      SELECT version, cash_chain_id, cash_escrow, cash_asset, cash_amount, cash_payer,
+             cash_receiver, asset_chain_id, asset_escrow, asset_token, asset_amount,
+             asset_seller, asset_receiver, cash_policy_hash, asset_policy_hash,
+             prepare_deadline, commit_deadline, release_deadline, nonce,
+             buyer_signature, seller_signature, terms_source
+        FROM conduit.intents WHERE intent_hash = ${settlementId}
+    `) as unknown as readonly Record<string, unknown>[];
+    if (row === undefined) return undefined;
+
+    const text = (key: string): string => {
+      const value = row[key];
+      return typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
+    };
+
+    return {
+      terms: {
+        version: text('version') || '1',
+        cashChainId: text('cash_chain_id'),
+        cashEscrow: text('cash_escrow'),
+        cashAsset: text('cash_asset'),
+        cashAmount: text('cash_amount'),
+        cashPayer: text('cash_payer'),
+        cashReceiver: text('cash_receiver'),
+        assetChainId: text('asset_chain_id'),
+        assetEscrow: text('asset_escrow'),
+        assetToken: text('asset_token'),
+        assetAmount: text('asset_amount'),
+        assetSeller: text('asset_seller'),
+        assetReceiver: text('asset_receiver'),
+        cashPolicyHash: text('cash_policy_hash'),
+        assetPolicyHash: text('asset_policy_hash'),
+        prepareDeadline: text('prepare_deadline'),
+        commitDeadline: text('commit_deadline'),
+        releaseDeadline: text('release_deadline'),
+        nonce: text('nonce'),
+      },
+      payerSigned: text('buyer_signature') !== '',
+      sellerSigned: text('seller_signature') !== '',
+      payerSignature: text('buyer_signature') === '' ? undefined : text('buyer_signature'),
+      sellerSignature: text('seller_signature') === '' ? undefined : text('seller_signature'),
+      termsSource: text('terms_source') || 'unknown',
+    };
+  });
+}
+
 export interface SignRequestView {
   readonly cashAmount: string;
   readonly assetAmount: string;

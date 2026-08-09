@@ -7,5 +7,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": []
   },
-  "include": ["**/*.ts"]
+  // `actions.ts` and `onchain.ts` live one level up because the Worker uses them
+  // too. One resolver and one set of ABIs, shared, rather than two that drift.
+  "include": ["**/*.ts", "../actions.ts", "../onchain.ts"]
 }

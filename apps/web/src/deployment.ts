@@ -48,6 +48,37 @@ export function deploymentConfig(env: Env): DeploymentConfig | undefined {
   };
 }
 
+/**
+ * The disposition kernel, where one is wired to this generation.
+ *
+ * Separate from the settlement config because a deployment can settle without
+ * it: the kernel is what resolves value that has been committed and cannot be
+ * delivered, and a generation with no kernel has no lawful way to move held
+ * value at all. That is a real state of the world and the workspace says so
+ * rather than showing six order types nobody can file.
+ */
+export interface DispositionConfig {
+  readonly controller: Address;
+  readonly registry: Address;
+  readonly policyId: string;
+  readonly contestWindowSeconds: number;
+  readonly chainId: number;
+}
+
+export function dispositionConfig(env: Env): DispositionConfig | undefined {
+  const controller = env.DISPOSITION_CONTROLLER_BASE;
+  const registry = env.AUTHORITY_REGISTRY_BASE;
+  const policyId = env.DISPOSITION_POLICY_ID;
+  if (!controller || !registry || !policyId) return undefined;
+  return {
+    controller: controller as Address,
+    registry: registry as Address,
+    policyId,
+    contestWindowSeconds: Number(env.DISPOSITION_CONTEST_WINDOW ?? '') || 300,
+    chainId: BASE_SEPOLIA,
+  };
+}
+
 /** Both assets carry six decimals in this deployment. */
 export const DECIMALS = 6;
 

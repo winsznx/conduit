@@ -46,7 +46,16 @@ import {
   stateBadge,
   statBlock,
   truncate,
+  txHash,
 } from './ui.js';
+import {
+  DISPOSITION_HISTORY,
+  MANIFESTS,
+  PROOF_PACKAGES,
+  VERIFICATIONS,
+  type ProofArtifact,
+  type ProofPackage,
+} from './evidence.js';
 import { CLIENT_PATH } from './client-manifest.js';
 import { STYLESHEET } from './theme.js';
 
@@ -119,6 +128,94 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
 </section>
 
 <section class="landing-section">
+  ${sectionHeader('Who settles this way')}
+  <div class="grid-4">
+    ${[
+      ['Tokenized bonds', 'A restricted instrument whose holder register is the transfer rule.'],
+      [
+        'Restricted fund units',
+        'Subscription and redemption between accounts an administrator must clear.',
+      ],
+      [
+        'Private-market securities',
+        'Transfer permitted only between verified holders, checked at delivery.',
+      ],
+      [
+        'Institutional treasury',
+        'Cash on one venue, the asset on another, one obligation across both.',
+      ],
+    ]
+      .map(
+        ([title, detail]) =>
+          `<div class="stack-8"><div style="font-weight:var(--font-weight-medium)">${esc(title ?? '')}</div><p class="muted t-caption">${esc(detail ?? '')}</p></div>`,
+      )
+      .join('')}
+  </div>
+  <div class="note">The problem is not that two ledgers exist. It is that they do not finalize at the same moment, and regulatory eligibility can change while a settlement is in flight — so whoever moves first is exposed to a rule that has not been applied yet.</div>
+</section>
+
+<section class="landing-section">
+  ${sectionHeader('Compliance is part of the state machine')}
+  <div class="grid-3">
+    ${[
+      [
+        'CVI',
+        'Cleanverse identity. Whether a participant holds a pass at all, and whether it currently permits transfer.',
+      ],
+      [
+        'CVA',
+        'A compliant asset. The token consults its policy on every transfer, so eligibility is enforced by the asset itself.',
+      ],
+      [
+        'RuleV2',
+        'The transfer rule the issuer controls. It can change after a settlement commits, and it does.',
+      ],
+    ]
+      .map(([title, detail]) =>
+        card(
+          `<div class="stack-8"><div class="mono" style="font-weight:var(--font-weight-medium)">${esc(title ?? '')}</div><p class="muted t-caption">${esc(detail ?? '')}</p></div>`,
+        ),
+      )
+      .join('')}
+  </div>
+  ${card(
+    `<div class="flow">${[
+      ['ELIGIBLE', 'Every participant checked live, with no application cache'],
+      ['COMMIT', 'The irreversible decision, taken on a fresh answer minted after finality'],
+      ['RULEV2 CHANGED', 'The issuer raises the minimum tier while the settlement is in flight'],
+      ['TIER TOO LOW', 'The asset refuses the receiver at the moment of transfer'],
+      ['HELD', 'The delivered leg is not refunded; the undeliverable leg is held, not reverted'],
+      ['DISPOSITION', 'An authorised order, rested for its contest window'],
+      ['SETTLED FINAL', 'Terminal, and independently verified from two chains'],
+    ]
+      .map(
+        ([title, detail]) => `<div class="flow-stage">
+<div class="flow-rail"><span class="flow-node done"></span><span class="flow-line"></span></div>
+<div class="flow-body"><div class="flow-title mono">${esc(title ?? '')}</div><div class="flow-meta">${esc(detail ?? '')}</div></div>
+</div>`,
+      )
+      .join('')}</div>
+<div class="note">This is not a diagram of an intended design. It is the sequence two live testnet settlements actually walked, and every step has a transaction hash on the evidence page.</div>`,
+  )}
+</section>
+
+<section class="landing-section">
+  ${sectionHeader('Wormhole moves settlement facts, not assets')}
+  ${card(
+    `<div class="grid-3">${[
+      'ASSET_PREPARED',
+      'CASH_PREPARED',
+      'COMMIT',
+      'RELEASED',
+      'DISPOSITION_RESOLVED',
+    ]
+      .map((type) => `<div class="nested mono t-caption">${esc(type)}</div>`)
+      .join('')}</div>
+<div class="note">The bond never leaves Base and the settlement unit never leaves Monad. What crosses is an authenticated statement about protocol state, and each one is verified against the guardian set, the emitter, the deployment and the message type before it is consumed — once, and never again.</div>`,
+  )}
+</section>
+
+<section class="landing-section">
   ${sectionHeader('What the states mean')}
   <div class="grid-3">
     ${(['SETTLED', 'HELD', 'CONTESTED'] as const)
@@ -132,7 +229,41 @@ export function renderLanding(totals: Totals, recent: readonly SettlementView[])
   <div class="note">HELD is not a failure and not a refund. The commitment stands, the value is accounted for, and it moves only through an authorised disposition.</div>
 </section>
 
-<footer class="landing-foot"><div class="row-between">${wordmark()}<span class="t-caption">Read-only. No signer, no private key, no write path.</span></div></footer>
+<section class="landing-section">
+  ${sectionHeader('Proven live')}
+  <div class="grid-2">${PROOF_PACKAGES.filter((proof) => proof.generation === 3)
+    .map(
+      (proof) => `<div class="card">
+<div class="stack-12">
+  <div class="row">${badge(`generation ${String(proof.generation)}`, 'outline')}${proof.verification === undefined ? '' : stateBadge(proof.verification.classification)}</div>
+  <div class="t-subheading">${esc(proof.title)}</div>
+  <p class="muted">${esc(proof.summary)}</p>
+  <div class="row" style="flex-wrap:wrap">${button({ label: 'Evidence', href: `/evidence/${proof.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify independently', href: `/verify/${proof.settlementId}`, small: true })}</div>
+</div></div>`,
+    )
+    .join('')}</div>
+</section>
+
+<section class="landing-section">
+  ${sectionHeader('Try Conduit')}
+  ${card(
+    `<div class="grid-2" style="align-items:start">
+<div class="stack-12">
+  <div style="font-weight:var(--font-weight-medium)">Connect your own wallet</div>
+  <p class="muted">Compose an intent, have every participant checked against Cleanverse, and sign it in your own browser. Conduit never sees your key.</p>
+  <div class="row"><span data-wallet-control></span>${button({ label: 'Compose a settlement', href: '/app/settlements/new', variant: 'outline', small: true })}</div>
+  <p class="t-caption muted">A wallet the Cleanverse hackathon sandbox has never issued an A-Pass to will be refused, and the console will say so precisely rather than failing vaguely. That refusal is the product working.</p>
+</div>
+<div class="stack-12">
+  <div style="font-weight:var(--font-weight-medium)">Or explore a settlement that already happened</div>
+  <p class="muted">Four settlements across three deployment generations, each verifiable from two chain RPCs and the guardian set with no help from this server.</p>
+  <div class="row" style="flex-wrap:wrap">${button({ label: 'Explore a proven settlement', href: '/app/settlements', variant: 'outline', small: true })}${button({ label: 'HELD → disposition proof', href: '/app/dispositions', variant: 'outline', small: true })}${button({ label: 'Verify independently', href: '/app/verifier', small: true })}</div>
+</div>
+</div>`,
+  )}
+</section>
+
+<footer class="landing-foot"><div class="row-between">${wordmark()}<span class="t-caption">Conduit holds no key that can move your value. Signatures come from your wallet; authority comes from the chains.</span></div></footer>
 </div>`,
   );
 }
@@ -364,7 +495,80 @@ export function renderComposer(
 
 // ── Settlement detail ───────────────────────────────────────────────────────
 
-export function renderSettlement(generation: string, view: SettlementView): string {
+/** Everything the browser needs to act, serialised into the page once. */
+export interface WorkspacePayload {
+  readonly settlementId: string;
+  readonly deployment: {
+    deploymentId: string;
+    coordinator: string;
+    cashEscrow: string;
+    cashAsset: string;
+    rwaToken: string;
+    rwaAdapter: string;
+  };
+  readonly disposition?: {
+    controller: string;
+    registry: string;
+    policyId: string;
+    contestWindowSeconds: number;
+    chainId: number;
+  };
+  readonly terms: Record<string, string>;
+  readonly signatures: {
+    payer: boolean;
+    seller: boolean;
+    payerSignature?: string;
+    sellerSignature?: string;
+  };
+  readonly termsSource: string;
+  readonly verifierClass?: string;
+  readonly canonicalState: string;
+  readonly attestationsAvailable: boolean;
+}
+
+/**
+ * The mount point, with an honest server-rendered placeholder inside it.
+ *
+ * The placeholder is not a spinner pretending to be content. It names what the
+ * panel is about to do and where the authority comes from, so a reader with no
+ * JavaScript learns the true thing — that this part reads chains directly and
+ * the page below does not — rather than staring at an empty box.
+ */
+function workspaceMount(payload: WorkspacePayload): string {
+  return `<div data-workspace="${esc(JSON.stringify(payload))}">
+<div data-action-host>
+  ${card(
+    `<div class="stack-8">
+<div class="t-caption-upper">Next action</div>
+<p class="muted" style="max-width:70ch">This panel reads the coordinator on Monad and the token and adapter on Base directly from your browser, and decides what this settlement needs next. The projection below is a convenience and is never the authority.</p>
+<noscript><span class="t-caption muted">It needs JavaScript. Everything below this panel is server-rendered and does not.</span></noscript>
+</div>`,
+  )}
+</div>
+<div data-finality-host></div>
+<div data-compliance-host></div>
+<div data-disposition-host></div>
+</div>`;
+}
+
+/**
+ * The settlement workspace.
+ *
+ * Action first, inspection second. Somebody looking at their own settlement
+ * needs one question answered before any other — what happens next and whether
+ * it is theirs to do — and everything below the fold is the evidence for the
+ * answer rather than a substitute for it.
+ *
+ * The action panel is the only part that needs a browser: it reads both chains
+ * live, because the projection is a convenience and never an authority. The rest
+ * of the page is server-rendered and readable with JavaScript switched off, so a
+ * proof stays a proof.
+ */
+export function renderSettlement(
+  generation: string,
+  view: SettlementView,
+  workspace?: WorkspacePayload,
+): string {
   return shell({
     title: `Settlement ${truncate(view.settlementId)}`,
     current: '/app/settlements',
@@ -382,11 +586,17 @@ export function renderSettlement(generation: string, view: SettlementView): stri
         { label: 'Settlements', href: '/app/settlements' },
         { label: truncate(view.settlementId, 8, 6) },
       ],
-      meta: `<div class="mono muted" style="margin-top:var(--spacing-4);word-break:break-all;font-size:13px">${esc(view.settlementId)}</div>`,
+      meta: `<div class="row" style="margin-top:var(--spacing-8);flex-wrap:wrap">${stateBadge(view.canonicalState)}${view.verifierClass === undefined ? '' : stateBadge(view.verifierClass)}${badge(`gen ${String(view.generation)}`, 'outline')}<span class="t-caption muted" data-role-chip>role unknown until a wallet connects</span></div>
+<div class="mono muted" style="margin-top:var(--spacing-8);word-break:break-all;font-size:13px">${esc(view.settlementId)}</div>`,
       actions: `${button({ label: 'Evidence', href: `/evidence/${view.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify', href: `/verify/${view.settlementId}`, small: true })}`,
     })}
 
-${stateExplainer(view.canonicalState, view.verifierClass)}
+${workspace === undefined ? '' : workspaceMount(workspace)}
+
+<section class="section">
+  ${sectionHeader('What the state means')}
+  ${stateExplainer(view.canonicalState, view.verifierClass)}
+</section>
 
 ${
   view.termsKnown
@@ -534,6 +744,15 @@ ${card(`<div class="xchain">
 
 // ── Dispositions ────────────────────────────────────────────────────────────
 
+/**
+ * The disposition center.
+ *
+ * An empty case list is the normal, healthy state of this page: a case exists
+ * only while committed value is undeliverable. Saying nothing else would make a
+ * finished product look unfinished, so the page carries the paths that actually
+ * ran — with their real transaction hashes — under a heading that does not
+ * pretend they are open.
+ */
 export function renderDispositions(generation: string, rows: readonly DispositionRow[]): string {
   return shell({
     title: 'Dispositions',
@@ -543,39 +762,129 @@ export function renderDispositions(generation: string, rows: readonly Dispositio
       title: 'Disposition center',
       trail: [{ label: 'Conduit', href: '/app' }, { label: 'Dispositions' }],
       caption:
-        'Cases opened when committed value cannot be delivered. A case rests for its contest window before any order can execute.',
+        'Cases opened when committed value cannot be delivered. A case rests for its contest window before any order can execute, so two authorities who genuinely disagree are not adjudicated by gas price.',
     })}
-${
-  rows.length === 0
-    ? card(
-        emptyState(
-          'No disposition cases',
-          'Held value is resolved through a filed order once the authority registry is live. The generation-3 disposition executed directly through REVERIFY_AND_RESUME and opened no case.',
-          button({
-            label: 'View settlements',
-            href: '/app/settlements',
-            variant: 'outline',
-            small: true,
-          }),
-        ),
-      )
-    : card(
-        `<div class="table-scroll"><table class="table table-hover">
+
+<section class="section" style="margin-top:0">
+  ${sectionHeader('Active cases', badge(String(rows.length), rows.length === 0 ? 'outline' : 'solid'))}
+  ${
+    rows.length === 0
+      ? card(
+          emptyState(
+            'No open cases',
+            'Nothing is currently held. A case is opened only when committed value cannot be delivered under the compliance rules in force at delivery time.',
+            button({
+              label: 'View settlements',
+              href: '/app/settlements',
+              variant: 'outline',
+              small: true,
+            }),
+          ),
+        )
+      : card(
+          `<div class="table-scroll"><table class="table table-hover">
 <thead><tr><th>Case</th><th>Settlement</th><th>Leg</th><th>State</th></tr></thead>
 <tbody>${rows
-          .map(
-            (row) => `<tr>
+            .map(
+              (row) => `<tr>
 <td class="mono"><a href="/app/dispositions/${esc(row.caseId)}">${esc(truncate(row.caseId))}</a></td>
 <td class="mono"><a href="/app/settlements/${esc(row.settlementId)}">${esc(truncate(row.settlementId))}</a></td>
 <td class="mono">${esc(row.leg)}</td>
 <td>${stateBadge(row.caseState)}</td></tr>`,
-          )
-          .join('')}</tbody></table></div>`,
-        { flush: true },
-      )
-}`,
+            )
+            .join('')}</tbody></table></div>`,
+          { flush: true },
+        )
+  }
+</section>
+
+<section class="section">
+  ${sectionHeader('Protocol history', badge(`${String(DISPOSITION_HISTORY.length)} resolved`, 'outline'))}
+  <div class="stack-16">${DISPOSITION_HISTORY.map((history) =>
+    cardWithHeader(
+      `${history.dispositionType} — generation ${String(history.generation)}`,
+      `<div class="timeline">${history.steps
+        .map(
+          (step) => `<div class="tl-item">
+<div class="tl-rail"><span class="tl-node done"></span><span class="tl-line"></span></div>
+<div class="tl-body"><div class="tl-title">${esc(step.label)}</div><div class="tl-meta mono" style="word-break:break-all">${esc(step.detail)}</div></div>
+</div>`,
+        )
+        .join('')}</div>
+<div class="row" style="margin-top:var(--spacing-16);flex-wrap:wrap">${button({ label: 'Settlement', href: `/app/settlements/${history.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Evidence', href: `/evidence/${history.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify', href: `/verify/${history.settlementId}`, small: true })}</div>`,
+      stateBadge('EXECUTED'),
+    ),
+  ).join('')}</div>
+  <div class="note">These are live testnet settlements, not fixtures. Each one committed while every participant was eligible, was refused at delivery time by a RuleV2 the issuer moved in between, held the undeliverable leg without refunding the leg that had already released, and reached a terminal state through an authorised order.</div>
+</section>
+
+<section class="section">
+  ${sectionHeader('The six order types')}
+  <div class="grid-3">${DISPOSITION_TYPES.map(
+    (type) => `<div class="dtype">
+<div class="dtype-name">${esc(type.name)}</div>
+<p class="muted t-caption">${esc(type.purpose)}</p>
+<div class="t-caption muted"><strong>Authority</strong> ${esc(type.authority)}</div>
+<div class="t-caption muted"><strong>Destination</strong> ${esc(type.destination)}</div>
+</div>`,
+  ).join('')}</div>
+  <div class="note">REVERIFY_AND_RESUME needs the weakest authority because it has no destination parameter at all: it can only retry the delivery the settlement already agreed to. Every other type is an authorisation to send value somewhere the intent never named, and the registry decides who may sign one.</div>
+</section>`,
   });
 }
+
+/**
+ * The six types, their purpose, and what the registry demands of each.
+ *
+ * Mirrors `DESTINATION_RULE` in `@conduit-protocol/domain` and the policy the
+ * kernel was wired with. Kept as copy rather than derived because the sentences
+ * are product language, and the machine-readable rule they describe is asserted
+ * against the contract in `packages/domain`.
+ */
+const DISPOSITION_TYPES: readonly {
+  name: string;
+  purpose: string;
+  authority: string;
+  destination: string;
+}[] = [
+  {
+    name: 'REVERIFY_AND_RESUME',
+    purpose: 'Ask compliance again and retry the delivery the settlement already agreed to.',
+    authority: 'one signature, weakest class',
+    destination: 'must equal the current intended receiver',
+  },
+  {
+    name: 'REBIND_RECEIVER',
+    purpose: 'Deliver to a different account belonging to the same registered identity.',
+    authority: 'two signatures',
+    destination: 'must carry the same registered identity commitment',
+  },
+  {
+    name: 'RETURN_TO_ELIGIBLE_SENDER',
+    purpose: 'Send the held value back to the party it came from.',
+    authority: 'one signature',
+    destination: 'must equal the original sender, and only after a COMMIT',
+  },
+  {
+    name: 'AUTHORIZED_SUBSTITUTION',
+    purpose: 'Deliver to an approved substitute for the refused receiver.',
+    authority: 'one signature',
+    destination: 'must be an approved substitute for the current receiver',
+  },
+  {
+    name: 'OPERATOR_ASSISTED_OFFRAMP',
+    purpose: 'Move the value to a registered gateway for an off-chain resolution.',
+    authority: 'one signature, gateway operator class',
+    destination: 'must be a registered gateway account',
+  },
+  {
+    name: 'RESTRICTED_HOLD',
+    purpose:
+      'Move the value into registered restricted custody. No party to the trade receives it.',
+    authority: 'one signature',
+    destination: 'must be a registered restricted custodian',
+  },
+];
 
 // ── Verifier ────────────────────────────────────────────────────────────────
 
@@ -660,6 +969,49 @@ ${
 
 // ── Evidence ────────────────────────────────────────────────────────────────
 
+/** One artifact row, with its value linked wherever the value is checkable. */
+function artifactRow(artifact: ProofArtifact): string {
+  const value =
+    artifact.kind === 'transaction' && artifact.chainId !== undefined
+      ? txHash(artifact.value, artifact.chainId)
+      : `<span class="mono" style="font-size:13px;word-break:break-all">${esc(artifact.value)}</span>`;
+  return `<tr>
+<td><span class="badge badge-outline">${esc(artifact.kind)}</span></td>
+<td>${esc(artifact.label)}${artifact.note === undefined ? '' : `<div class="t-caption muted">${esc(artifact.note)}</div>`}</td>
+<td>${value}</td>
+</tr>`;
+}
+
+function proofCard(proof: ProofPackage): string {
+  const kinds = new Map<string, number>();
+  for (const artifact of proof.artifacts) {
+    kinds.set(artifact.kind, (kinds.get(artifact.kind) ?? 0) + 1);
+  }
+  return cardWithHeader(
+    proof.title,
+    `<p class="muted" style="max-width:74ch">${esc(proof.summary)}</p>
+<table class="kv" style="margin-top:var(--spacing-12)">
+<tr><td>Settlement</td><td class="mono"><a href="/app/settlements/${esc(proof.settlementId)}">${esc(truncate(proof.settlementId))}</a></td></tr>
+<tr><td>Verifier</td><td>${proof.verification === undefined ? '<span class="muted t-caption">no run</span>' : `${stateBadge(proof.verification.classification)} <span class="t-caption muted">${String(proof.verification.passed)} of ${String(proof.verification.total)} checks</span>`}</td></tr>
+<tr><td>Artifacts</td><td class="mono">${[...kinds.entries()].map(([kind, count]) => `${String(count)} ${kind}`).join(', ')}</td></tr>
+<tr><td>Source</td><td class="mono" style="font-size:13px">${esc(proof.source)}</td></tr>
+</table>
+${proof.note === undefined ? '' : `<div class="note">${esc(proof.note)}</div>`}
+<div class="row" style="margin-top:var(--spacing-16)">${button({ label: 'Open evidence', href: `/evidence/${proof.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify', href: `/verify/${proof.settlementId}`, small: true })}</div>`,
+    badge(`gen ${String(proof.generation)}`, 'outline'),
+  );
+}
+
+/**
+ * The evidence explorer.
+ *
+ * It used to say "no artifacts published yet" while four verified settlements
+ * sat in `docs/evidence`, two of which reached a terminal state through a
+ * disposition. That sentence was true about object storage and false about
+ * evidence, and the distinction is now made where it belongs: every package
+ * names the repository path it came from, and every value on the page is one the
+ * protocol produced and anybody can check against two chains.
+ */
 export function renderEvidenceHome(generation: string): string {
   return shell({
     title: 'Evidence',
@@ -669,20 +1021,46 @@ export function renderEvidenceHome(generation: string): string {
       title: 'Evidence explorer',
       trail: [{ label: 'Conduit', href: '/app' }, { label: 'Evidence' }],
       caption:
-        'Content-addressed artifacts for a settlement: what was produced, its hash, and where it is published.',
+        'Every artifact a live run produced: transactions, Wormhole messages and their measured finality, Cleanverse answer hashes, policy changes, refusals, and balances before and after.',
     })}
-${card(
-  emptyState(
-    'No artifacts published yet',
-    'Artifacts are content-addressed and published to object storage. That pipeline is not built, so today the run records exist only as local files and nothing is addressable here. Recorded as ASM-039.',
-    button({
-      label: 'Browse settlements',
-      href: '/app/settlements',
-      variant: 'outline',
-      small: true,
-    }),
-  ),
-)}`,
+<div class="stack-16">${PROOF_PACKAGES.map((proof) => proofCard(proof)).join('')}</div>
+
+<section class="section">
+  ${sectionHeader('Independent verifications')}
+  ${card(
+    `<div class="table-scroll"><table class="table table-hover">
+<thead><tr><th>Settlement</th><th>Canonical</th><th>Verifier</th><th>Checks</th><th>Generation</th></tr></thead>
+<tbody>${VERIFICATIONS.map(
+      (run) => `<tr>
+<td class="mono"><a href="/verify/${esc(run.settlementId)}">${esc(truncate(run.settlementId))}</a></td>
+<td>${stateBadge(run.canonicalState)}</td>
+<td>${stateBadge(run.classification)}</td>
+<td class="mono">${String(run.passed)}/${String(run.total)}</td>
+<td class="mono muted" style="font-size:13px">${esc(truncate(run.deploymentId, 10, 4))}</td>
+</tr>`,
+    ).join('')}</tbody></table></div>`,
+    { flush: true },
+  )}
+  <div class="note">A verification is a claim about a settlement under one deployment generation, derived from two chain RPCs, the committed manifests and the guardian set. The application database is not an input.</div>
+</section>
+
+<section class="section">
+  ${sectionHeader('Deployment manifests')}
+  ${card(
+    `<div class="table-scroll"><table class="table">
+<thead><tr><th>Manifest</th><th>Deployment</th><th>solc</th><th>Contracts</th></tr></thead>
+<tbody>${MANIFESTS.map(
+      (manifest) => `<tr>
+<td class="mono" style="font-size:13px">${esc(manifest.file)}</td>
+<td class="mono" style="font-size:13px">${esc(truncate(manifest.deploymentId, 10, 6))}</td>
+<td class="mono">${esc(manifest.solcVersion)}</td>
+<td class="mono" style="font-size:13px">${manifest.contracts.map((contract) => esc(contract.role)).join(', ')}</td>
+</tr>`,
+    ).join('')}</tbody></table></div>`,
+    { flush: true },
+  )}
+  <div class="note">Served from the repository this Worker was built from, not from object storage. Nothing on this page claims a content-addressed publication that does not exist: ASM-039 stays open, and replacing the storage later changes where these bytes live and nothing about what they mean.</div>
+</section>`,
   });
 }
 
@@ -690,7 +1068,15 @@ export function renderEvidence(
   generation: string,
   settlementId: string,
   items: readonly { label: string; detail: string; at: string }[],
+  proof?: ProofPackage,
 ): string {
+  const groups = new Map<string, ProofArtifact[]>();
+  for (const artifact of proof?.artifacts ?? []) {
+    const bucket = groups.get(artifact.kind) ?? [];
+    bucket.push(artifact);
+    groups.set(artifact.kind, bucket);
+  }
+
   return shell({
     title: `Evidence ${truncate(settlementId)}`,
     current: '/app/evidence',
@@ -710,7 +1096,41 @@ export function renderEvidence(
         small: true,
       }),
     })}
-${card(evidenceTimeline(items))}`,
+${
+  proof === undefined
+    ? card(
+        emptyState(
+          'No run artifact carries this settlement',
+          'The projection may still hold indexed artifacts for it, listed below. A settlement with neither is one this build has no evidence package for — which is not a statement about the chains.',
+        ),
+      )
+    : `${card(
+        `<div class="stack-12">
+<p class="muted" style="max-width:74ch">${esc(proof.summary)}</p>
+<table class="kv">
+<tr><td>Outcome recorded by the run</td><td class="mono">${esc(proof.outcome)}</td></tr>
+<tr><td>Ran</td><td class="mono" style="font-size:13px">${esc(proof.startedAt ?? 'unknown')} → ${esc(proof.finishedAt ?? 'unknown')}</td></tr>
+<tr><td>Source</td><td class="mono" style="font-size:13px">${esc(proof.source)}</td></tr>
+${proof.verification === undefined ? '' : `<tr><td>Independent verification</td><td>${stateBadge(proof.verification.classification)} <span class="t-caption muted">${String(proof.verification.passed)} of ${String(proof.verification.total)} checks · ${esc(proof.verification.source)}</span></td></tr>`}
+</table>
+${proof.note === undefined ? '' : `<div class="note">${esc(proof.note)}</div>`}
+</div>`,
+      )}
+${[...groups.entries()]
+  .map(
+    ([kind, artifacts]) =>
+      `<section class="section">${sectionHeader(kind, badge(String(artifacts.length), 'outline'))}${card(
+        `<div class="table-scroll"><table class="table"><tbody>${artifacts.map((artifact) => artifactRow(artifact)).join('')}</tbody></table></div>`,
+        { flush: true },
+      )}</section>`,
+  )
+  .join('')}`
+}
+
+<section class="section">
+  ${sectionHeader('Indexed artifacts')}
+  ${card(evidenceTimeline(items))}
+</section>`,
   });
 }
 
