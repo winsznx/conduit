@@ -236,7 +236,7 @@ const HERO_WIDTHS = [560, 840, 1120, 1440] as const;
  * display genuinely resolves it.
  */
 const HERO_SIZES =
-  '(max-width: 768px) calc(100vw - 48px), (max-width: 1024px) 38vw, min(45vw, 554px)';
+  '(max-width: 768px) calc(100vw - 48px), (max-width: 1024px) 52vw, min(53vw, 652px)';
 
 /** The `<link rel=preload>` for the hero, which is the landing page's LCP element. */
 export function heroPreload(): string {

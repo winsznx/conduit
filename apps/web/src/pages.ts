@@ -108,199 +108,569 @@ function shell(options: {
  */
 export function renderLanding(totals: Totals, recent: readonly SettlementView[]): string {
   const sample = recent[0];
+  const proofs = PROOF_PACKAGES.filter((proof) => proof.generation === 3);
 
   return document_(
     'Cross-chain delivery-versus-payment',
     `<div class="landing">
-<nav class="landing-nav">${wordmark()}<div class="row">${button({ label: 'Verify a settlement', href: '/app/verifier', variant: 'outline', small: true })}${button({ label: 'Open console', href: '/app', small: true })}</div></nav>
+${landingNav()}
 
-<header class="hero">
+<header class="hero" id="top">
   <div class="hero-copy">
     <h1 class="t-display">Delivery versus payment, across two chains, without bridging either asset.</h1>
     <p>A restricted RWA on Base and a Cleanverse settlement unit on Monad settle under one signed intent. Neither asset leaves the chain that issued it. What crosses is authenticated settlement state — and the commitment becomes irreversible only after economic finality and a fresh compliance answer.</p>
-    <div class="actions">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}${button({ label: 'Verify independently', href: '/app/verifier', variant: 'secondary' })}</div>
+    <div class="actions">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}${button({ label: 'Verify independently', href: '/app/verifier', variant: 'outline' })}</div>
   </div>
-  ${heroArtwork()}
+  <div class="hero-mech">
+    ${heroArtwork()}
+    <div class="hero-mech-labels">
+      <div><div class="rail-label">Monad Testnet</div><div class="mono t-caption">Settlement CVA</div></div>
+      <div class="hero-mech-centre"><span class="mech-state">COMMIT</span></div>
+      <div style="text-align:right"><div class="rail-label">Base Sepolia</div><div class="mono t-caption">Restricted RWA</div></div>
+    </div>
+    <p class="t-caption muted" style="margin-top:var(--spacing-12)">Assets stay put. Settlement state crosses.</p>
+  </div>
 </header>
 
-<section class="landing-section">
-  ${sectionHeader('The problem')}
-  <div class="grid-2" style="align-items:start">
-    ${card(
-      `<div class="stack-8"><div class="t-caption-upper">Two chains, one obligation</div>
-<p class="muted">Cash and restricted ownership can live on different chains, and those chains do not finalize at the same moment. Whoever moves first is exposed for the difference — on this deployment, between 999 and 1485 seconds.</p></div>`,
-    )}
-    ${card(
-      `<div class="stack-8"><div class="t-caption-upper">Eligibility is an answer, not a property</div>
-<p class="muted">A transfer rule can change while a settlement is in flight. A participant who was eligible when the trade was agreed can be refused at the moment of delivery, and on this deployment one was.</p></div>`,
-    )}
-  </div>
-  <div class="note">Bridging solves neither. It replaces a settlement problem with a custody problem and a wrapped supply to attack. Conduit bridges nothing: both assets stay where they were issued, and one authenticated settlement commitment is coordinated across the two chains.</div>
-</section>
+${problemSection()}
 
-<section class="landing-section">
-  <div class="grid-4">
-    ${statBlock({ label: 'Settlements', value: String(totals.settlements), note: 'indexed and verified' })}
-    ${statBlock({ label: 'Messages', value: String(totals.messages), note: 'authenticated, consumed once' })}
-    ${statBlock({ label: 'Verifications', value: String(totals.verifications), note: 'derived from chains alone' })}
-    ${statBlock({ label: 'Generations', value: String(totals.generations), note: 'deployed, each verifiable' })}
-  </div>
-</section>
+${mechanismSection(sample)}
 
-<section class="landing-section">
-  ${sectionHeader('One intent, two chains')}
-  ${
-    sample === undefined
-      ? card(
-          emptyState(
-            'Nothing indexed yet',
-            'Once a settlement is indexed its two legs appear here.',
-          ),
-        )
-      : card(crossChainDiagram(sample))
-  }
-</section>
+${hardCaseSection()}
 
-<section class="landing-section">
-  ${sectionHeader('Who settles this way')}
-  <div class="grid-4">
-    ${[
-      ['Tokenized bonds', 'A restricted instrument whose holder register is the transfer rule.'],
-      [
-        'Restricted fund units',
-        'Subscription and redemption between accounts an administrator must clear.',
-      ],
-      [
-        'Private-market securities',
-        'Transfer permitted only between verified holders, checked at delivery.',
-      ],
-      [
-        'Institutional treasury',
-        'Cash on one venue, the asset on another, one obligation across both.',
-      ],
-    ]
-      .map(
-        ([title, detail]) =>
-          `<div class="stack-8"><div style="font-weight:var(--font-weight-medium)">${esc(title ?? '')}</div><p class="muted t-caption">${esc(detail ?? '')}</p></div>`,
-      )
-      .join('')}
-  </div>
-  <div class="note">The problem is not that two ledgers exist. It is that they do not finalize at the same moment, and regulatory eligibility can change while a settlement is in flight — so whoever moves first is exposed to a rule that has not been applied yet.</div>
-</section>
+${proofSection(totals, proofs)}
 
-<section class="landing-section">
-  ${sectionHeader('Compliance is part of the state machine')}
-  <div class="grid-3">
-    ${[
-      [
-        'CVI',
-        'Cleanverse identity. Whether a participant holds a pass at all, and whether it currently permits transfer.',
-      ],
-      [
-        'CVA',
-        'A compliant asset. The token consults its policy on every transfer, so eligibility is enforced by the asset itself.',
-      ],
-      [
-        'RuleV2',
-        'The transfer rule the issuer controls. It can change after a settlement commits, and it does.',
-      ],
-    ]
-      .map(([title, detail]) =>
-        card(
-          `<div class="stack-8"><div class="mono" style="font-weight:var(--font-weight-medium)">${esc(title ?? '')}</div><p class="muted t-caption">${esc(detail ?? '')}</p></div>`,
-        ),
-      )
-      .join('')}
-  </div>
-  ${card(
-    `<div class="flow">${[
-      ['ELIGIBLE', 'Every participant checked live, with no application cache'],
-      ['COMMIT', 'The irreversible decision, taken on a fresh answer minted after finality'],
-      ['RULEV2 CHANGED', 'The issuer raises the minimum tier while the settlement is in flight'],
-      ['TIER TOO LOW', 'The asset refuses the receiver at the moment of transfer'],
-      ['HELD', 'The delivered leg is not refunded; the undeliverable leg is held, not reverted'],
-      ['DISPOSITION', 'An authorised order, rested for its contest window'],
-      ['SETTLED FINAL', 'Terminal, and independently verified from two chains'],
-    ]
-      .map(
-        ([title, detail]) => `<div class="flow-stage">
-<div class="flow-rail"><span class="flow-node done"></span><span class="flow-line"></span></div>
-<div class="flow-body"><div class="flow-title mono">${esc(title ?? '')}</div><div class="flow-meta">${esc(detail ?? '')}</div></div>
-</div>`,
-      )
-      .join('')}</div>
-<div class="note">This is not a diagram of an intended design. It is the sequence two live testnet settlements actually walked, and every step has a transaction hash on the evidence page.</div>`,
-  )}
-</section>
+${cleanverseSection()}
 
-<section class="landing-section">
-  ${sectionHeader('Wormhole moves settlement facts, not assets')}
-  ${card(
-    `<div class="grid-3">${[
-      'ASSET_PREPARED',
-      'CASH_PREPARED',
-      'COMMIT',
-      'RELEASED',
-      'DISPOSITION_RESOLVED',
-    ]
-      .map((type) => `<div class="nested mono t-caption">${esc(type)}</div>`)
-      .join('')}</div>
-<div class="note">The bond never leaves Base and the settlement unit never leaves Monad. What crosses is an authenticated statement about protocol state, and each one is verified against the guardian set, the emitter, the deployment and the message type before it is consumed — once, and never again.</div>`,
-  )}
-</section>
+${wormholeSection()}
 
-<section class="landing-section">
-  ${sectionHeader('What the states mean')}
-  <div class="grid-3">
-    ${(['SETTLED', 'HELD', 'CONTESTED'] as const)
-      .map((state) =>
-        card(
-          `<div class="stack-8">${stateBadge(state)}<p class="muted">${esc(STATE_MEANING[state]?.says ?? '')}</p></div>`,
-        ),
-      )
-      .join('')}
-  </div>
-  <div class="note">HELD is not a failure and not a refund. The commitment stands, the value is accounted for, and it moves only through an authorised disposition.</div>
-</section>
+${useCaseSection()}
 
-<section class="landing-section">
-  ${sectionHeader('Proven live')}
-  <div class="grid-2">${PROOF_PACKAGES.filter((proof) => proof.generation === 3)
-    .map(
-      (proof) => `<div class="card">
-<div class="stack-12">
-  <div class="row">${badge(`generation ${String(proof.generation)}`, 'outline')}${proof.verification === undefined ? '' : stateBadge(proof.verification.classification)}</div>
-  <div class="t-subheading">${esc(proof.title)}</div>
-  <p class="muted">${esc(proof.summary)}</p>
-  <div class="row" style="flex-wrap:wrap">${button({ label: 'Evidence', href: `/evidence/${proof.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify independently', href: `/verify/${proof.settlementId}`, small: true })}</div>
-</div></div>`,
-    )
-    .join('')}</div>
-</section>
+${closingSection()}
 
-<section class="landing-section">
-  ${sectionHeader('Try Conduit')}
-  ${card(
-    `<div class="grid-2" style="align-items:start">
-<div class="stack-12">
-  <div style="font-weight:var(--font-weight-medium)">Connect your own wallet</div>
-  <p class="muted">Compose an intent, have every participant checked against Cleanverse, and sign it in your own browser. Conduit never sees your key.</p>
-  <div class="row"><span data-participant></span>${button({ label: 'Compose a settlement', href: '/app/settlements/new', variant: 'outline', small: true })}</div>
-  <p class="t-caption muted">Whatever Cleanverse answers is what you will see, verbatim and specific: <span class="mono">ELIGIBLE</span>, <span class="mono">NO_APASS</span>, <span class="mono">TIER_TOO_LOW</span>, or <span class="mono">UNAVAILABLE</span> when nobody could be asked. In this sandbox some unknown wallets are cleared and others are refused, and the console reports the answer it got rather than the answer it expected.</p>
-</div>
-<div class="stack-12">
-  <div style="font-weight:var(--font-weight-medium)">Or explore a settlement that already happened</div>
-  <p class="muted">Four settlements across three deployment generations, each verifiable from two chain RPCs and the guardian set with no help from this server.</p>
-  <div class="row" style="flex-wrap:wrap">${button({ label: 'Explore a proven settlement', href: '/app/settlements', variant: 'outline', small: true })}${button({ label: 'HELD → disposition proof', href: '/app/dispositions', variant: 'outline', small: true })}${button({ label: 'Verify independently', href: '/app/verifier', small: true })}</div>
-</div>
-</div>`,
-  )}
-</section>
-
-<footer class="landing-foot"><div class="row-between">${wordmark()}<span class="t-caption">Conduit holds no key that can move your value. Signatures come from your wallet; authority comes from the chains.</span></div></footer>
+${landingFooter()}
 </div>`,
     heroPreload(),
   );
+}
+
+/** Wordmark, the three places worth jumping to, and the two things to do. */
+function landingNav(): string {
+  const links = [
+    ['#mechanism', 'How it works'],
+    ['#proof', 'Live proof'],
+    ['#cleanverse', 'Compliance'],
+  ]
+    .map(([href, label]) => `<a href="${esc(href ?? '')}">${esc(label ?? '')}</a>`)
+    .join('');
+
+  return `<nav class="landing-nav">${wordmark()}
+<div class="navlinks">${links}</div>
+<div class="row">${button({ label: 'Verify a settlement', href: '/app/verifier', variant: 'outline', small: true })}${button({ label: 'Launch Conduit', href: '/app', small: true })}</div>
+</nav>`;
+}
+
+/**
+ * The tension, as one picture rather than two paragraphs in boxes.
+ *
+ * The rail widths are the real observed Base range and the caption names both
+ * ends of it. Averaging 999 and 1485 would produce a number nobody measured and
+ * would hide the slow end, which is the end a commit window has to survive.
+ */
+function problemSection(): string {
+  return `<section class="landing-section section-lg reveal" id="problem">
+  <div class="eyebrow">The problem</div>
+  <h2 class="t-heading-lg statement-wide">Settlement does not become difficult because there are two ledgers. It becomes difficult because they do not become final at the same time.</h2>
+
+  <div class="rails">
+    <div class="rail">
+      <div class="rail-label">Base Sepolia</div>
+      <div class="rail-track">
+        <span class="rail-span" style="left:4%;width:62%"></span>
+        <span class="rail-mark" style="left:4%"><span class="rail-dot solid"></span></span>
+        <span class="rail-tag start" style="left:4%">asset prepared</span>
+        <span class="rail-mark" style="left:66%"><span class="rail-dot solid"></span></span>
+        <span class="rail-tag end" style="left:66%">finalized</span>
+        <span class="rail-gap" style="left:4%;width:62%"><span class="rail-gap-label">999–1485 seconds observed</span></span>
+      </div>
+    </div>
+    <div class="rail">
+      <div class="rail-label">Monad Testnet</div>
+      <div class="rail-track">
+        <span class="rail-span" style="left:14%;width:52%"></span>
+        <span class="rail-mark" style="left:14%"><span class="rail-dot solid"></span></span>
+        <span class="rail-tag start" style="left:14%">cash escrowed</span>
+        <span class="rail-mark" style="left:66%"><span class="rail-dot solid"></span></span>
+        <span class="rail-tag end" style="left:66%">COMMIT</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="split rule-top" style="margin-top:var(--spacing-48)">
+    <h3 class="t-heading-sm">And eligibility can change inside that gap.</h3>
+    <div>
+      <div class="rail">
+        <div class="rail-label">The receiver</div>
+        <div class="rail-track">
+          <span class="rail-span" style="left:6%;width:82%"></span>
+          <span class="rail-mark" style="left:6%"><span class="rail-dot solid"></span></span>
+          <span class="rail-tag above start mono" style="left:6%">ELIGIBLE</span>
+          <span class="rail-tag start" style="left:6%">prepare</span>
+          <span class="rail-mark" style="left:47%"><span class="rail-dot solid"></span></span>
+          <span class="rail-tag above mono" style="left:47%">ELIGIBLE</span>
+          <span class="rail-tag" style="left:47%">COMMIT</span>
+          <span class="rail-mark" style="left:88%"><span class="rail-dot"></span></span>
+          <span class="rail-tag above end mono" style="left:88%">TIER_TOO_LOW</span>
+          <span class="rail-tag end" style="left:88%">delivery</span>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:var(--spacing-48)">Whoever moves first is exposed to a rule that has not been applied yet. Bridging solves neither half: it replaces a settlement problem with a custody problem and a wrapped supply to attack. Conduit bridges nothing.</p>
+    </div>
+  </div>
+</section>`;
+}
+
+/**
+ * The mechanism, told by holding the two chains still.
+ *
+ * The modules are sticky and the stages scroll past them, because the claim
+ * being made is that nothing moves between the chains — a section where the
+ * chain columns stayed on screen and only the middle changed is that claim,
+ * drawn. With no JavaScript every stage simply reads as current, which is a
+ * complete and honest fallback rather than a blank column.
+ */
+function mechanismSection(sample: SettlementView | undefined): string {
+  const stages: readonly {
+    index: string;
+    title: string;
+    detail: string;
+    state: string;
+    cash: string;
+    asset: string;
+  }[] = [
+    {
+      index: '01',
+      title: 'Prepare',
+      detail:
+        'Base reserves the restricted RWA against this settlement id. Monad moves the settlement value into escrow. Both are sent by the participants’ own wallets.',
+      state: 'PREPARED',
+      cash: 'ESCROWED',
+      asset: 'RESERVED',
+    },
+    {
+      index: '02',
+      title: 'Finalize',
+      detail:
+        'Each preparation publishes an authenticated message. Conduit waits for the guardian set to sign it at the finality this deployment requires, which on Base has run 999–1485 seconds.',
+      state: 'FINALIZED',
+      cash: 'ESCROWED',
+      asset: 'RESERVED',
+    },
+    {
+      index: '03',
+      title: 'Recheck',
+      detail:
+        'Cleanverse is asked again, after the wait, with no application cache in the path. The answer at prepare time is too old to authorise anything by the time finality arrives.',
+      state: 'ELIGIBLE',
+      cash: 'ESCROWED',
+      asset: 'RESERVED',
+    },
+    {
+      index: '04',
+      title: 'Commit',
+      detail:
+        'One irreversible decision, taken on the coordinator and carried to the other chain as an authenticated message. After this point there is no refund.',
+      state: 'COMMIT',
+      cash: 'COMMITTED',
+      asset: 'COMMITTED',
+    },
+    {
+      index: '05',
+      title: 'Deliver',
+      detail:
+        'Each leg moves locally, on the chain that issued it, to the party the signed intent named. Anyone may relay the message that authorises it.',
+      state: 'RELEASED',
+      cash: 'RELEASED',
+      asset: 'RELEASED',
+    },
+  ];
+
+  const cash = sample?.cash;
+  const asset = sample?.asset;
+
+  return `<section class="landing-section section-lg" id="mechanism">
+  <div class="eyebrow">How Conduit settles</div>
+  <h2 class="t-heading-lg statement">One intent, two chains, five states.</h2>
+
+  <div class="mech" data-mech>
+    <div class="mech-visual">
+      <div class="mech-stage">
+        <div class="mech-side">
+          <div class="t-caption-upper">Monad Testnet</div>
+          <div class="mech-amount">${esc(cash?.amount ?? '25.000000')}</div>
+          <div class="muted t-caption mono">${esc(cash?.assetSymbol ?? 'cSETTLE')}</div>
+          <div class="mech-legstate" data-mech-cash>ESCROWED</div>
+        </div>
+        <div class="mech-centre">
+          <span class="mech-wire"></span>
+          <span class="mech-state" data-mech-state>PREPARED</span>
+          <span class="mech-wire"></span>
+        </div>
+        <div class="mech-side" style="text-align:right">
+          <div class="t-caption-upper">Base Sepolia</div>
+          <div class="mech-amount">${esc(asset?.amount ?? '0.500000')}</div>
+          <div class="muted t-caption mono">${esc(asset?.assetSymbol ?? 'cBOND')}</div>
+          <div class="mech-legstate" data-mech-asset>RESERVED</div>
+        </div>
+      </div>
+      <p class="t-caption muted" style="margin-top:var(--spacing-12)">Neither module moves. Only the state between them does.</p>
+    </div>
+
+    <div class="mech-steps">
+      ${stages
+        .map(
+          (
+            stage,
+          ) => `<div class="mech-step" data-mech-step data-state="${esc(stage.state)}" data-cash="${esc(stage.cash)}" data-asset="${esc(stage.asset)}"${stage.index === '01' ? ' data-current' : ''}>
+  <div class="index">${esc(stage.index)}</div>
+  <h3>${esc(stage.title)}</h3>
+  <p>${esc(stage.detail)}</p>
+</div>`,
+        )
+        .join('')}
+    </div>
+  </div>
+</section>`;
+}
+
+/**
+ * The part that is hard, given the weight it earns.
+ *
+ * Every state below is one a live settlement actually reached; the sequence is
+ * `docs/evidence/phase-07-compliance-change-0xdcb9db12.json` in order.
+ */
+function hardCaseSection(): string {
+  const rows: readonly { state: string; detail: string; boundary?: boolean }[] = [
+    {
+      state: 'ELIGIBLE',
+      detail:
+        'Cleanverse is asked again after finality and clears both participants. Nothing about the settlement is irreversible yet.',
+    },
+    {
+      state: 'COMMIT',
+      detail:
+        'The coordinator records the decision and publishes it. From here the settlement can only complete or hold — there is no path back.',
+      boundary: true,
+    },
+    {
+      state: 'RULEV2 CHANGED',
+      detail:
+        'The issuer raises the minimum tier on the asset’s transfer rule while the settlement is in flight. This is a real transaction on Base, not a simulation.',
+    },
+    {
+      state: 'TIER_TOO_LOW',
+      detail:
+        'The asset consults its own policy at the moment of transfer and refuses the receiver. The token enforces this, not Conduit.',
+    },
+    {
+      state: 'HELD',
+      detail:
+        'The cash leg has already released and is not refundable. The asset leg is held rather than reverted: the commitment stands and the value stays accounted for.',
+    },
+    {
+      state: 'AUTHORIZED DISPOSITION',
+      detail:
+        'A registered authority files an order under a policy that permits its class. It rests for the contest window before anything can execute.',
+    },
+    {
+      state: 'SETTLED_FINAL',
+      detail:
+        'Terminal, and derived by a verifier that reads both chains and the guardian set with no help from this server.',
+    },
+  ];
+
+  return `<section class="landing-section section-lg" id="hard-case">
+  <div class="eyebrow">The hard case</div>
+  <h2 class="t-heading-lg statement">What happens when compliance changes after COMMIT?</h2>
+  <p class="lede" style="margin-top:var(--spacing-16)">Most systems have no answer, because they assume eligibility is a property rather than an answer with a timestamp. This is the sequence a live settlement on the deployed protocol actually walked.</p>
+
+  <div class="staterail">
+    ${rows
+      .map((row) => {
+        const boundary =
+          row.boundary === true
+            ? `<div class="boundary"><span>Irreversible from here</span></div>`
+            : '';
+        return `<div class="staterail-row reveal" data-rail-row>
+  <div class="staterail-state"><span class="staterail-node"></span><span class="staterail-name">${esc(row.state)}</span></div>
+  <p>${esc(row.detail)}</p>
+</div>${boundary}`;
+      })
+      .join('')}
+  </div>
+
+  <div class="ledger">
+    <div><div class="k">Cash leg</div><div class="v">RELEASED</div></div>
+    <div><div class="k">Asset leg</div><div class="v">HELD</div></div>
+    <div><div class="k">Refund</div><div class="v">NOT PERMITTED</div></div>
+  </div>
+
+  <div class="row" style="margin-top:var(--spacing-24);flex-wrap:wrap">${button({ label: 'Inspect the settlement', href: '/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0', iconName: 'arrowRight', small: true })}${button({ label: 'The disposition case', href: '/app/dispositions', variant: 'outline', small: true })}</div>
+</section>`;
+}
+
+/** Proof, early, and shaped like a record rather than a card of adjectives. */
+function proofSection(totals: Totals, proofs: readonly ProofPackage[]): string {
+  return `<section class="landing-section section-lg reveal" id="proof">
+  <div class="eyebrow">Proven live</div>
+  <h2 class="t-heading-lg statement">This is not an architecture diagram.</h2>
+
+  <div class="grid-4" style="margin-top:var(--spacing-48)">
+    ${statBlock({ label: 'Settlements', value: String(totals.settlements), note: 'indexed and verified', small: true })}
+    ${statBlock({ label: 'Messages', value: String(totals.messages), note: 'authenticated, consumed once', small: true })}
+    ${statBlock({ label: 'Verifications', value: String(totals.verifications), note: 'derived from chains alone', small: true })}
+    ${statBlock({ label: 'Generations', value: String(totals.generations), note: 'deployed, each verifiable', small: true })}
+  </div>
+
+  <div class="records">
+    ${proofs
+      .map((proof) => {
+        const facts: readonly [string, string][] = [
+          ['Settlement', truncate(proof.settlementId)],
+          ['Generation', String(proof.generation)],
+          ['Canonical state', proof.verification?.canonicalState ?? 'not verified'],
+          ['Verifier', proof.verification?.classification ?? 'no run'],
+          [
+            'Checks',
+            proof.verification === undefined
+              ? '—'
+              : `${String(proof.verification.passed)} / ${String(proof.verification.total)}`,
+          ],
+          ['Networks', 'Monad ↔ Base'],
+        ];
+        return `<div class="record">
+  <div>
+    <h3>${esc(proof.title)}</h3>
+    <p>${esc(proof.summary)}</p>
+    <div class="row" style="margin-top:var(--spacing-16);flex-wrap:wrap">${button({ label: 'View settlement', href: `/app/settlements/${proof.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Evidence', href: `/evidence/${proof.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify independently', href: `/verify/${proof.settlementId}`, small: true })}</div>
+  </div>
+  <div class="record-facts">
+    ${facts
+      .map(
+        ([key, value]) =>
+          `<div class="record-fact"><span class="k">${esc(key)}</span><span class="v">${esc(value)}</span></div>`,
+      )
+      .join('')}
+  </div>
+</div>`;
+      })
+      .join('')}
+  </div>
+</section>`;
+}
+
+/** Cleanverse as a causal chain, because that is what it is in the code. */
+function cleanverseSection(): string {
+  const steps: readonly [string, string, string][] = [
+    [
+      'Who may participate',
+      'CVI',
+      'Cleanverse identity. Whether a participant holds a pass at all, and whether it currently permits transfer on this chain.',
+    ],
+    [
+      'What may move',
+      'CVA',
+      'A compliant asset. The token consults its policy on every transfer, so eligibility is enforced by the asset rather than by an application in front of it.',
+    ],
+    [
+      'Under which rules',
+      'RuleV2',
+      'The transfer rule the issuer controls, on chain. It can change after a settlement commits, and on this deployment it did.',
+    ],
+    [
+      'When settlement may become irreversible',
+      'Fresh compliance',
+      'Conduit asks again after finality and mints an attestation with a lifetime shorter than the wait that produced it. A stale answer cannot authorise a COMMIT.',
+    ],
+  ];
+
+  return `<section class="landing-section section-lg reveal" id="cleanverse">
+  <div class="eyebrow">Compliance</div>
+  <h2 class="t-heading-lg statement">Cleanverse is not metadata attached to Conduit. It decides whether settlement may advance.</h2>
+
+  <div class="chain-steps">
+    ${steps
+      .map(
+        ([question, answer, detail]) => `<div class="chain-step">
+  <div><div class="chain-q">${esc(question)}</div><div class="chain-a">${esc(answer)}</div></div>
+  <p>${esc(detail)}</p>
+</div>`,
+      )
+      .join('')}
+  </div>
+
+  <p class="lede" style="margin-top:var(--spacing-24)">An HTTP 200 is not a business success, a <span class="mono">valid:false</span> is a refusal rather than an outage, and an outage is the absence of a decision — never a no. The console reports the answer it received, verbatim.</p>
+</section>`;
+}
+
+/** The message rail. Two anchored columns, and nothing crossing between them. */
+function wormholeSection(): string {
+  const messages: readonly [string, string][] = [
+    ['ASSET_PREPARED', 'Base → Monad'],
+    ['CASH_PREPARED', 'Monad → Base'],
+    ['COMMIT', 'Monad → Base'],
+    ['CASH_RELEASED', 'Monad → Base'],
+    ['ASSET_RELEASED', 'Base → Monad'],
+    ['DISPOSITION_RESOLVED', 'Base → Monad'],
+  ];
+
+  const anatomy: readonly [string, string][] = [
+    ['Source chain', 'wormhole id'],
+    ['Emitter', '32 bytes'],
+    ['Deployment', 'generation'],
+    ['Protocol version', 'pinned'],
+    ['Message type', 'enumerated'],
+    ['Finality', 'classified'],
+    ['Settlement id', 'bound'],
+    ['Consumed', 'exactly once'],
+  ];
+
+  return `<section class="landing-section section-lg" id="wormhole">
+  <div class="eyebrow">Transport</div>
+  <h2 class="t-heading-lg statement">Wormhole moves settlement facts, not assets.</h2>
+
+  <div class="msgrail">
+    <div class="msgrail-chain">
+      <div class="t-caption-upper">Monad</div>
+      <div class="asset">cSETTLE</div>
+      <div class="anchored">stays here</div>
+    </div>
+    <div class="msgrail-list">
+      ${messages
+        .map(
+          ([type, direction]) => `<div class="msg" data-msg>
+  <span class="dir">${esc(direction.split(' ')[0] ?? '')}</span>
+  <span class="type">${esc(type)}</span>
+  <span class="dir">${esc(direction.split(' ')[2] ?? '')}</span>
+</div>`,
+        )
+        .join('')}
+    </div>
+    <div class="msgrail-chain">
+      <div class="t-caption-upper">Base</div>
+      <div class="asset">cBOND</div>
+      <div class="anchored">stays here</div>
+    </div>
+  </div>
+
+  <div class="rule-top" style="margin-top:var(--spacing-48)">
+    <div class="t-caption-upper">What is checked before a message is believed</div>
+    <div class="anatomy">
+      ${anatomy
+        .map(
+          ([key, value]) =>
+            `<div><div class="k">${esc(key)}</div><div class="v">${esc(value)}</div></div>`,
+        )
+        .join('')}
+    </div>
+    <p class="lede" style="margin-top:var(--spacing-24)">Every field is verified against the guardian set before the message is consumed, and consumption is recorded before any token moves. Anyone may relay a valid message; nobody can replay one.</p>
+  </div>
+</section>`;
+}
+
+/** Who this is for, after the reader knows what it is. */
+function useCaseSection(): string {
+  const cases: readonly [string, string][] = [
+    ['Tokenized bonds', 'A restricted instrument whose holder register is the transfer rule.'],
+    [
+      'Restricted fund units',
+      'Subscription and redemption between accounts an administrator must clear.',
+    ],
+    [
+      'Private-market securities',
+      'Transfer permitted only between verified holders, checked at delivery.',
+    ],
+    [
+      'Institutional treasury',
+      'Cash on one venue, the asset on another, one obligation across both.',
+    ],
+  ];
+
+  return `<section class="landing-section section-lg reveal" id="use-cases">
+  <div class="eyebrow">Where it applies</div>
+  <h2 class="t-heading-lg statement">Built for assets that cannot simply be sent.</h2>
+  <div class="editorial">
+    ${cases
+      .map(([title, detail]) => `<div><h3>${esc(title)}</h3><p>${esc(detail)}</p></div>`)
+      .join('')}
+  </div>
+</section>`;
+}
+
+/** The conclusion of the narrative, and the two honest ways in. */
+function closingSection(): string {
+  return `<section class="landing-section section-lg reveal" id="start">
+  <h2 class="t-heading-lg statement">Settle across chains without moving the assets across them.</h2>
+
+  <div class="paths">
+    <div>
+      <h3>Participate</h3>
+      <p>Connect your wallet and create or join a settlement. Conduit never sees your key.</p>
+      <div class="row" style="flex-wrap:wrap">${button({ label: 'Launch Conduit', href: '/app', iconName: 'arrowRight' })}</div>
+    </div>
+    <div>
+      <h3>Verify</h3>
+      <p>Inspect a settlement from two chain RPCs and the guardian set, without trusting this application’s database.</p>
+      <div class="row" style="flex-wrap:wrap">${button({ label: 'Verify a settlement', href: '/app/verifier', variant: 'outline' })}</div>
+    </div>
+  </div>
+
+  <p class="t-caption muted" style="margin-top:var(--spacing-24);max-width:60ch">New wallet not eligible in the Cleanverse sandbox? That is the product working — some unknown wallets are cleared and others refused, and you will see the answer verbatim. <a class="ext" href="/app/settlements">Explore a proven settlement instead.</a></p>
+</section>`;
+}
+
+/** A compact footer, plus the three words the narrative used in passing. */
+function landingFooter(): string {
+  const column = (title: string, links: readonly [string, string][]): string =>
+    `<div><h4>${esc(title)}</h4><ul>${links
+      .map(([href, label]) => `<li><a href="${esc(href)}">${esc(label)}</a></li>`)
+      .join('')}</ul></div>`;
+
+  const glossary: readonly [string, string][] = [
+    ['SETTLED', STATE_MEANING['SETTLED']?.says ?? ''],
+    ['HELD', STATE_MEANING['HELD']?.says ?? ''],
+    ['CONTESTED', STATE_MEANING['CONTESTED']?.says ?? ''],
+  ];
+
+  return `<section class="landing-section section-tight rule-top">
+  <div class="t-caption-upper">Terminal and near-terminal states</div>
+  <dl class="glossary">
+    ${glossary
+      .map(([term, says]) => `<div><dt>${esc(term)}</dt><dd>${esc(says)}</dd></div>`)
+      .join('')}
+  </dl>
+</section>
+
+<footer class="landing-foot">
+  <div class="footer-grid">
+    <div>${wordmark()}<p class="t-caption muted" style="margin-top:var(--spacing-12);max-width:34ch">Conduit holds no key that can move your value. Signatures come from your wallet; authority comes from the chains.</p></div>
+    ${column('Protocol', [
+      ['#mechanism', 'How it works'],
+      ['/app/deployments', 'Live deployments'],
+      ['/app/verifier', 'Verifier'],
+      ['/app/dispositions', 'Dispositions'],
+    ])}
+    ${column('Developers', [
+      ['https://github.com/winsznx/conduit', 'GitHub'],
+      ['/app/evidence', 'Evidence'],
+      ['/app/system', 'System'],
+    ])}
+    ${column('Networks', [
+      ['https://testnet.monadexplorer.com', 'Monad Testnet'],
+      ['https://sepolia.basescan.org', 'Base Sepolia'],
+    ])}
+  </div>
+</footer>`;
 }
 
 // ── Overview ────────────────────────────────────────────────────────────────

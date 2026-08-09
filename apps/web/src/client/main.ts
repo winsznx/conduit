@@ -19,6 +19,7 @@
 
 import { mountActivity } from './activity.js';
 import { mountComposer, mountSignRequest } from './composer.js';
+import { mountLanding } from './landing.js';
 import { mountOnboarding } from './onboarding.js';
 import { mountOverview } from './overview.js';
 import { session } from './session.js';
@@ -39,6 +40,7 @@ function deployment(): Deployment | undefined {
 
 function start(): void {
   mountParticipantControl();
+  mountLanding();
   mountActivity();
   mountOnboarding();
   mountOverview();

@@ -405,7 +405,7 @@ const LAYOUT = `
    with an intrinsic width from establishing a floor wider than the viewport. */
 .hero{
   padding:80px 0 var(--spacing-48);
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,45%);
+  display:grid;grid-template-columns:minmax(0,45fr) minmax(0,55fr);
   gap:var(--spacing-48);align-items:center;
 }
 .hero-copy{max-width:52ch;min-width:0}
@@ -415,7 +415,16 @@ const LAYOUT = `
 /* The artwork sits on the canvas. No card, no frame, no backing, no shadow:
    its own alpha is the edge, and anything painted behind it would replace a
    transparent falloff with a rectangle. */
-.hero-art{min-width:0;justify-self:end;width:100%}
+/* The mechanism column: artwork, then the three labels that name what it is,
+   aligned to the composition's own thirds rather than floated beside it. */
+.hero-mech{min-width:0;display:flex;flex-direction:column}
+.hero-mech-labels{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  align-items:start;gap:var(--spacing-16);margin-top:var(--spacing-12);
+}
+.hero-mech-centre{display:flex;justify-content:center;align-items:flex-start}
+.hero-mech .rail-label{margin-bottom:2px}
+.hero-art{min-width:0;width:100%}
 .hero-art img{display:block;width:100%;height:auto}
 /* One 80px gap between sections, not two stacked. Landing may breathe; it may
    not leave 160px of nothing. */
@@ -566,12 +575,223 @@ const LAYOUT = `
   .activity-panel{width:auto}
 }
 
+
+/* ── Landing composition ──────────────────────────────────────────────────────
+   design.md is unchanged: same eight colours, same type scale, same radii. What
+   changes here is rhythm. Every section used to have the same max width, the
+   same padding and the same card treatment, so a reader had no way to tell the
+   thesis from a definition. These give sections different shapes — narrow copy,
+   full-bleed mechanism, sticky visual, dense record — using only tokens. */
+
+/* A statement that carries a section on its own. Narrow on purpose: a line
+   that runs the full 1232px is a line nobody finishes. */
+.statement{max-width:34ch}
+.statement-wide{max-width:46ch}
+.lede{max-width:62ch;font-size:var(--text-body-lg);line-height:var(--leading-body-lg);color:var(--color-mid-gray)}
+.eyebrow{font-size:var(--text-caption);line-height:var(--leading-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium);margin-bottom:var(--spacing-16)}
+.rule-top{border-top:1px solid var(--color-hairline);padding-top:var(--spacing-24)}
+.section-lg{padding:96px 0}
+.section-tight{padding:var(--spacing-48) 0}
+.split{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);gap:var(--spacing-48);align-items:start}
+.split-even{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--spacing-48);align-items:start}
+
+/* ── Asymmetric finality ──────────────────────────────────────────────────────
+   Two chain rails on one shared horizontal axis, so the gap between them is the
+   picture rather than a sentence about a picture. Widths are the real observed
+   range and the caption says so; nothing here is averaged. */
+.rails{display:flex;flex-direction:column;gap:var(--spacing-24);margin-top:var(--spacing-24)}
+.rail{display:grid;grid-template-columns:112px minmax(0,1fr);gap:var(--spacing-16);align-items:center}
+.rail-label{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium)}
+.rail-track{position:relative;height:34px}
+.rail-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--color-hairline)}
+.rail-span{
+  position:absolute;top:50%;transform:translateY(-50%);height:2px;background:var(--color-ink);
+  transform-origin:left center;
+}
+.rail-mark{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:var(--spacing-4)}
+.rail-dot{width:7px;height:7px;border-radius:50%;background:var(--color-paper);border:1px solid var(--color-ink)}
+.rail-dot.solid{background:var(--color-ink)}
+.rail-tag{position:absolute;top:calc(50% + 12px);transform:translateX(-50%);white-space:nowrap;font-size:var(--text-caption);letter-spacing:var(--tracking-caption);color:var(--color-mid-gray)}
+/* A centred label at either end of the track hangs off the page. The ends
+   anchor to their own edge instead, which keeps the mark and its label aligned
+   without letting the text escape the layout. */
+.rail-tag.start{transform:none}
+.rail-tag.end{transform:translateX(-100%)}
+/* The verdict sits above the axis and the moment below it, so three marks on
+   one short rail read as three moments rather than one run-on string. */
+.rail-tag.above{top:auto;bottom:calc(50% + 12px);color:var(--color-ink);font-weight:var(--font-weight-medium)}
+.rail-track{height:52px}
+.rail-gap{
+  position:absolute;top:0;bottom:0;border-left:1px dashed var(--color-hairline);
+  border-right:1px dashed var(--color-hairline);background:rgba(10,10,10,0.03);
+}
+.rail-gap-label{position:absolute;top:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:var(--text-caption);letter-spacing:var(--tracking-caption);color:var(--color-ink);font-weight:var(--font-weight-medium)}
+
+/* ── The sticky mechanism ─────────────────────────────────────────────────────
+   The two chain modules stay put while the stages scroll past them, which is
+   the whole argument: what moves is the protocol state in the middle, and the
+   assets do not move at all. Sticky rather than pinned by script, so it still
+   works with the bundle blocked — the stages simply all read as current. */
+.mech{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--spacing-48);align-items:start;margin-top:var(--spacing-48)}
+.mech-visual{position:sticky;top:112px}
+.mech-stage{
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:var(--spacing-16);
+  border:1px solid var(--color-hairline);border-radius:var(--radius-cards);
+  background:var(--surface-card);padding:var(--card-padding);
+}
+.mech-side{display:flex;flex-direction:column;gap:var(--spacing-8);min-width:0}
+.mech-side .t-caption-upper{margin:0}
+.mech-amount{font-size:var(--text-heading-sm);line-height:var(--leading-heading-sm);letter-spacing:var(--tracking-heading-sm);font-weight:var(--font-weight-semibold)}
+.mech-centre{display:flex;flex-direction:column;align-items:center;gap:var(--spacing-8);padding:0 var(--spacing-8)}
+.mech-wire{width:100%;min-width:48px;height:1px;background:var(--color-hairline)}
+.mech-state{
+  display:inline-flex;align-items:center;height:28px;padding:0 var(--spacing-12);
+  border-radius:var(--radius-badges);background:var(--color-ink);color:#fafafa;
+  font-size:var(--text-caption);letter-spacing:var(--tracking-caption);font-family:var(--font-mono);
+  white-space:nowrap;
+}
+.mech-legstate{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);color:var(--color-mid-gray);font-family:var(--font-mono)}
+.mech-steps{display:flex;flex-direction:column}
+.mech-step{
+  padding:var(--spacing-24) 0;border-top:1px solid var(--color-hairline);
+  opacity:.32;transition:opacity .28s ease;
+}
+.mech-step:first-child{border-top:0}
+.mech-step[data-current]{opacity:1}
+.mech-step .index{font-family:var(--font-mono);font-size:var(--text-caption);letter-spacing:var(--tracking-caption);color:var(--color-mid-gray)}
+.mech-step h3{font-size:var(--text-subheading);line-height:var(--leading-subheading);font-weight:var(--font-weight-semibold);margin-top:var(--spacing-8)}
+.mech-step p{margin-top:var(--spacing-8);color:var(--color-mid-gray);max-width:44ch}
+
+/* ── The state rail: what happened after COMMIT ───────────────────────────── */
+.staterail{margin-top:var(--spacing-48);border-top:1px solid var(--color-hairline)}
+.staterail-row{
+  display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:var(--spacing-48);
+  padding:var(--spacing-24) 0;border-bottom:1px solid var(--color-hairline);
+  opacity:.4;transition:opacity .3s ease;
+}
+.staterail-row[data-shown]{opacity:1}
+.staterail-state{display:flex;align-items:center;gap:var(--spacing-12)}
+.staterail-node{width:9px;height:9px;border-radius:50%;background:var(--color-ink);flex:none}
+.staterail-name{font-family:var(--font-mono);font-weight:var(--font-weight-medium)}
+.staterail-row p{color:var(--color-mid-gray);max-width:56ch}
+.boundary{
+  display:flex;align-items:center;gap:var(--spacing-16);padding:var(--spacing-16) 0;
+  border-bottom:1px solid var(--color-ink);
+}
+.boundary span{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;font-weight:var(--font-weight-medium);white-space:nowrap}
+.boundary::after{content:"";flex:1;height:1px;background:var(--color-ink)}
+.ledger{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--spacing-24);margin-top:var(--spacing-24)}
+.ledger > div{border-left:1px solid var(--color-hairline);padding-left:var(--spacing-16)}
+.ledger .k{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium)}
+.ledger .v{margin-top:var(--spacing-4);font-family:var(--font-mono);font-size:var(--text-subheading);font-weight:var(--font-weight-semibold)}
+
+/* ── Causal chain: Cleanverse ─────────────────────────────────────────────── */
+.chain-steps{display:flex;flex-direction:column;margin-top:var(--spacing-24)}
+.chain-step{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:var(--spacing-48);padding:var(--spacing-24) 0;border-top:1px solid var(--color-hairline)}
+.chain-step:last-child{border-bottom:1px solid var(--color-hairline)}
+.chain-q{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium)}
+.chain-a{margin-top:var(--spacing-4);font-family:var(--font-mono);font-size:var(--text-subheading);font-weight:var(--font-weight-semibold)}
+.chain-step p{color:var(--color-mid-gray);max-width:56ch}
+
+/* ── Message rail: Wormhole ───────────────────────────────────────────────────
+   The two chain columns are fixed at the edges and the messages appear between
+   them. Nothing crosses: the point of the section is that the assets do not. */
+.msgrail{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) minmax(0,150px);gap:var(--spacing-24);align-items:start;margin-top:var(--spacing-48)}
+.msgrail-chain{
+  border:1px solid var(--color-hairline);border-radius:var(--radius-cards);
+  background:var(--surface-card);padding:var(--card-padding);position:sticky;top:112px;
+}
+.msgrail-chain .asset{margin-top:var(--spacing-12);font-family:var(--font-mono);font-size:var(--text-caption);letter-spacing:var(--tracking-caption)}
+.msgrail-chain .anchored{margin-top:var(--spacing-8);font-size:var(--text-caption);letter-spacing:var(--tracking-caption);color:var(--color-mid-gray)}
+.msgrail-list{display:flex;flex-direction:column;gap:var(--spacing-12);padding-top:var(--spacing-12)}
+.msg{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--spacing-12);
+  padding:var(--spacing-12) var(--spacing-16);border:1px solid var(--color-hairline);
+  border-radius:var(--radius-buttons);background:var(--surface-card);
+  opacity:0;transform:translateY(6px);transition:opacity .32s ease,transform .32s ease;
+}
+.msg[data-shown]{opacity:1;transform:none}
+.msg .dir{font-family:var(--font-mono);font-size:var(--text-caption);color:var(--color-mid-gray);white-space:nowrap}
+.msg .type{font-family:var(--font-mono);font-size:var(--text-caption);letter-spacing:var(--tracking-caption);font-weight:var(--font-weight-medium)}
+.anatomy{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--spacing-16) var(--spacing-24);margin-top:var(--spacing-24)}
+.anatomy .k{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium)}
+.anatomy .v{margin-top:var(--spacing-4);font-family:var(--font-mono);font-size:var(--text-caption)}
+
+/* ── Proof records ────────────────────────────────────────────────────────────
+   A record, not a marketing card: identifier first, verdict beside it, the
+   numbers that make it checkable, and the links that let a stranger check it. */
+.records{display:flex;flex-direction:column;margin-top:var(--spacing-24);border-top:1px solid var(--color-hairline)}
+.record{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:var(--spacing-48);
+  padding:var(--spacing-24) 0;border-bottom:1px solid var(--color-hairline);align-items:start;
+}
+.record h3{font-size:var(--text-subheading);line-height:var(--leading-subheading);font-weight:var(--font-weight-semibold)}
+.record p{margin-top:var(--spacing-8);color:var(--color-mid-gray);max-width:60ch}
+.record-facts{display:flex;flex-direction:column;gap:var(--spacing-8)}
+.record-fact{display:flex;align-items:baseline;justify-content:space-between;gap:var(--spacing-16)}
+.record-fact .k{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray)}
+.record-fact .v{font-family:var(--font-mono);font-size:var(--text-caption)}
+
+/* ── Editorial use cases ─────────────────────────────────────────────────── */
+.editorial{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--spacing-48);margin-top:var(--spacing-24)}
+.editorial > div{border-top:1px solid var(--color-hairline);padding-top:var(--spacing-16)}
+.editorial h3{font-size:var(--text-subheading);line-height:var(--leading-subheading);font-weight:var(--font-weight-medium)}
+.editorial p{margin-top:var(--spacing-4);color:var(--color-mid-gray);max-width:44ch}
+
+/* ── Closing ─────────────────────────────────────────────────────────────── */
+.paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--spacing-48);margin-top:var(--spacing-48)}
+.paths > div{border-top:1px solid var(--color-ink);padding-top:var(--spacing-16)}
+.paths h3{font-size:var(--text-heading-sm);line-height:var(--leading-heading-sm);letter-spacing:var(--tracking-heading-sm);font-weight:var(--font-weight-semibold)}
+.paths p{margin-top:var(--spacing-8);color:var(--color-mid-gray);max-width:40ch}
+.paths .row{margin-top:var(--spacing-16)}
+
+/* ── Glossary and footer ─────────────────────────────────────────────────── */
+.glossary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--spacing-24);margin-top:var(--spacing-24)}
+.glossary dt{font-family:var(--font-mono);font-size:var(--text-caption);letter-spacing:var(--tracking-caption);font-weight:var(--font-weight-medium)}
+.glossary dd{margin:var(--spacing-4) 0 0;color:var(--color-mid-gray);font-size:var(--text-caption);line-height:var(--leading-body)}
+.footer-grid{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:var(--spacing-48);padding:var(--spacing-48) 0 var(--spacing-24)}
+.footer-grid h4{font-size:var(--text-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium)}
+.footer-grid ul{margin-top:var(--spacing-12);display:flex;flex-direction:column;gap:var(--spacing-8)}
+.footer-grid a{color:var(--color-mid-gray)}
+.footer-grid a:hover{color:var(--color-ink)}
+
+/* ── Reveal ───────────────────────────────────────────────────────────────────
+   Sections start slightly down and transparent and settle when they are
+   reached. It carries no information on its own, so it is the first thing to
+   go when a reader has asked for less motion — and the no-JS default below is
+   fully visible, never hidden. */
+.reveal{opacity:1;transform:none}
+[data-motion] .reveal{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease}
+[data-motion] .reveal[data-shown]{opacity:1;transform:none}
+[data-motion] .rail-span{transform:translateY(-50%) scaleX(0);transition:transform .7s ease}
+[data-motion] .reveal[data-shown] .rail-span{transform:translateY(-50%) scaleX(1)}
+@media (prefers-reduced-motion:reduce){
+  [data-motion] .reveal,[data-motion] .reveal[data-shown],
+  .msg,.msg[data-shown],.mech-step,.staterail-row{
+    opacity:1!important;transform:none!important;transition:none!important;
+  }
+  [data-motion] .rail-span,[data-motion] .reveal[data-shown] .rail-span{transform:translateY(-50%) scaleX(1)!important;transition:none!important}
+  .mech-visual,.msgrail-chain{position:static}
+}
+
+/* ── Nav links ───────────────────────────────────────────────────────────── */
+.navlinks{display:flex;align-items:center;gap:var(--spacing-20)}
+@media (max-width:1024px){.navlinks{display:none}}
+.navlinks a{font-size:var(--text-body);color:var(--color-mid-gray)}
+.navlinks a:hover{color:var(--color-ink);text-decoration:none}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width:1024px){
+  .editorial,.paths{gap:var(--spacing-24)}
+  .anatomy{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .record{grid-template-columns:minmax(0,1fr) minmax(0,260px);gap:var(--spacing-24)}
+  .section-lg{padding:var(--spacing-48) 0}
+  .mech{gap:var(--spacing-24)}
+
   /* The copy needs the room before the artwork does, so the artwork gives it
      up first rather than both columns shrinking together. */
   .hero{
-    grid-template-columns:minmax(0,1fr) minmax(0,38%);gap:var(--spacing-24);
+    grid-template-columns:minmax(0,48fr) minmax(0,52fr);gap:var(--spacing-24);
     padding:var(--spacing-48) 0 var(--spacing-24);
   }
   .shell{grid-template-columns:1fr}
@@ -589,6 +809,18 @@ const LAYOUT = `
   .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:768px){
+  .section-lg{padding:var(--spacing-48) 0}
+  .split,.split-even{grid-template-columns:minmax(0,1fr);gap:var(--spacing-24)}
+  .mech{grid-template-columns:minmax(0,1fr);gap:var(--spacing-24)}
+  .mech-visual{position:sticky;top:64px;z-index:1;padding-bottom:var(--spacing-12);background:var(--surface-canvas)}
+  .msgrail{grid-template-columns:minmax(0,1fr);gap:var(--spacing-16)}
+  .msgrail-chain{position:static}
+  .record{grid-template-columns:minmax(0,1fr);gap:var(--spacing-16)}
+  .staterail-row,.chain-step{grid-template-columns:minmax(0,1fr);gap:var(--spacing-12)}
+  .editorial,.paths,.glossary,.anatomy{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--spacing-24)}
+  .footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--spacing-24)}
+  .ledger{grid-template-columns:minmax(0,1fr);gap:var(--spacing-12)}
+  .rail{grid-template-columns:minmax(0,1fr);gap:var(--spacing-8)}
   .content{padding:var(--spacing-16)}
   .grid-2,.grid-3{grid-template-columns:minmax(0,1fr)}
   /* Stat blocks are compact enough to pair. Four stacked reads as a list of
@@ -611,6 +843,9 @@ const LAYOUT = `
   }
   .hero-art{justify-self:center;max-width:min(100%,420px)}
   .landing-nav{padding:var(--spacing-12) 0}
+  /* Two buttons plus the wordmark do not fit 390px. The verifier is one tap
+     away inside the console, so the header keeps the primary action. */
+  .landing-nav .row .btn-outline{display:none}
   .landing-section,.hero{scroll-margin-top:64px}
   .landing-section{padding:var(--spacing-48) 0}
   /* Deliberate reduction inside the scale, not a shrink. */

@@ -82,20 +82,24 @@ test.describe('journey A — a judge with no eligible wallet', () => {
     // #given the landing page
     await page.goto('/');
 
-    // #then the seven questions are answerable without opening anything
+    // #then the thirteen things a skimmer must take away are all on the page as
+    // headings, in narrative order, without opening anything
     for (const answer of [
-      'The problem',
-      'Compliance is part of the state machine',
-      'Wormhole moves settlement facts, not assets',
-      'Proven live',
-      'Try Conduit',
+      /Settlement does not become difficult/,
+      /One intent, two chains, five states/,
+      /What happens when compliance changes after COMMIT/,
+      /This is not an architecture diagram/,
+      /Cleanverse is not metadata/,
+      /Wormhole moves settlement facts, not assets/,
+      /Built for assets that cannot simply be sent/,
+      /Settle across chains without moving the assets/,
     ]) {
       await expect(page.getByRole('heading', { name: answer })).toBeVisible();
     }
 
     // #and the honest exits exist for a wallet that will be refused
     await expect(page.getByRole('link', { name: 'Explore a proven settlement' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'HELD → disposition proof' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'The disposition case' })).toBeVisible();
 
     // #when the judge tries to compose anyway
     await page.goto('/app/settlements/new');
