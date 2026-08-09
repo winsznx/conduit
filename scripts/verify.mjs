@@ -95,6 +95,30 @@ const STEPS = [
     },
   },
   {
+    id: 'web-bundle',
+    // Before typecheck, because it writes two of the modules typecheck reads.
+    // `apps/web/build.mjs` emits `client-manifest.ts` and `image-manifest.ts`
+    // into `src` — they carry content hashes, so they are generated rather than
+    // committed — and on a clean checkout they do not exist yet. This is the
+    // second half of what CI was failing on: a working tree that had built once
+    // had them on disk, and a fresh clone did not.
+    title: 'the Worker and browser bundles build',
+    exec: () => {
+      // esbuild resolves the workspace packages to their emitted `dist`, so
+      // those have to exist before it runs. Building them by reference here
+      // rather than relying on a full typecheck breaks the loop: the full
+      // typecheck needs the manifests this step writes, and this step needs the
+      // packages that typecheck would otherwise be the one to emit.
+      const deps = run(
+        'pnpm',
+        ['exec', 'tsc', '--build', 'packages/domain', 'packages/cleanverse'],
+        { allowFailure: true },
+      );
+      if (!deps.ok) return deps;
+      return run('node', ['apps/web/build.mjs'], { allowFailure: true });
+    },
+  },
+  {
     id: 'typecheck',
     // Before lint, and the order is load-bearing rather than tidy. The ESLint
     // config is type-aware, and the type information for a workspace package

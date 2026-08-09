@@ -49,7 +49,7 @@ jobs:
 
       # Ordered deliberately: the workspace suite imports each package by its
       # published name, which requires tsc --build to have emitted dist.
-      - run: node scripts/verify.mjs --only=toolchain,format,lint,typecheck,unit,manifests
+      - run: node scripts/verify.mjs --only=toolchain,format,web-bundle,typecheck,lint,unit,manifests
 
   contracts:
     name: contracts (build, test, gas, storage layout)
