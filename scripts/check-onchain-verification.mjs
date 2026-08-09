@@ -84,10 +84,26 @@ const SOURCE = {
  * has eight entries and the canonical deployment has ten.
  */
 const KERNEL = [
-  { chain: 'monadTestnet', role: 'AuthorityRegistry', address: '0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7' },
-  { chain: 'monadTestnet', role: 'DispositionController', address: '0x3c4060D402675A25CAd836247CFA0B95614efe81' },
-  { chain: 'baseSepolia', role: 'AuthorityRegistry', address: '0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45' },
-  { chain: 'baseSepolia', role: 'DispositionController', address: '0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7' },
+  {
+    chain: 'monadTestnet',
+    role: 'AuthorityRegistry',
+    address: '0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7',
+  },
+  {
+    chain: 'monadTestnet',
+    role: 'DispositionController',
+    address: '0x3c4060D402675A25CAd836247CFA0B95614efe81',
+  },
+  {
+    chain: 'baseSepolia',
+    role: 'AuthorityRegistry',
+    address: '0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45',
+  },
+  {
+    chain: 'baseSepolia',
+    role: 'DispositionController',
+    address: '0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7',
+  },
 ];
 
 function manifests() {
@@ -146,7 +162,10 @@ async function sourcifyStatus(chainId, address) {
 }
 
 const clients = Object.fromEntries(
-  Object.entries(CHAINS).map(([name, chain]) => [name, createPublicClient({ transport: http(chain.rpc) })]),
+  Object.entries(CHAINS).map(([name, chain]) => [
+    name,
+    createPublicClient({ transport: http(chain.rpc) }),
+  ]),
 );
 
 const results = [];
