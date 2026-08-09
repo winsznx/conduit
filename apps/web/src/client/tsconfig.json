@@ -1,0 +1,11 @@
+{
+  // The browser half. It needs the DOM lib; the Worker half must not have it,
+  // which is why these are two projects rather than one loosened one.
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["**/*.ts"]
+}

@@ -47,6 +47,7 @@ import {
   statBlock,
   truncate,
 } from './ui.js';
+import { CLIENT_PATH } from './client-manifest.js';
 import { STYLESHEET } from './theme.js';
 
 /** The document. One stylesheet, inline, because the CSP forbids external origins. */
@@ -55,7 +56,7 @@ function document_(title: string, body: string): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>${esc(title)} — Conduit</title><style>${STYLESHEET}</style></head>
-<body>${body}</body></html>`;
+<body>${body}<script type="module" src="${esc(CLIENT_PATH)}" defer></script></body></html>`;
 }
 
 /** The application shell: sidebar, top bar, content column. */
@@ -68,7 +69,7 @@ function shell(options: {
 }): string {
   return document_(
     options.title,
-    `<div class="shell">${sidebar(options.current, { generation: options.generation })}
+    `<div class="shell">${sidebar(options.current)}
 <div class="main">${topBar(options.topRight ?? '')}<div class="content">${options.body}</div></div></div>`,
   );
 }

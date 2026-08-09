@@ -115,9 +115,13 @@ describe('the database credential cannot reach a browser', () => {
     // `data.ts` is the Worker's read layer and is imported by `worker.ts` alone.
     // It is named here for the same reason `worker.ts` is: it legitimately holds
     // the credential, and naming it keeps the check sharp for the next file that
-    // does so by accident. This app still ships no client bundle at all — its
-    // CSP is `default-src 'none'` with no script source — so there is nothing
-    // for either file to leak into.
+    // does so by accident.
+    //
+    // The client bundle this comment used to say did not exist now does, under
+    // `apps/web/src/client`. That is exactly the case this check was written
+    // for, so it is asserted separately and harder below: server-only files are
+    // named one at a time, and *nothing* under `client/` may mention the
+    // credential at all.
     const serverOnly = new Set(['apps/web/src/worker.ts', 'apps/web/src/data.ts']);
     const offenders: string[] = [];
     for (const app of ['apps/web/src', 'packages/ui/src']) {
@@ -133,6 +137,54 @@ describe('the database credential cannot reach a browser', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  /**
+   * The browser bundle is the one place a leaked credential is unrecoverable.
+   *
+   * A server-side mistake exposes a secret to whoever reads the logs. A mistake
+   * here ships it to every visitor, cached, in a file they can save. So this is
+   * a blanket refusal rather than an allowlist: no file under `client/` may
+   * name the connection string, the service role, or a Cleanverse credential,
+   * and there is no exception to add one to.
+   */
+  it('ships no server credential in the browser bundle', () => {
+    const dir = join(ROOT, 'apps/web/src/client');
+    if (!existsSync(dir)) return;
+    const offenders: string[] = [];
+    for (const file of walk(dir)) {
+      const body = readFileSync(file, 'utf8');
+      if (
+        /DATABASE_URL|SUPABASE_DB_URL|SERVICE_ROLE|createDatabase|@conduit-protocol\/db|CLEANVERSE_API_KEY|CLEANVERSE_AES/.test(
+          body,
+        )
+      ) {
+        offenders.push(file.slice(ROOT.length + 1));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * `script-src 'self'` is the whole budget.
+   *
+   * The wallet layer needed script execution, so the policy gained exactly one
+   * source and nothing else. This fails if anyone widens it to an external
+   * origin, to `unsafe-inline`, or to `unsafe-eval` — each of which would turn
+   * a proof page into a page that runs whatever it was handed.
+   */
+  it('allows scripts only from this origin', () => {
+    const worker = readFileSync(join(ROOT, 'apps/web/src/worker.ts'), 'utf8');
+    const match = /'content-security-policy':([\s\S]*?),\n\s*'x-content-type-options'/.exec(worker);
+    expect(match, 'the Worker must send a content-security-policy').not.toBeNull();
+
+    const value = (match?.[1] ?? '').replace(/['"+\s]+/g, ' ');
+    expect(value).toContain('script-src self');
+    expect(value).not.toMatch(/script-src[^;]*unsafe-eval/);
+    expect(value).not.toMatch(/script-src[^;]*unsafe-inline/);
+    expect(value).not.toMatch(/script-src[^;]*https?:/);
+    expect(value).toContain('frame-ancestors none');
+    expect(value).toContain('base-uri none');
   });
 
   /**

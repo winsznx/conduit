@@ -376,6 +376,31 @@ const LAYOUT = `
 .landing-section{padding:0 0 80px}
 .landing-foot{border-top:1px solid var(--color-hairline);padding:var(--spacing-24) 0 var(--spacing-48);color:var(--color-mid-gray)}
 
+/* ── Wallet controls ─────────────────────────────────────────────────────── */
+.account-chip{
+  display:inline-flex;align-items:center;gap:var(--spacing-8);
+  height:36px;padding:0 var(--spacing-12);
+  background:var(--color-canvas);border:0;border-radius:var(--radius-buttons);
+  font-size:var(--text-body);cursor:pointer;
+}
+.account-chip:hover{background:var(--color-hairline)}
+.wallet-row{
+  display:flex;align-items:center;gap:var(--spacing-12);width:100%;
+  padding:var(--spacing-12);border-radius:var(--radius-nested);
+  border:1px solid var(--color-hairline);background:var(--color-paper);
+  font-size:var(--text-body);cursor:pointer;text-align:left;
+}
+.wallet-row:hover{background:var(--color-surface-alt)}
+.wallet-row > span:nth-of-type(1){flex:1}
+.wallet-icon{width:22px;height:22px;border-radius:var(--radius-small);flex:none}
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.modal-root{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:var(--spacing-20)}
+/* Flat scrim, no blur: design.md rules out frosted panels and dramatic depth. */
+.modal-backdrop{position:absolute;inset:0;background:rgba(10,10,10,0.28)}
+.modal{position:relative;width:100%;max-width:420px;max-height:85vh;overflow-y:auto}
+.modal:focus{outline:none}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width:1024px){
   .shell{grid-template-columns:1fr}

@@ -19,11 +19,14 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist",
-    "bundle": "esbuild src/worker.ts --bundle --format=esm --platform=neutral --conditions=workerd,worker,import,module,default --target=es2022 --external:node:* --external:cloudflare:* --outfile=dist/worker.bundle.js",
+    "bundle": "node build.mjs",
     "dev": "wrangler dev --port 8787",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
     "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "esbuild": "0.18.20"
   }
 }

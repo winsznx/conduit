@@ -71,12 +71,14 @@ export function wordmark(): string {
   return `<span class="identity"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="15" height="15" rx="4.5" stroke="var(--color-ink)"/><circle cx="8" cy="8" r="2" fill="var(--color-ember)"/></svg><span style="font-weight:var(--font-weight-semibold)">Conduit</span></span>`;
 }
 
-export function sidebar(current: string, deployment: { generation: string }): string {
+export function sidebar(current: string): string {
   return `<aside class="sidebar">
 <div class="brand">${wordmark()}</div>
 <nav class="nav" aria-label="Primary">${navList(PRIMARY_NAV, current)}</nav>
 <nav class="nav" aria-label="System"><div class="nav-section">System</div>${navList(SYSTEM_NAV, current)}</nav>
-<div class="sidebar-foot"><div class="t-caption muted">Deployment</div><div class="t-caption mono">${esc(deployment.generation)}</div></div>
+<div class="sidebar-foot" data-wallet-control>
+  <noscript><span class="t-caption muted">Wallet actions need JavaScript. Everything else on this page does not.</span></noscript>
+</div>
 </aside>`;
 }
 
@@ -86,7 +88,7 @@ export function topBar(right = ''): string {
   <input class="field field-mono" name="id" placeholder="Verify a settlement id" pattern="0x[0-9a-fA-F]{64}" required aria-label="Settlement id">
   <button class="btn btn-secondary btn-sm" type="submit">Verify</button>
 </form>
-<div class="row">${right}</div>
+<div class="row">${right}<span data-wallet-control></span></div>
 </div>`;
 }
 

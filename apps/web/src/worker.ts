@@ -24,6 +24,8 @@
  * protocol's own vocabulary; routes here compose pages and never style.
  */
 
+import CLIENT_BUNDLE from './client.bundle.js.txt';
+import { CLIENT_PATH } from './client-manifest.js';
 import type { Env } from './data.js';
 import {
   deployments,
@@ -61,17 +63,30 @@ const JSON_HEADERS = {
  * Headers a proof page has to send.
  *
  * A page whose whole purpose is to be trusted should not be embeddable in
- * somebody else's frame, and should not be able to load a script from anywhere.
- * The CSP is deliberately absolute: no external origin, no inline script, no
- * eval. The pages are server-rendered and need none of it.
+ * somebody else's frame, and should not load code it did not ship.
  *
- * `font-src` is absent, which is why the design system's font token falls
- * through to the platform sans rather than fetching Geist. Loading a webfont
- * would mean allowing an origin here, and that trade is not worth a typeface.
+ * ## Why `script-src 'self'` now exists
+ *
+ * This app shipped no JavaScript at all, which was the strongest possible
+ * version of this policy and also the reason it could only ever be read. A
+ * participant has to sign an EIP-712 intent and send transactions from their
+ * own wallet, and there is no server-side substitute for that — a service that
+ * could sign for them would be custody, not settlement.
+ *
+ * So exactly one directive changed. `'self'` admits the bundle this Worker
+ * serves and nothing else: no CDN, no inline script, no `eval`, no
+ * `unsafe-inline`. Wallet extensions inject into the page's own context and are
+ * unaffected by it. `connect-src` allows the two chain RPCs the browser reads
+ * from directly, and this origin for Conduit's own endpoints.
+ *
+ * `font-src` is still absent, so the design system's font token falls through
+ * to the platform sans rather than fetching Geist.
  */
 const SECURITY_HEADERS = {
   'content-security-policy':
-    "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+    "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; " +
+    "connect-src 'self' https://testnet-rpc.monad.xyz https://sepolia.base.org; " +
+    "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
@@ -86,6 +101,22 @@ function json(body: unknown, status = 200): Response {
   return new Response(`${JSON.stringify(body, null, 2)}\n`, {
     status,
     headers: { ...JSON_HEADERS, ...SECURITY_HEADERS },
+  });
+}
+
+/**
+ * The browser bundle.
+ *
+ * Served from this origin so `script-src 'self'` covers it, and cached
+ * immutably because the path carries the build's content hash.
+ */
+function script(body: string): Response {
+  return new Response(body, {
+    headers: {
+      'content-type': 'text/javascript; charset=utf-8',
+      'cache-control': 'public, max-age=31536000, immutable',
+      ...SECURITY_HEADERS,
+    },
   });
 }
 
@@ -144,6 +175,10 @@ function generationLabel(env: Env): string {
 }
 
 async function route(path: string, url: URL, env: Env): Promise<Response> {
+  // ── Static ────────────────────────────────────────────────────────────────
+
+  if (path === CLIENT_PATH) return script(CLIENT_BUNDLE);
+
   // ── API ───────────────────────────────────────────────────────────────────
 
   if (path === '/health' || path === '/api/health') {
