@@ -59,7 +59,7 @@ import {
   MONAD_TESTNET,
 } from './onchain.js';
 import { deploymentConfig, targetForChain, type DeploymentConfig } from './deployment.js';
-import type { Env } from './data.js';
+import { withDb, type Env } from './data.js';
 
 /** Which contract will check the signature. The domain binds it, so it matters. */
 export type AttestationPurpose = 'commit' | 'cash-release' | 'asset-release' | 'disposition';
@@ -382,6 +382,27 @@ export async function mintAttestations(
       evidenceHash,
       signature,
     });
+
+    // Written down, redacted, with the hash of the answer rather than the
+    // answer. An attestation that authorised a settlement and left no trace
+    // would make the compliance timeline on that settlement's own page empty —
+    // and the audit package's whole job is to say who decided what, when, and on
+    // what evidence. Never the response body: PRD forbids raw PII, and the hash
+    // is enough to prove the off-chain record was not swapped afterwards.
+    await recordAttestation(env, {
+      settlementId,
+      intentHash,
+      subject: attestation.subject,
+      subjectChainId: where.chainId,
+      eligible: attestation.eligible,
+      issuedAt,
+      expiresAt: issuedAt + window,
+      evidenceHash,
+      signer: signer.address,
+      signature,
+      verifyingContract: where.address,
+      decision,
+    });
   }
 
   return {
@@ -395,6 +416,59 @@ export async function mintAttestations(
     signer: signer.address,
     maxValidity: Number(domain.maxValidity),
   };
+}
+
+/**
+ * Records what was signed, so a settlement's own page can show it.
+ *
+ * Failure here is deliberately swallowed. The attestation is already valid and
+ * already on its way to a contract that will check it; refusing to return it
+ * because a projection write failed would turn a bookkeeping problem into a
+ * settlement problem, and the projection is never the authority. The error is
+ * logged so an operator sees it.
+ */
+async function recordAttestation(
+  env: Env,
+  entry: {
+    settlementId: Hex;
+    intentHash: Hex;
+    subject: Address;
+    subjectChainId: number;
+    eligible: boolean;
+    issuedAt: bigint;
+    expiresAt: bigint;
+    evidenceHash: Hex;
+    signer: Address;
+    signature: Hex;
+    verifyingContract: Address;
+    decision: EligibilityResult;
+  },
+): Promise<void> {
+  // Deterministic, so re-minting for the same subject at the same instant
+  // rewrites one row rather than growing the table.
+  const attestationId = `${entry.settlementId}:${entry.subject.toLowerCase()}:${entry.issuedAt.toString()}`;
+  const source = entry.decision.sources?.[0];
+  try {
+    await withDb(env, async (sql) => {
+      await sql`
+        INSERT INTO conduit.compliance_attestations (
+          attestation_id, settlement_id, intent_hash, subject, subject_chain_id, eligible,
+          issued_at, expires_at, evidence_hash, signer, signature, verifying_chain_id,
+          verifying_contract, cleanverse_endpoint, cleanverse_code
+        ) VALUES (
+          ${attestationId}, ${entry.settlementId}, ${entry.intentHash},
+          ${entry.subject.toLowerCase()}, ${entry.subjectChainId}, ${entry.eligible},
+          ${Number(entry.issuedAt)}, ${Number(entry.expiresAt)}, ${entry.evidenceHash},
+          ${entry.signer.toLowerCase()}, ${entry.signature}, ${entry.subjectChainId},
+          ${entry.verifyingContract.toLowerCase()}, ${source?.endpoint ?? null},
+          ${entry.decision.answer ?? null}
+        )
+        ON CONFLICT (attestation_id) DO NOTHING
+      `;
+    });
+  } catch (error) {
+    console.error('attestation not recorded', error);
+  }
 }
 
 export function isAttestationFailure(

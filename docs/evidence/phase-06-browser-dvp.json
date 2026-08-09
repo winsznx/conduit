@@ -1,0 +1,91 @@
+{
+  "capturedAt": "2026-08-09T13:11:51.619Z",
+  "settlementId": "0x3f9b03f41d6d8af9d87c0d4a9db50297beebf3f3596d577ef0c1f3d83fd3d385",
+  "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+  "surface": "https://conduit.timjosh507.workers.dev",
+  "driver": "a browser. Every transaction below was sent by a wallet in a page, through the settlement workspace, with the next action decided from chain state rather than from a script.",
+  "addresses": {
+    "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "cash": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+    "rwa": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+    "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61"
+  },
+  "coordinator": {
+    "state": "COMMIT_ISSUED",
+    "decision": "COMMIT",
+    "cashPrepared": true,
+    "assetPrepared": true,
+    "cashOutcome": "RELEASED",
+    "assetOutcome": "NONE",
+    "stateVersion": "4"
+  },
+  "cashLeg": {
+    "payer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "receiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "amount": "1000000",
+    "state": "RELEASED"
+  },
+  "reservation": {
+    "owner": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "amount": "100000",
+    "announced": true,
+    "committed": true,
+    "released": true,
+    "cancelled": false
+  },
+  "intendedReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+  "messages": [
+    {
+      "messageType": "ASSET_PREPARED",
+      "sequence": "6",
+      "emitter": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "emitterChainId": 10004,
+      "publishedTx": "0x17974d04e5ba1374eced146f5ace8e240331d33d2a6ec54f29215fade28596e2",
+      "publishedAtBlock": "45255486",
+      "includedAt": "2026-08-09T12:41:00.000Z",
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": 1423
+    },
+    {
+      "messageType": "COMMIT",
+      "sequence": "2",
+      "emitter": "0xb08bc7f285dd3fc1047798b661e93ab7427a7a61",
+      "emitterChainId": 10009,
+      "publishedTx": "0x074981c25006bfb19e8426d0c3156b737e7e4721f6b3feacc9b91c557ec2c379",
+      "publishedAtBlock": "52242725",
+      "includedAt": "2026-08-09T13:04:59.000Z",
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": 9
+    },
+    {
+      "messageType": "CASH_PREPARED",
+      "sequence": "3",
+      "emitter": "0x8151d682836f5b7106181bc8e48dc899ab538930",
+      "emitterChainId": 10009,
+      "publishedTx": "0xf0e95f1f6c801b643a9fcb92e104fb03a780c79af5ec0aacfd7c70c0c9805da9",
+      "publishedAtBlock": "52238050",
+      "includedAt": "2026-08-09T12:41:14.000Z",
+      "finality": "FINALIZED",
+      "finalized": true,
+      "observedSecondsAfterPublication": 676
+    }
+  ],
+  "balances": {
+    "cashPayer": "75000000",
+    "cashReceiver": "75000000",
+    "escrow": "25000000",
+    "assetHolder": "4000000",
+    "assetReserved": "500000"
+  },
+  "chains": {
+    "monad": 10143,
+    "base": 84532
+  },
+  "limitations": [
+    "The payer and the seller are one key. `generate_apass` returns 403 for this credential (ASM-035), so no second A-Passed identity exists and both intent signatures come from one wallet. Each leg still moves value into and out of a settlement contract; conservation is proven at the escrow balance and at the reservation rather than at a wallet delta.",
+    "The wallet is a real key signing real payloads through an EIP-1193 provider Playwright can drive. A browser extension cannot be automated, so the extension UI itself is covered by a manual smoke test rather than by this run."
+  ]
+}
