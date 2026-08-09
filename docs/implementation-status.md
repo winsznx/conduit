@@ -119,7 +119,7 @@ item added upstream fails the build until it appears here.
 
 The first row's wording is upstream text and is quoted verbatim so `tests/docs.test.ts` can
 match it. The asset leg now deploys to **Base Sepolia**: Arbitrum Sepolia has no CCP deployment,
-which [ADR-0009](./adr/0009-asset-leg-moves-to-base-sepolia.md) demonstrates two independent
+which [ADR-0009](./adr/0009-asset-chain-has-no-ccp-deployment.md) demonstrates two independent
 ways. Base is the implementation network. It is not the architecture.
 
 `design.md` remains a `HUMAN_GATE_DESIGN` deliverable.
@@ -335,7 +335,7 @@ ok  wormhole.bytecode.baseSepolia  680 bytes at 0x79A1027a6A159502049F10906D333E
 The credential authenticates and the eligibility matrix is real rather than assumed. Four
 findings came out of exercising it, each recorded where it was found:
 
-1. **Body encryption is per endpoint, not global** ([ADR-0008](./adr/0008-per-endpoint-body-encryption.md)).
+1. **Body encryption is per endpoint, not global** ([ADR-0008](./adr/0008-encryption-is-per-endpoint.md)).
    Sending an encrypted body to a plaintext endpoint produced an earlier, wrong conclusion that
    the `chain` argument was ignored. ADR-0007 is corrected at source.
 2. **The API key arrives as unpadded Base64.** The decoder restores padding rather than
@@ -493,7 +493,7 @@ and cannot move an unreserved balance.
 
 Two corrections landed here rather than in review:
 
-- **RuleV2 has six fields, not the five in the guide** ([ADR-0010](./adr/0010-rulev2-has-six-fields.md)).
+- **RuleV2 has six fields, not the five in the guide** ([ADR-0010](./adr/0010-rulev2-has-six-fields-on-chain.md)).
   The deployed struct still carries the deprecated `isBlackList` slot. A five-field decode threw
   on real data. A byte-level regression test now pins the layout.
 - **The token had no `owner()`.** Cleanverse registration reads it, so registration would have
