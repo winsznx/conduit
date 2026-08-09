@@ -293,7 +293,8 @@ export function mountWorkspace(): void {
     paintAction(actionHost, action, snapshot, payload, session, idMatches, recomputed, run);
     paintFinality(finalityHost, messages);
     if (complianceHost !== null) paintCompliance(complianceHost, session);
-    if (dispositionHost !== null && snapshot.settlement?.state === 'HELD') {
+    const state = snapshot.settlement?.state;
+    if (dispositionHost !== null && (state === 'HELD' || state === 'CONTESTED')) {
       mountDisposition(dispositionHost, dispositionContext(payload, snapshot), refresh);
     }
   };
@@ -454,8 +455,12 @@ async function readSnapshot(
   ]);
 
   const holdings = account === undefined ? {} : await readHoldings(payload, terms);
+  // Both states, not just HELD. A case that went CONTESTED drove the settlement
+  // to CONTESTED, and reading the case only in the first state would report the
+  // second one as "no case filed" — which is the opposite of what happened.
+  const held = settlement?.state === 'HELD' || settlement?.state === 'CONTESTED';
   const dispositionCase =
-    payload.disposition === undefined || settlement?.state !== 'HELD'
+    payload.disposition === undefined || !held
       ? undefined
       : await readDispositionCase(payload.disposition, payload.deployment, id);
 
