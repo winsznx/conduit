@@ -8,5 +8,7 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"]
   },
-  "include": ["**/*.ts"]
+  // The write-flow spec answers JSON-RPC from the same ABIs the app calls, so
+  // it shares `onchain.ts` rather than keeping a second copy of them.
+  "include": ["**/*.ts", "../src/onchain.ts"]
 }

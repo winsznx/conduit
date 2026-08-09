@@ -350,6 +350,27 @@ describe('nextAction — ready and commit', () => {
     expect(action.enabled).toBe(false);
   });
 
+  it('still reports an outage when the answer carries no expiry at all', () => {
+    // #given an outage, which produces no attestation and therefore no window
+    const action = nextAction(
+      snapshot({
+        ...ready,
+        fresh: {
+          eligible: false,
+          checkedAt: 'now',
+          expiresAt: 0,
+          refusals: [],
+          unavailable: true,
+        },
+        account: PAYER,
+      }),
+    );
+
+    // #then it is not flattened into "the answer expired, ask again"
+    expect(action.title).toContain('did not answer');
+    expect(action.enabled).toBe(false);
+  });
+
   it('waits for the simulation before it calls anything ready', () => {
     const action = nextAction(
       snapshot({

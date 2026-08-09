@@ -324,10 +324,13 @@ export function mountWorkspace(): void {
   });
 
   // Finality is minutes, so the page keeps looking without being reloaded. Reads
-  // only — nothing here sends anything on a timer.
+  // only — nothing here sends anything on a timer. Ten seconds is chosen against
+  // the thing being watched: a guardian signature appears at a moment nobody
+  // controls, and a minute of stale "waiting" after it lands is a page that has
+  // stopped telling the truth.
   window.setInterval(() => {
     if (!session.busy) void refresh();
-  }, 20_000);
+  }, 10_000);
 }
 
 function errorText(error: unknown): string {

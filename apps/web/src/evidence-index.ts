@@ -5,1290 +5,1277 @@
 import type { EvidenceIndex } from './evidence-types.js';
 
 export const EVIDENCE_INDEX: EvidenceIndex = {
-  runs: [
+  "runs": [
     {
-      settlementId: '0xf5d9093fb4585efd56e976737b5e5ca6c29c6b405021f3e6e62bd7d439762f58',
-      generation: 3,
-      title: 'Canonical happy path',
-      summary:
-        'One signed intent, cash on Monad and a restricted RWA on Base, both legs delivered and read back from chain state alone.',
-      outcome: 'FAILED',
-      startedAt: '2026-08-08T20:05:50.800Z',
-      finishedAt: '2026-08-08T20:56:33.734Z',
-      source: 'docs/evidence/phase-06-dvp.json',
-      addresses: {
-        coordinator: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-        escrow: '0x8151D682836f5B7106181bc8e48DC899ab538930',
-        cash: '0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16',
-        rwa: '0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B',
-        adapter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-        wormholeMonad: '0xaBf89de706B583424328B54dD05a8fC986750Da8',
-        wormholeBase: '0x79A1027a6A159502049F10906D333EC57E95F083',
-        policyBase: '0x36489be45fa84f70a0c2bdb11d824be608cb12dd',
-        policyMonad: '0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd',
+      "settlementId": "0xf5d9093fb4585efd56e976737b5e5ca6c29c6b405021f3e6e62bd7d439762f58",
+      "generation": 3,
+      "title": "Canonical happy path",
+      "summary": "One signed intent, cash on Monad and a restricted RWA on Base, both legs delivered and read back from chain state alone.",
+      "outcome": "FAILED",
+      "startedAt": "2026-08-08T20:05:50.800Z",
+      "finishedAt": "2026-08-08T20:56:33.734Z",
+      "source": "docs/evidence/phase-06-dvp.json",
+      "addresses": {
+        "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+        "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+        "cash": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+        "rwa": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+        "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+        "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+        "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+        "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+        "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
       },
-      transactions: [
+      "transactions": [
         {
-          stage: 'Base Sepolia: reserve the bond and announce the leg',
-          key: 'reserve',
-          hash: '0x46a57b013250a0fd1b4d5711ae1011c24ea3804523bf3953dc752dc3c73aa5c9',
-          chainId: 84532,
+          "stage": "Base Sepolia: reserve the bond and announce the leg",
+          "key": "reserve",
+          "hash": "0x46a57b013250a0fd1b4d5711ae1011c24ea3804523bf3953dc752dc3c73aa5c9",
+          "chainId": 84532
         },
         {
-          stage: 'Base Sepolia: reserve the bond and announce the leg',
-          key: 'prepareAsset',
-          hash: '0x49f07047dda9c7e09fa130f47545ee50451b2a3c4221b74897c2abbeea896b72',
-          chainId: 84532,
+          "stage": "Base Sepolia: reserve the bond and announce the leg",
+          "key": "prepareAsset",
+          "hash": "0x49f07047dda9c7e09fa130f47545ee50451b2a3c4221b74897c2abbeea896b72",
+          "chainId": 84532
         },
         {
-          stage: 'Monad Testnet: the cash enters escrow and the escrow reports it',
-          key: 'approve',
-          hash: '0xa890a711f810fa97575f79c1ecac0b51139fa53bbbc363cc9de4713730272fff',
-          chainId: 10143,
+          "stage": "Monad Testnet: the cash enters escrow and the escrow reports it",
+          "key": "approve",
+          "hash": "0xa890a711f810fa97575f79c1ecac0b51139fa53bbbc363cc9de4713730272fff",
+          "chainId": 10143
         },
         {
-          stage: 'Monad Testnet: the cash enters escrow and the escrow reports it',
-          key: 'prepareCash',
-          hash: '0x26643c6480919f5faa7a8163677871647dccd4b7b9c6fcd4e43abdf90c6a7c25',
-          chainId: 10143,
+          "stage": "Monad Testnet: the cash enters escrow and the escrow reports it",
+          "key": "prepareCash",
+          "hash": "0x26643c6480919f5faa7a8163677871647dccd4b7b9c6fcd4e43abdf90c6a7c25",
+          "chainId": 10143
         },
         {
-          stage: 'Monad Testnet: the coordinator consumes the finalized VAA',
-          key: 'recordAssetPrepared',
-          hash: '0xc1c6cbe4e6d80aaf6cfdab4a9d463d8be819b4f9e0fedceab4c5a63f8cd900c8',
-          chainId: 10143,
+          "stage": "Monad Testnet: the coordinator consumes the finalized VAA",
+          "key": "recordAssetPrepared",
+          "hash": "0xc1c6cbe4e6d80aaf6cfdab4a9d463d8be819b4f9e0fedceab4c5a63f8cd900c8",
+          "chainId": 10143
         },
         {
-          stage: 'Monad Testnet: fresh compliance, then COMMIT',
-          key: 'issueCommit',
-          hash: '0x77f1d54eb9f6c8465c090d607bf33fb5aae130868da6045022f0858a47c8d45c',
-          chainId: 10143,
+          "stage": "Monad Testnet: fresh compliance, then COMMIT",
+          "key": "issueCommit",
+          "hash": "0x77f1d54eb9f6c8465c090d607bf33fb5aae130868da6045022f0858a47c8d45c",
+          "chainId": 10143
         },
         {
-          stage: 'Monad Testnet: the escrow reads the decision and pays',
-          key: 'releaseCash',
-          hash: '0x5f969abb65e819bc8e24cfd0af6e7f2f9079cfd02d886d4d9523272ce9e3aff5',
-          chainId: 10143,
+          "stage": "Monad Testnet: the escrow reads the decision and pays",
+          "key": "releaseCash",
+          "hash": "0x5f969abb65e819bc8e24cfd0af6e7f2f9079cfd02d886d4d9523272ce9e3aff5",
+          "chainId": 10143
         },
         {
-          stage: 'Base Sepolia: the adapter consumes COMMIT and delivers',
-          key: 'releaseAsset',
-          hash: '0x7a722f01ddbed0bc5dbfd8fe99ba02939152bed8a3f398db0f2b1298b2b3f92e',
-          chainId: 84532,
+          "stage": "Base Sepolia: the adapter consumes COMMIT and delivers",
+          "key": "releaseAsset",
+          "hash": "0x7a722f01ddbed0bc5dbfd8fe99ba02939152bed8a3f398db0f2b1298b2b3f92e",
+          "chainId": 84532
         },
         {
-          stage: 'Base Sepolia: the asset leg reports what the token did',
-          key: 'reportResolution',
-          hash: '0xc59cf8b7fd2a980f5729a424359d3a7803b96ce81ba280a63b00209d3c0015cd',
-          chainId: 84532,
+          "stage": "Base Sepolia: the asset leg reports what the token did",
+          "key": "reportResolution",
+          "hash": "0xc59cf8b7fd2a980f5729a424359d3a7803b96ce81ba280a63b00209d3c0015cd",
+          "chainId": 84532
         },
         {
-          stage: 'Base Sepolia: the asset leg reports what the token did',
-          key: 'recordLegResolved',
-          hash: '0x216dbe893dbb3477ace10a777908a0f73fa53fff1ba634c44e242ebe7c0c9b9c',
-          chainId: 84532,
-        },
+          "stage": "Base Sepolia: the asset leg reports what the token did",
+          "key": "recordLegResolved",
+          "hash": "0x216dbe893dbb3477ace10a777908a0f73fa53fff1ba634c44e242ebe7c0c9b9c",
+          "chainId": 84532
+        }
       ],
-      messages: [
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '0',
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          emitterChainId: 10004,
-          publishedTx: '0x49f07047dda9c7e09fa130f47545ee50451b2a3c4221b74897c2abbeea896b72',
-          finalitySeconds: 1422,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "0",
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "emitterChainId": 10004,
+          "publishedTx": "0x49f07047dda9c7e09fa130f47545ee50451b2a3c4221b74897c2abbeea896b72",
+          "finalitySeconds": 1422
         },
         {
-          messageType: 'COMMIT',
-          sequence: '0',
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          emitterChainId: 10009,
-          publishedTx: '0x77f1d54eb9f6c8465c090d607bf33fb5aae130868da6045022f0858a47c8d45c',
-          finalitySeconds: 7,
-        },
+          "messageType": "COMMIT",
+          "sequence": "0",
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "emitterChainId": 10009,
+          "publishedTx": "0x77f1d54eb9f6c8465c090d607bf33fb5aae130868da6045022f0858a47c8d45c",
+          "finalitySeconds": 7
+        }
       ],
-      compliance: [
+      "compliance": [
         {
-          at: '2026-08-08T20:31:09.563Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: 'monad',
-          eligible: true,
-          evidenceHash: '0x81337c18677a3608b583ba01679cfb7a60f0ee6b92eaaca8eb529ceeaca3e193',
-          sources: [
+          "at": "2026-08-08T20:31:09.563Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "monad",
+          "eligible": true,
+          "evidenceHash": "0x81337c18677a3608b583ba01679cfb7a60f0ee6b92eaaca8eb529ceeaca3e193",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0x95d73731e7186f44ed10d9d5d71493e663dc521d7323733fb960034a8d34d7b8',
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0x95d73731e7186f44ed10d9d5d71493e663dc521d7323733fb960034a8d34d7b8"
             },
             {
-              endpoint: '/validator/verify',
-              answer: 'valid true',
-              responseHash: '0x9677edef442ea3d5ecb7445e4c588e2f6ddd8170df71614f0abde2f9c40fbf31',
-            },
-          ],
+              "endpoint": "/validator/verify",
+              "answer": "valid true",
+              "responseHash": "0x9677edef442ea3d5ecb7445e4c588e2f6ddd8170df71614f0abde2f9c40fbf31"
+            }
+          ]
         },
         {
-          at: '2026-08-08T20:31:35.801Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: 'monad',
-          eligible: true,
-          evidenceHash: '0x81337c18677a3608b583ba01679cfb7a60f0ee6b92eaaca8eb529ceeaca3e193',
-          sources: [
+          "at": "2026-08-08T20:31:35.801Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "monad",
+          "eligible": true,
+          "evidenceHash": "0x81337c18677a3608b583ba01679cfb7a60f0ee6b92eaaca8eb529ceeaca3e193",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0x95d73731e7186f44ed10d9d5d71493e663dc521d7323733fb960034a8d34d7b8',
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0x95d73731e7186f44ed10d9d5d71493e663dc521d7323733fb960034a8d34d7b8"
             },
             {
-              endpoint: '/validator/verify',
-              answer: 'valid true',
-              responseHash: '0x9677edef442ea3d5ecb7445e4c588e2f6ddd8170df71614f0abde2f9c40fbf31',
-            },
-          ],
+              "endpoint": "/validator/verify",
+              "answer": "valid true",
+              "responseHash": "0x9677edef442ea3d5ecb7445e4c588e2f6ddd8170df71614f0abde2f9c40fbf31"
+            }
+          ]
         },
         {
-          at: '2026-08-08T20:32:12.563Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: 'base',
-          eligible: true,
-          evidenceHash: '0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d',
-          sources: [
+          "at": "2026-08-08T20:32:12.563Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "base",
+          "eligible": true,
+          "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26',
-            },
-          ],
-        },
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+            }
+          ]
+        }
       ],
-      ruleTransitions: [],
-      disposition: null,
-      adversarial: [
+      "ruleTransitions": [],
+      "disposition": null,
+      "adversarial": [
         {
-          attempt: 'a refund after COMMIT',
-          refusedWith: 'ReturnRequiresAbort',
+          "attempt": "a refund after COMMIT",
+          "refusedWith": "ReturnRequiresAbort"
         },
         {
-          attempt: 'the seller cancelling before the COMMIT VAA arrives',
-          refusedWith: 'ReservationAlreadyAnnounced',
+          "attempt": "the seller cancelling before the COMMIT VAA arrives",
+          "refusedWith": "ReservationAlreadyAnnounced"
         },
         {
-          attempt: 'replaying the ASSET_PREPARED VAA',
-          refusedWith: 'VaaAlreadyConsumed',
+          "attempt": "replaying the ASSET_PREPARED VAA",
+          "refusedWith": "VaaAlreadyConsumed"
         },
         {
-          attempt: 'replaying the COMMIT VAA at the adapter',
-          refusedWith: 'VaaAlreadyConsumed',
-        },
+          "attempt": "replaying the COMMIT VAA at the adapter",
+          "refusedWith": "VaaAlreadyConsumed"
+        }
       ],
-      conservation: {
-        opening: {
-          cashPayer: '100000000',
-          cashReceiver: '100000000',
-          cashSupply: '100000000',
-          escrow: '0',
-          assetSeller: '4000000',
-          assetBuyer: '4000000',
-          assetSupply: '4000000',
+      "conservation": {
+        "opening": {
+          "cashPayer": "100000000",
+          "cashReceiver": "100000000",
+          "cashSupply": "100000000",
+          "escrow": "0",
+          "assetSeller": "4000000",
+          "assetBuyer": "4000000",
+          "assetSupply": "4000000"
         },
-        closing: {
-          cashPayer: '100000000',
-          cashSupply: '100000000',
-          escrow: '0',
-          escrowAccounted: '0',
-          assetSeller: '4000000',
-          assetBuyer: '4000000',
-          assetSupply: '4000000',
-          assetReserved: '0',
-        },
+        "closing": {
+          "cashPayer": "100000000",
+          "cashSupply": "100000000",
+          "escrow": "0",
+          "escrowAccounted": "0",
+          "assetSeller": "4000000",
+          "assetBuyer": "4000000",
+          "assetSupply": "4000000",
+          "assetReserved": "0"
+        }
       },
-      limitations: [
-        'The buyer and the seller are the same key. `generate_apass` returns 403 for this credential on both chains (ASM-035), so no second A-Passed EOA can exist and both intent signatures have to come from one wallet. Each leg therefore moves value into and out of a settlement contract rather than between two wallets: conservation is proven at the escrow balance and at the reservation, and the two ERC-20 legs are self-transfers whose net wallet delta is zero by arithmetic.',
+      "limitations": [
+        "The buyer and the seller are the same key. `generate_apass` returns 403 for this credential on both chains (ASM-035), so no second A-Passed EOA can exist and both intent signatures have to come from one wallet. Each leg therefore moves value into and out of a settlement contract rather than between two wallets: conservation is proven at the escrow balance and at the reservation, and the two ERC-20 legs are self-transfers whose net wallet delta is zero by arithmetic."
       ],
-      failure: {
-        classification: 'UNKNOWN',
-        message: 'conservation broken: escrow 0 → 0',
-      },
+      "failure": {
+        "classification": "UNKNOWN",
+        "message": "conservation broken: escrow 0 → 0"
+      }
     },
     {
-      settlementId: '0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0',
-      generation: 3,
-      title: 'Compliance changed after COMMIT',
-      summary:
-        'Eligible at commit time, refused at delivery time by a RuleV2 the issuer moved in between. The cash leg had already released and was not refunded; the asset leg held, and a disposition resolved it.',
-      outcome: 'HELD_THEN_DISPOSITIONED_TO_SETTLED',
-      startedAt: '2026-08-08T22:43:34.390Z',
-      finishedAt: '2026-08-08T23:55:36.324Z',
-      source: 'docs/evidence/phase-07-compliance-change-0xdcb9db12.json',
-      addresses: {
-        coordinator: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-        escrow: '0x8151D682836f5B7106181bc8e48DC899ab538930',
-        cash: '0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16',
-        rwa: '0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B',
-        adapter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-        wormholeMonad: '0xaBf89de706B583424328B54dD05a8fC986750Da8',
-        wormholeBase: '0x79A1027a6A159502049F10906D333EC57E95F083',
-        policyBase: '0x36489be45fa84f70a0c2bdb11d824be608cb12dd',
-        policyMonad: '0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd',
+      "settlementId": "0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0",
+      "generation": 3,
+      "title": "Compliance changed after COMMIT",
+      "summary": "Eligible at commit time, refused at delivery time by a RuleV2 the issuer moved in between. The cash leg had already released and was not refunded; the asset leg held, and a disposition resolved it.",
+      "outcome": "HELD_THEN_DISPOSITIONED_TO_SETTLED",
+      "startedAt": "2026-08-08T22:43:34.390Z",
+      "finishedAt": "2026-08-08T23:55:36.324Z",
+      "source": "docs/evidence/phase-07-compliance-change-0xdcb9db12.json",
+      "addresses": {
+        "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+        "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+        "cash": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+        "rwa": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+        "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+        "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+        "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+        "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+        "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
       },
-      transactions: [
+      "transactions": [
         {
-          stage: 'Base Sepolia: reserve and announce',
-          key: 'reserve',
-          hash: '0xf0d73d3ec94b9d853eae14f81fab12673ff78fc6e614c72eb7a853dd472630b5',
-          chainId: 84532,
+          "stage": "Base Sepolia: reserve and announce",
+          "key": "reserve",
+          "hash": "0xf0d73d3ec94b9d853eae14f81fab12673ff78fc6e614c72eb7a853dd472630b5",
+          "chainId": 84532
         },
         {
-          stage: 'Base Sepolia: reserve and announce',
-          key: 'prepareAsset',
-          hash: '0x96c652a43b128eed45974efce7c4fa31e095be883923c2a44ef1d91e492a98fb',
-          chainId: 84532,
+          "stage": "Base Sepolia: reserve and announce",
+          "key": "prepareAsset",
+          "hash": "0x96c652a43b128eed45974efce7c4fa31e095be883923c2a44ef1d91e492a98fb",
+          "chainId": 84532
         },
         {
-          stage: 'Monad Testnet: the cash enters escrow',
-          key: 'prepareCash',
-          hash: '0x6943cd3a3307c3205d61ce73769937295eab2a357409cd5169393d5ab5a91457',
-          chainId: 10143,
+          "stage": "Monad Testnet: the cash enters escrow",
+          "key": "prepareCash",
+          "hash": "0x6943cd3a3307c3205d61ce73769937295eab2a357409cd5169393d5ab5a91457",
+          "chainId": 10143
         },
         {
-          stage: 'waiting for the finalized ASSET_PREPARED VAA',
-          key: 'recordAssetPrepared',
-          hash: '0x3ca10b15660f6abd0c17167db9a1ae2f16e8186239f8fef5e3ca2fbba212254d',
-          chainId: 10143,
+          "stage": "waiting for the finalized ASSET_PREPARED VAA",
+          "key": "recordAssetPrepared",
+          "hash": "0x3ca10b15660f6abd0c17167db9a1ae2f16e8186239f8fef5e3ca2fbba212254d",
+          "chainId": 10143
         },
         {
-          stage: 'fresh compliance, then COMMIT — the buyer is still eligible',
-          key: 'issueCommit',
-          hash: '0x697aaa8e0b5f2425a8e05048afd988e14efdf9ead5ae7c0c5aee072c30829cf5',
-          chainId: 10143,
+          "stage": "fresh compliance, then COMMIT — the buyer is still eligible",
+          "key": "issueCommit",
+          "hash": "0x697aaa8e0b5f2425a8e05048afd988e14efdf9ead5ae7c0c5aee072c30829cf5",
+          "chainId": 10143
         },
         {
-          stage: 'the cash releases: the seller is paid and cannot be un-paid',
-          key: 'releaseCash',
-          hash: '0xe2c430844875228d09d6782cebd0c2269b624b5c92e0692507fd0bf7bfca901a',
-          chainId: 10143,
+          "stage": "the cash releases: the seller is paid and cannot be un-paid",
+          "key": "releaseCash",
+          "hash": "0xe2c430844875228d09d6782cebd0c2269b624b5c92e0692507fd0bf7bfca901a",
+          "chainId": 10143
         },
         {
-          stage: 'RuleV2: restrict — minTier 21 against a tier-20 holder',
-          key: 'hash',
-          hash: '0x4e0394879c5aa701d2326805851578269081a0def76e237b3c3a630dbefadad7',
-          chainId: 10143,
+          "stage": "RuleV2: restrict — minTier 21 against a tier-20 holder",
+          "key": "hash",
+          "hash": "0x4e0394879c5aa701d2326805851578269081a0def76e237b3c3a630dbefadad7",
+          "chainId": 10143
         },
         {
-          stage: 'the asset leg is asked to deliver, and holds instead',
-          key: 'releaseAsset',
-          hash: '0xb354949dee3f13dcb59ac0da682c8050647bc5a8362f36697e9d02c16ffedaf2',
-          chainId: 10143,
+          "stage": "the asset leg is asked to deliver, and holds instead",
+          "key": "releaseAsset",
+          "hash": "0xb354949dee3f13dcb59ac0da682c8050647bc5a8362f36697e9d02c16ffedaf2",
+          "chainId": 10143
         },
         {
-          stage: 'the asset leg reports what the token did: ASSET_HELD',
-          key: 'reportResolution',
-          hash: '0xfba2c7a1306ccba6a03495ec11269cecfee2abca703f5355ee221a49653e3e19',
-          chainId: 10143,
+          "stage": "the asset leg reports what the token did: ASSET_HELD",
+          "key": "reportResolution",
+          "hash": "0xfba2c7a1306ccba6a03495ec11269cecfee2abca703f5355ee221a49653e3e19",
+          "chainId": 10143
         },
         {
-          stage: 'the asset leg reports what the token did: ASSET_HELD',
-          key: 'recordLegResolved',
-          hash: '0x781867ae9b5cd290017fb8b1fdc02a6fe1110e5ab1726a3cf62d653b1446e98d',
-          chainId: 10143,
+          "stage": "the asset leg reports what the token did: ASSET_HELD",
+          "key": "recordLegResolved",
+          "hash": "0x781867ae9b5cd290017fb8b1fdc02a6fe1110e5ab1726a3cf62d653b1446e98d",
+          "chainId": 10143
         },
         {
-          stage: 'RuleV2: restore — minTier 0',
-          key: 'hash',
-          hash: '0x2400916ef715a2e515eb079ef65a3bcc3500bd60bcb09c63a6333e1e1d1a8199',
-          chainId: 10143,
+          "stage": "RuleV2: restore — minTier 0",
+          "key": "hash",
+          "hash": "0x2400916ef715a2e515eb079ef65a3bcc3500bd60bcb09c63a6333e1e1d1a8199",
+          "chainId": 10143
         },
         {
-          stage: 'disposition',
-          key: 'resolveHeldAsset',
-          hash: '0xf76401dc39e32bbf28dc5c5eb215f09135b6d8b6548e60a4615d0836963696ec',
-          chainId: 10143,
+          "stage": "disposition",
+          "key": "resolveHeldAsset",
+          "hash": "0xf76401dc39e32bbf28dc5c5eb215f09135b6d8b6548e60a4615d0836963696ec",
+          "chainId": 10143
         },
         {
-          stage: 'disposition',
-          key: 'reportResolution',
-          hash: '0xee6e40f3f9d2ed3c5583a636088309caac6c582831f34a9acfe06d34d332d223',
-          chainId: 10143,
+          "stage": "disposition",
+          "key": "reportResolution",
+          "hash": "0xee6e40f3f9d2ed3c5583a636088309caac6c582831f34a9acfe06d34d332d223",
+          "chainId": 10143
         },
         {
-          stage: 'disposition',
-          key: 'recordLegResolved',
-          hash: '0xeee17497b5cd9d7bca2d8c32853b9f9b1c39e592ca8944bea10c2b3bd14d6cea',
-          chainId: 10143,
-        },
+          "stage": "disposition",
+          "key": "recordLegResolved",
+          "hash": "0xeee17497b5cd9d7bca2d8c32853b9f9b1c39e592ca8944bea10c2b3bd14d6cea",
+          "chainId": 10143
+        }
       ],
-      messages: [
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '3',
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          emitterChainId: 10004,
-          publishedTx: '0x96c652a43b128eed45974efce7c4fa31e095be883923c2a44ef1d91e492a98fb',
-          finalitySeconds: null,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "3",
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "emitterChainId": 10004,
+          "publishedTx": "0x96c652a43b128eed45974efce7c4fa31e095be883923c2a44ef1d91e492a98fb",
+          "finalitySeconds": null
         },
         {
-          messageType: 'COMMIT',
-          sequence: '1',
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          emitterChainId: 10009,
-          publishedTx: '0x697aaa8e0b5f2425a8e05048afd988e14efdf9ead5ae7c0c5aee072c30829cf5',
-          finalitySeconds: null,
-        },
+          "messageType": "COMMIT",
+          "sequence": "1",
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "emitterChainId": 10009,
+          "publishedTx": "0x697aaa8e0b5f2425a8e05048afd988e14efdf9ead5ae7c0c5aee072c30829cf5",
+          "finalitySeconds": null
+        }
       ],
-      compliance: [
+      "compliance": [
         {
-          at: '2026-08-08T22:43:56.733Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d',
-          sources: [
+          "at": "2026-08-08T22:43:56.733Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+            }
+          ]
         },
         {
-          at: '2026-08-08T23:04:20.162Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d',
-          sources: [
+          "at": "2026-08-08T23:04:20.162Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+            }
+          ]
         },
         {
-          at: '2026-08-08T23:04:49.160Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: false,
-          evidenceHash: '0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712',
-          sources: [
+          "at": "2026-08-08T23:04:49.160Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": false,
+          "evidenceHash": "0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'refused by policy: TierTooLow',
-              responseHash: '0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "refused by policy: TierTooLow",
+              "responseHash": "0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190"
+            }
+          ]
         },
         {
-          at: '2026-08-08T23:30:20.042Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d',
-          sources: [
+          "at": "2026-08-08T23:30:20.042Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+            }
+          ]
         },
         {
-          at: '2026-08-08T23:30:25.899Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d',
-          sources: [
+          "at": "2026-08-08T23:30:25.899Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26',
-            },
-          ],
-        },
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+            }
+          ]
+        }
       ],
-      ruleTransitions: [
+      "ruleTransitions": [
         {
-          label: 'restrict — minTier 21 against a tier-20 holder',
-          hash: '0x4e0394879c5aa701d2326805851578269081a0def76e237b3c3a630dbefadad7',
-          before: '[[0x0000,0x0000,0,0,false,0]]',
-          after: '[[0x0000,0x0000,21,0,false,0]]',
+          "label": "restrict — minTier 21 against a tier-20 holder",
+          "hash": "0x4e0394879c5aa701d2326805851578269081a0def76e237b3c3a630dbefadad7",
+          "before": "[[0x0000,0x0000,0,0,false,0]]",
+          "after": "[[0x0000,0x0000,21,0,false,0]]"
         },
         {
-          label: 'restore — minTier 0',
-          hash: '0x2400916ef715a2e515eb079ef65a3bcc3500bd60bcb09c63a6333e1e1d1a8199',
-          before: '[[0x0000,0x0000,21,0,false,0]]',
-          after: '[[0x0000,0x0000,0,0,false,0]]',
-        },
+          "label": "restore — minTier 0",
+          "hash": "0x2400916ef715a2e515eb079ef65a3bcc3500bd60bcb09c63a6333e1e1d1a8199",
+          "before": "[[0x0000,0x0000,21,0,false,0]]",
+          "after": "[[0x0000,0x0000,0,0,false,0]]"
+        }
       ],
-      disposition: {
-        type: 'REVERIFY_AND_RESUME',
-        hash: '0xf76401dc39e32bbf28dc5c5eb215f09135b6d8b6548e60a4615d0836963696ec',
+      "disposition": {
+        "type": "REVERIFY_AND_RESUME",
+        "hash": "0xf76401dc39e32bbf28dc5c5eb215f09135b6d8b6548e60a4615d0836963696ec"
       },
-      adversarial: [
+      "adversarial": [
         {
-          attempt: 'a refund to the payer after COMMIT',
-          refusedWith: 'LegNotInState',
+          "attempt": "a refund to the payer after COMMIT",
+          "refusedWith": "LegNotInState"
         },
         {
-          attempt: 'the seller reclaiming the reserved bond',
-          refusedWith: 'ReservationAlreadyCommitted',
+          "attempt": "the seller reclaiming the reserved bond",
+          "refusedWith": "ReservationAlreadyCommitted"
         },
         {
-          attempt: 'an ABORT after the COMMIT',
-          refusedWith: 'AbortAfterCommitForbidden',
-        },
+          "attempt": "an ABORT after the COMMIT",
+          "refusedWith": "AbortAfterCommitForbidden"
+        }
       ],
-      conservation: {
-        before: {
-          at: '2026-08-08T22:43:40.525Z',
-          'cash.payer': '75000000',
-          'cash.receiver': '75000000',
-          'cash.escrow': '25000000',
-          'cash.totalEscrowed': '25000000',
-          'cash.totalSupply': '100000000',
-          'rwa.sellerNominal': '4000000',
-          'rwa.sellerReserved': '500000',
-          'rwa.sellerAvailable': '3500000',
-          'rwa.receiver': '4000000',
-          'rwa.totalSupply': '4000000',
+      "conservation": {
+        "before": {
+          "at": "2026-08-08T22:43:40.525Z",
+          "cash.payer": "75000000",
+          "cash.receiver": "75000000",
+          "cash.escrow": "25000000",
+          "cash.totalEscrowed": "25000000",
+          "cash.totalSupply": "100000000",
+          "rwa.sellerNominal": "4000000",
+          "rwa.sellerReserved": "500000",
+          "rwa.sellerAvailable": "3500000",
+          "rwa.receiver": "4000000",
+          "rwa.totalSupply": "4000000"
         },
-        'at held': {
-          at: '2026-08-08T23:05:04.713Z',
-          'cash.payer': '75000000',
-          'cash.receiver': '75000000',
-          'cash.escrow': '25000000',
-          'cash.totalEscrowed': '25000000',
-          'cash.totalSupply': '100000000',
-          'rwa.sellerNominal': '4000000',
-          'rwa.sellerReserved': '1000000',
-          'rwa.sellerAvailable': '3000000',
-          'rwa.receiver': '4000000',
-          'rwa.totalSupply': '4000000',
+        "at held": {
+          "at": "2026-08-08T23:05:04.713Z",
+          "cash.payer": "75000000",
+          "cash.receiver": "75000000",
+          "cash.escrow": "25000000",
+          "cash.totalEscrowed": "25000000",
+          "cash.totalSupply": "100000000",
+          "rwa.sellerNominal": "4000000",
+          "rwa.sellerReserved": "1000000",
+          "rwa.sellerAvailable": "3000000",
+          "rwa.receiver": "4000000",
+          "rwa.totalSupply": "4000000"
         },
-        after: {
-          at: '2026-08-08T23:30:20.043Z',
-          'cash.payer': '75000000',
-          'cash.receiver': '75000000',
-          'cash.escrow': '25000000',
-          'cash.totalEscrowed': '25000000',
-          'cash.totalSupply': '100000000',
-          'rwa.sellerNominal': '4000000',
-          'rwa.sellerReserved': '1000000',
-          'rwa.sellerAvailable': '3000000',
-          'rwa.receiver': '4000000',
-          'rwa.totalSupply': '4000000',
+        "after": {
+          "at": "2026-08-08T23:30:20.043Z",
+          "cash.payer": "75000000",
+          "cash.receiver": "75000000",
+          "cash.escrow": "25000000",
+          "cash.totalEscrowed": "25000000",
+          "cash.totalSupply": "100000000",
+          "rwa.sellerNominal": "4000000",
+          "rwa.sellerReserved": "1000000",
+          "rwa.sellerAvailable": "3000000",
+          "rwa.receiver": "4000000",
+          "rwa.totalSupply": "4000000"
         },
-        'after disposition': {
-          at: '2026-08-08T23:55:33.270Z',
-          'cash.payer': '75000000',
-          'cash.receiver': '75000000',
-          'cash.escrow': '25000000',
-          'cash.totalEscrowed': '25000000',
-          'cash.totalSupply': '100000000',
-          'rwa.sellerNominal': '4000000',
-          'rwa.sellerReserved': '500000',
-          'rwa.sellerAvailable': '3500000',
-          'rwa.receiver': '4000000',
-          'rwa.totalSupply': '4000000',
-        },
+        "after disposition": {
+          "at": "2026-08-08T23:55:33.270Z",
+          "cash.payer": "75000000",
+          "cash.receiver": "75000000",
+          "cash.escrow": "25000000",
+          "cash.totalEscrowed": "25000000",
+          "cash.totalSupply": "100000000",
+          "rwa.sellerNominal": "4000000",
+          "rwa.sellerReserved": "500000",
+          "rwa.sellerAvailable": "3500000",
+          "rwa.receiver": "4000000",
+          "rwa.totalSupply": "4000000"
+        }
       },
-      limitations: [],
-      failure: null,
+      "limitations": [],
+      "failure": null
     },
     {
-      settlementId: '0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17',
-      generation: 1,
-      title: 'The same path, first demonstrated',
-      summary:
-        'The first live HELD-then-dispositioned settlement, on the first deployment generation. It stays verifiable against generation-1 contracts; the current generation cannot answer for it.',
-      outcome: 'HELD_THEN_DISPOSITIONED_TO_SETTLED',
-      startedAt: '2026-08-08T14:28:24.744Z',
-      finishedAt: '2026-08-08T15:36:25.327Z',
-      source: 'docs/evidence/phase-07-compliance-change-0x893ca44e.json',
-      addresses: {
-        coordinator: '0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86',
-        escrow: '0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b',
-        cash: '0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf',
-        rwa: '0x7a78912533b43C483621200b4919806c0B855E5b',
-        adapter: '0x51c3D536e94fB5b944c2AF8946d6916543bdf93a',
-        wormholeMonad: '0xaBf89de706B583424328B54dD05a8fC986750Da8',
-        wormholeBase: '0x79A1027a6A159502049F10906D333EC57E95F083',
-        policyBase: '0x36489be45fa84f70a0c2bdb11d824be608cb12dd',
-        policyMonad: '0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd',
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "generation": 1,
+      "title": "The same path, first demonstrated",
+      "summary": "The first live HELD-then-dispositioned settlement, on the first deployment generation. It stays verifiable against generation-1 contracts; the current generation cannot answer for it.",
+      "outcome": "HELD_THEN_DISPOSITIONED_TO_SETTLED",
+      "startedAt": "2026-08-08T14:28:24.744Z",
+      "finishedAt": "2026-08-08T15:36:25.327Z",
+      "source": "docs/evidence/phase-07-compliance-change-0x893ca44e.json",
+      "addresses": {
+        "coordinator": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
+        "escrow": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
+        "cash": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+        "rwa": "0x7a78912533b43C483621200b4919806c0B855E5b",
+        "adapter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+        "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+        "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+        "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+        "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
       },
-      transactions: [
+      "transactions": [
         {
-          stage: 'Base Sepolia: reserve and announce',
-          key: 'reserve',
-          hash: '0x959cfc6e368df464a6b923824ce98cb6079a8600f5625b4a2632320772964529',
-          chainId: 84532,
+          "stage": "Base Sepolia: reserve and announce",
+          "key": "reserve",
+          "hash": "0x959cfc6e368df464a6b923824ce98cb6079a8600f5625b4a2632320772964529",
+          "chainId": 84532
         },
         {
-          stage: 'Base Sepolia: reserve and announce',
-          key: 'prepareAsset',
-          hash: '0x6c184ac5d7a2adc09f2115ad59f49a7abc2ee083ea983d26a3ce553a1717bf9d',
-          chainId: 84532,
+          "stage": "Base Sepolia: reserve and announce",
+          "key": "prepareAsset",
+          "hash": "0x6c184ac5d7a2adc09f2115ad59f49a7abc2ee083ea983d26a3ce553a1717bf9d",
+          "chainId": 84532
         },
         {
-          stage: 'Monad Testnet: the cash enters escrow',
-          key: 'prepareCash',
-          hash: '0x888ae7fcd0eb66e1ca017e5b8097512b25b075138df2e6386333d167310fc9b8',
-          chainId: 10143,
+          "stage": "Monad Testnet: the cash enters escrow",
+          "key": "prepareCash",
+          "hash": "0x888ae7fcd0eb66e1ca017e5b8097512b25b075138df2e6386333d167310fc9b8",
+          "chainId": 10143
         },
         {
-          stage: 'waiting for the finalized ASSET_PREPARED VAA',
-          key: 'recordAssetPrepared',
-          hash: '0x43d28371070b5b052b7a839841a0a2913c798be5445ae1eb7d076799280bb7ba',
-          chainId: 10143,
+          "stage": "waiting for the finalized ASSET_PREPARED VAA",
+          "key": "recordAssetPrepared",
+          "hash": "0x43d28371070b5b052b7a839841a0a2913c798be5445ae1eb7d076799280bb7ba",
+          "chainId": 10143
         },
         {
-          stage: 'fresh compliance, then COMMIT — the buyer is still eligible',
-          key: 'issueCommit',
-          hash: '0xfa488180761767b274edfc26850c9781ad7b08183099cfc9383c93d9a7b5a0ea',
-          chainId: 10143,
+          "stage": "fresh compliance, then COMMIT — the buyer is still eligible",
+          "key": "issueCommit",
+          "hash": "0xfa488180761767b274edfc26850c9781ad7b08183099cfc9383c93d9a7b5a0ea",
+          "chainId": 10143
         },
         {
-          stage: 'the cash releases: the seller is paid and cannot be un-paid',
-          key: 'releaseCash',
-          hash: '0xd7ce72415cc96f310268fde6b4b8c14598dce0284a1c2ac7b28302bcebac394c',
-          chainId: 10143,
+          "stage": "the cash releases: the seller is paid and cannot be un-paid",
+          "key": "releaseCash",
+          "hash": "0xd7ce72415cc96f310268fde6b4b8c14598dce0284a1c2ac7b28302bcebac394c",
+          "chainId": 10143
         },
         {
-          stage: 'RuleV2: restrict — minTier 21 against a tier-20 holder',
-          key: 'hash',
-          hash: '0x52b637bb7361e16ccbec8dfb23c6a22b2b6c0f592a5c5e6e6cc567fd82c7835e',
-          chainId: 10143,
+          "stage": "RuleV2: restrict — minTier 21 against a tier-20 holder",
+          "key": "hash",
+          "hash": "0x52b637bb7361e16ccbec8dfb23c6a22b2b6c0f592a5c5e6e6cc567fd82c7835e",
+          "chainId": 10143
         },
         {
-          stage: 'the asset leg is asked to deliver, and holds instead',
-          key: 'releaseAsset',
-          hash: '0x7cb8c88968597a7f72f2a6a1e6f807600d2bed5a719b68ac8eebbd9e88f9aff6',
-          chainId: 10143,
+          "stage": "the asset leg is asked to deliver, and holds instead",
+          "key": "releaseAsset",
+          "hash": "0x7cb8c88968597a7f72f2a6a1e6f807600d2bed5a719b68ac8eebbd9e88f9aff6",
+          "chainId": 10143
         },
         {
-          stage: 'the asset leg reports what the token did: ASSET_HELD',
-          key: 'reportResolution',
-          hash: '0x752ad39e9ceb82918719c80e6205c66ea1657734895b049e340b8ecc7e6ccb2c',
-          chainId: 10143,
+          "stage": "the asset leg reports what the token did: ASSET_HELD",
+          "key": "reportResolution",
+          "hash": "0x752ad39e9ceb82918719c80e6205c66ea1657734895b049e340b8ecc7e6ccb2c",
+          "chainId": 10143
         },
         {
-          stage: 'the asset leg reports what the token did: ASSET_HELD',
-          key: 'recordLegResolved',
-          hash: '0x6afa7b7c77430e719bc1a72bb2adffde3f67ab66aaa1836712cd709262c87afc',
-          chainId: 10143,
+          "stage": "the asset leg reports what the token did: ASSET_HELD",
+          "key": "recordLegResolved",
+          "hash": "0x6afa7b7c77430e719bc1a72bb2adffde3f67ab66aaa1836712cd709262c87afc",
+          "chainId": 10143
         },
         {
-          stage: 'RuleV2: restore — minTier 0',
-          key: 'hash',
-          hash: '0x051467c50b949b16cb9afd72199221b92cea63685e7e3ee2926ee62b889e8e93',
-          chainId: 10143,
+          "stage": "RuleV2: restore — minTier 0",
+          "key": "hash",
+          "hash": "0x051467c50b949b16cb9afd72199221b92cea63685e7e3ee2926ee62b889e8e93",
+          "chainId": 10143
         },
         {
-          stage: 'disposition',
-          key: 'resolveHeldAsset',
-          hash: '0xd0b20a90f7181f1ddb96e06727b2a0a2d69894e688ec43eb2e6b3d968b44a44a',
-          chainId: 10143,
+          "stage": "disposition",
+          "key": "resolveHeldAsset",
+          "hash": "0xd0b20a90f7181f1ddb96e06727b2a0a2d69894e688ec43eb2e6b3d968b44a44a",
+          "chainId": 10143
         },
         {
-          stage: 'disposition',
-          key: 'reportResolution',
-          hash: '0xd6f100feda2553123e77e2485fb4649b3903e33a91c63e76f1faab36c6abba08',
-          chainId: 10143,
+          "stage": "disposition",
+          "key": "reportResolution",
+          "hash": "0xd6f100feda2553123e77e2485fb4649b3903e33a91c63e76f1faab36c6abba08",
+          "chainId": 10143
         },
         {
-          stage: 'disposition',
-          key: 'recordLegResolved',
-          hash: '0x66f85a623d66fdd13f65b9da6d311108a6b37b2bd88913c7be2a75054c2b1039',
-          chainId: 10143,
-        },
+          "stage": "disposition",
+          "key": "recordLegResolved",
+          "hash": "0x66f85a623d66fdd13f65b9da6d311108a6b37b2bd88913c7be2a75054c2b1039",
+          "chainId": 10143
+        }
       ],
-      messages: [
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '0',
-          emitter: '0x51c3D536e94fB5b944c2AF8946d6916543bdf93a',
-          emitterChainId: 10004,
-          publishedTx: '0x6c184ac5d7a2adc09f2115ad59f49a7abc2ee083ea983d26a3ce553a1717bf9d',
-          finalitySeconds: null,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "0",
+          "emitter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+          "emitterChainId": 10004,
+          "publishedTx": "0x6c184ac5d7a2adc09f2115ad59f49a7abc2ee083ea983d26a3ce553a1717bf9d",
+          "finalitySeconds": null
         },
         {
-          messageType: 'COMMIT',
-          sequence: '0',
-          emitter: '0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86',
-          emitterChainId: 10009,
-          publishedTx: '0xfa488180761767b274edfc26850c9781ad7b08183099cfc9383c93d9a7b5a0ea',
-          finalitySeconds: null,
-        },
+          "messageType": "COMMIT",
+          "sequence": "0",
+          "emitter": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
+          "emitterChainId": 10009,
+          "publishedTx": "0xfa488180761767b274edfc26850c9781ad7b08183099cfc9383c93d9a7b5a0ea",
+          "finalitySeconds": null
+        }
       ],
-      compliance: [
+      "compliance": [
         {
-          at: '2026-08-08T14:28:32.265Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30',
-          sources: [
+          "at": "2026-08-08T14:28:32.265Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+            }
+          ]
         },
         {
-          at: '2026-08-08T14:51:36.915Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30',
-          sources: [
+          "at": "2026-08-08T14:51:36.915Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+            }
+          ]
         },
         {
-          at: '2026-08-08T14:51:58.018Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: false,
-          evidenceHash: '0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712',
-          sources: [
+          "at": "2026-08-08T14:51:58.018Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": false,
+          "evidenceHash": "0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'refused by policy: TierTooLow',
-              responseHash: '0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "refused by policy: TierTooLow",
+              "responseHash": "0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190"
+            }
+          ]
         },
         {
-          at: '2026-08-08T15:11:06.963Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30',
-          sources: [
+          "at": "2026-08-08T15:11:06.963Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a',
-            },
-          ],
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+            }
+          ]
         },
         {
-          at: '2026-08-08T15:11:13.635Z',
-          subject: '0x83C130ed9fb92830F09ea2b30E49009EF03065Bb',
-          chain: '',
-          eligible: true,
-          evidenceHash: '0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30',
-          sources: [
+          "at": "2026-08-08T15:11:13.635Z",
+          "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+          "chain": "",
+          "eligible": true,
+          "evidenceHash": "0x5de2001d0daf546368f70ce6ec39c2c01426bec56d96f545248248127f32ba30",
+          "sources": [
             {
-              endpoint: '/verify_apass',
-              answer: 'code 4',
-              responseHash: '0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a',
-            },
-          ],
-        },
+              "endpoint": "/verify_apass",
+              "answer": "code 4",
+              "responseHash": "0x40892a911dabda1eb6bbc36edc4532db6d85ba8e865278c45e5542ccf2ad368a"
+            }
+          ]
+        }
       ],
-      ruleTransitions: [
+      "ruleTransitions": [
         {
-          label: 'restrict — minTier 21 against a tier-20 holder',
-          hash: '0x52b637bb7361e16ccbec8dfb23c6a22b2b6c0f592a5c5e6e6cc567fd82c7835e',
-          before: '[[0x0000,0x0000,0,0,false,0]]',
-          after: '[[0x0000,0x0000,21,0,false,0]]',
+          "label": "restrict — minTier 21 against a tier-20 holder",
+          "hash": "0x52b637bb7361e16ccbec8dfb23c6a22b2b6c0f592a5c5e6e6cc567fd82c7835e",
+          "before": "[[0x0000,0x0000,0,0,false,0]]",
+          "after": "[[0x0000,0x0000,21,0,false,0]]"
         },
         {
-          label: 'restore — minTier 0',
-          hash: '0x051467c50b949b16cb9afd72199221b92cea63685e7e3ee2926ee62b889e8e93',
-          before: '[[0x0000,0x0000,21,0,false,0]]',
-          after: '[[0x0000,0x0000,0,0,false,0]]',
-        },
+          "label": "restore — minTier 0",
+          "hash": "0x051467c50b949b16cb9afd72199221b92cea63685e7e3ee2926ee62b889e8e93",
+          "before": "[[0x0000,0x0000,21,0,false,0]]",
+          "after": "[[0x0000,0x0000,0,0,false,0]]"
+        }
       ],
-      disposition: {
-        type: 'REVERIFY_AND_RESUME',
-        hash: '0xd0b20a90f7181f1ddb96e06727b2a0a2d69894e688ec43eb2e6b3d968b44a44a',
+      "disposition": {
+        "type": "REVERIFY_AND_RESUME",
+        "hash": "0xd0b20a90f7181f1ddb96e06727b2a0a2d69894e688ec43eb2e6b3d968b44a44a"
       },
-      adversarial: [
+      "adversarial": [
         {
-          attempt: 'a refund to the payer after COMMIT',
-          refusedWith: 'LegNotInState',
+          "attempt": "a refund to the payer after COMMIT",
+          "refusedWith": "LegNotInState"
         },
         {
-          attempt: 'the seller reclaiming the reserved bond',
-          refusedWith: 'ReservationAlreadyCommitted',
+          "attempt": "the seller reclaiming the reserved bond",
+          "refusedWith": "ReservationAlreadyCommitted"
         },
         {
-          attempt: 'an ABORT after the COMMIT',
-          refusedWith: 'AbortAfterCommitForbidden',
-        },
+          "attempt": "an ABORT after the COMMIT",
+          "refusedWith": "AbortAfterCommitForbidden"
+        }
       ],
-      conservation: {
-        before: {
-          at: '2026-08-08T14:28:27.937Z',
-          'cash.payer': '725000000',
-          'cash.receiver': '725000000',
-          'cash.escrow': '0',
-          'cash.totalEscrowed': '0',
-          'cash.totalSupply': '1000000000',
-          'rwa.sellerNominal': '2000000',
-          'rwa.sellerReserved': '500000',
-          'rwa.sellerAvailable': '1500000',
-          'rwa.receiver': '2000000',
-          'rwa.totalSupply': '2000000',
+      "conservation": {
+        "before": {
+          "at": "2026-08-08T14:28:27.937Z",
+          "cash.payer": "725000000",
+          "cash.receiver": "725000000",
+          "cash.escrow": "0",
+          "cash.totalEscrowed": "0",
+          "cash.totalSupply": "1000000000",
+          "rwa.sellerNominal": "2000000",
+          "rwa.sellerReserved": "500000",
+          "rwa.sellerAvailable": "1500000",
+          "rwa.receiver": "2000000",
+          "rwa.totalSupply": "2000000"
         },
-        'at held': {
-          at: '2026-08-08T14:52:15.659Z',
-          'cash.payer': '725000000',
-          'cash.receiver': '725000000',
-          'cash.escrow': '0',
-          'cash.totalEscrowed': '0',
-          'cash.totalSupply': '1000000000',
-          'rwa.sellerNominal': '2000000',
-          'rwa.sellerReserved': '1000000',
-          'rwa.sellerAvailable': '1000000',
-          'rwa.receiver': '2000000',
-          'rwa.totalSupply': '2000000',
+        "at held": {
+          "at": "2026-08-08T14:52:15.659Z",
+          "cash.payer": "725000000",
+          "cash.receiver": "725000000",
+          "cash.escrow": "0",
+          "cash.totalEscrowed": "0",
+          "cash.totalSupply": "1000000000",
+          "rwa.sellerNominal": "2000000",
+          "rwa.sellerReserved": "1000000",
+          "rwa.sellerAvailable": "1000000",
+          "rwa.receiver": "2000000",
+          "rwa.totalSupply": "2000000"
         },
-        after: {
-          at: '2026-08-08T15:11:06.964Z',
-          'cash.payer': '725000000',
-          'cash.receiver': '725000000',
-          'cash.escrow': '0',
-          'cash.totalEscrowed': '0',
-          'cash.totalSupply': '1000000000',
-          'rwa.sellerNominal': '2000000',
-          'rwa.sellerReserved': '1000000',
-          'rwa.sellerAvailable': '1000000',
-          'rwa.receiver': '2000000',
-          'rwa.totalSupply': '2000000',
+        "after": {
+          "at": "2026-08-08T15:11:06.964Z",
+          "cash.payer": "725000000",
+          "cash.receiver": "725000000",
+          "cash.escrow": "0",
+          "cash.totalEscrowed": "0",
+          "cash.totalSupply": "1000000000",
+          "rwa.sellerNominal": "2000000",
+          "rwa.sellerReserved": "1000000",
+          "rwa.sellerAvailable": "1000000",
+          "rwa.receiver": "2000000",
+          "rwa.totalSupply": "2000000"
         },
-        'after disposition': {
-          at: '2026-08-08T15:36:21.231Z',
-          'cash.payer': '725000000',
-          'cash.receiver': '725000000',
-          'cash.escrow': '0',
-          'cash.totalEscrowed': '0',
-          'cash.totalSupply': '1000000000',
-          'rwa.sellerNominal': '2000000',
-          'rwa.sellerReserved': '500000',
-          'rwa.sellerAvailable': '1500000',
-          'rwa.receiver': '2000000',
-          'rwa.totalSupply': '2000000',
-        },
+        "after disposition": {
+          "at": "2026-08-08T15:36:21.231Z",
+          "cash.payer": "725000000",
+          "cash.receiver": "725000000",
+          "cash.escrow": "0",
+          "cash.totalEscrowed": "0",
+          "cash.totalSupply": "1000000000",
+          "rwa.sellerNominal": "2000000",
+          "rwa.sellerReserved": "500000",
+          "rwa.sellerAvailable": "1500000",
+          "rwa.receiver": "2000000",
+          "rwa.totalSupply": "2000000"
+        }
       },
-      limitations: [],
-      failure: null,
-    },
+      "limitations": [],
+      "failure": null
+    }
   ],
-  verifications: [
+  "verifications": [
     {
-      settlementId: '0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17',
-      deploymentId: '0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417',
-      classification: 'SETTLED_FINAL',
-      canonicalState: 'SETTLED',
-      verifiedAt: '2026-08-08T15:46:10.936Z',
-      passed: 18,
-      total: 18,
-      trustRoot:
-        'deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.',
-      searchedBlockRanges: {
-        '10143': {
-          from: '51976000',
-          to: '51989300',
+      "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "classification": "SETTLED_FINAL",
+      "canonicalState": "SETTLED",
+      "verifiedAt": "2026-08-08T15:46:10.936Z",
+      "passed": 18,
+      "total": 18,
+      "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.",
+      "searchedBlockRanges": {
+        "10143": {
+          "from": "51976000",
+          "to": "51989300"
         },
-        '84532': {
-          from: '45215500',
-          to: '45216850',
-        },
+        "84532": {
+          "from": "45215500",
+          "to": "45216850"
+        }
       },
-      source: 'docs/evidence/verification-30aa1b738c.json',
-      messages: [
+      "source": "docs/evidence/verification-30aa1b738c.json",
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '0',
-          emitterChainId: 10004,
-          emitter: '0x51c3D536e94fB5b944c2AF8946d6916543bdf93a',
-          vaaHash: '0x4f6eceacf2ee039e1556a77d77d4e0af6939d3014d84129273913fdd52ede8ad',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "0",
+          "emitterChainId": 10004,
+          "emitter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+          "vaaHash": "0x4f6eceacf2ee039e1556a77d77d4e0af6939d3014d84129273913fdd52ede8ad",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'ASSET_HELD',
-          sequence: '1',
-          emitterChainId: 10004,
-          emitter: '0x51c3D536e94fB5b944c2AF8946d6916543bdf93a',
-          vaaHash: '0xc4ae2bdb10afd26acfc00cbc1f44afd879936145e8ced5f6dba33474094f1c18',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_HELD",
+          "sequence": "1",
+          "emitterChainId": 10004,
+          "emitter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+          "vaaHash": "0xc4ae2bdb10afd26acfc00cbc1f44afd879936145e8ced5f6dba33474094f1c18",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'ASSET_RELEASED',
-          sequence: '2',
-          emitterChainId: 10004,
-          emitter: '0x51c3D536e94fB5b944c2AF8946d6916543bdf93a',
-          vaaHash: '0xb9865c839fc4d5492bd9b96489b2d6cd2803a19ae2a8b381376d26c3e0ebbb5b',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_RELEASED",
+          "sequence": "2",
+          "emitterChainId": 10004,
+          "emitter": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+          "vaaHash": "0xb9865c839fc4d5492bd9b96489b2d6cd2803a19ae2a8b381376d26c3e0ebbb5b",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'CASH_PREPARED',
-          sequence: '0',
-          emitterChainId: 10009,
-          emitter: '0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b',
-          vaaHash: '0xb6ecd2def375e7d6f671d86854511d82086fc4367bcb65b9f0db1c9082d8119b',
-          finality: 'FINALIZED',
-          consumed: false,
+          "messageType": "CASH_PREPARED",
+          "sequence": "0",
+          "emitterChainId": 10009,
+          "emitter": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
+          "vaaHash": "0xb6ecd2def375e7d6f671d86854511d82086fc4367bcb65b9f0db1c9082d8119b",
+          "finality": "FINALIZED",
+          "consumed": false
         },
         {
-          messageType: 'COMMIT',
-          sequence: '0',
-          emitterChainId: 10009,
-          emitter: '0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86',
-          vaaHash: '0x38fe3f271c75309c0ac711f5ddd30cc0d42c8d6d397520e14a088575fe464b7c',
-          finality: 'FINALIZED',
-          consumed: true,
-        },
-      ],
+          "messageType": "COMMIT",
+          "sequence": "0",
+          "emitterChainId": 10009,
+          "emitter": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
+          "vaaHash": "0x38fe3f271c75309c0ac711f5ddd30cc0d42c8d6d397520e14a088575fe464b7c",
+          "finality": "FINALIZED",
+          "consumed": true
+        }
+      ]
     },
     {
-      settlementId: '0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858',
-      deploymentId: '0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843',
-      classification: 'SETTLED_FINAL',
-      canonicalState: 'SETTLED',
-      verifiedAt: '2026-08-08T12:55:28.704Z',
-      passed: 18,
-      total: 18,
-      trustRoot:
-        'deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.',
-      searchedBlockRanges: {
-        '10143': {
-          from: '51911700',
-          to: '51941600',
+      "settlementId": "0x940f1c152189bd0aa9803dceb671b676426cab36681ac6bdd492b1645f658858",
+      "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
+      "classification": "SETTLED_FINAL",
+      "canonicalState": "SETTLED",
+      "verifiedAt": "2026-08-08T12:55:28.704Z",
+      "passed": 18,
+      "total": 18,
+      "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.",
+      "searchedBlockRanges": {
+        "10143": {
+          "from": "51911700",
+          "to": "51941600"
         },
-        '84532': {
-          from: '45205600',
-          to: '45209700',
-        },
+        "84532": {
+          "from": "45205600",
+          "to": "45209700"
+        }
       },
-      source: 'docs/evidence/verification-940f1c1521.json',
-      messages: [
+      "source": "docs/evidence/verification-940f1c1521.json",
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '0',
-          emitterChainId: 10004,
-          emitter: '0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE',
-          vaaHash: '0xdbe351b7717842e9f2fa4235e099f79be0158ac535fd5c7287d5d8a050af6edd',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "0",
+          "emitterChainId": 10004,
+          "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+          "vaaHash": "0xdbe351b7717842e9f2fa4235e099f79be0158ac535fd5c7287d5d8a050af6edd",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'ASSET_RELEASED',
-          sequence: '1',
-          emitterChainId: 10004,
-          emitter: '0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE',
-          vaaHash: '0xc859458a1e71f28c11708fb1b9e4231d6ff8f0e118c0ab7d0212f3103a8de0fb',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_RELEASED",
+          "sequence": "1",
+          "emitterChainId": 10004,
+          "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+          "vaaHash": "0xc859458a1e71f28c11708fb1b9e4231d6ff8f0e118c0ab7d0212f3103a8de0fb",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'CASH_PREPARED',
-          sequence: '0',
-          emitterChainId: 10009,
-          emitter: '0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB',
-          vaaHash: '0x008ffb59dd9f4d8272d5c050b00b42ecab5c31dcb55a01e135ca0924b7c14ee0',
-          finality: 'FINALIZED',
-          consumed: false,
+          "messageType": "CASH_PREPARED",
+          "sequence": "0",
+          "emitterChainId": 10009,
+          "emitter": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+          "vaaHash": "0x008ffb59dd9f4d8272d5c050b00b42ecab5c31dcb55a01e135ca0924b7c14ee0",
+          "finality": "FINALIZED",
+          "consumed": false
         },
         {
-          messageType: 'COMMIT',
-          sequence: '0',
-          emitterChainId: 10009,
-          emitter: '0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE',
-          vaaHash: '0x27ddbedf084c9b071aae449f7d88c91c6ce0a2fa96fe3c28789cae9b362d156f',
-          finality: 'FINALIZED',
-          consumed: true,
-        },
-      ],
+          "messageType": "COMMIT",
+          "sequence": "0",
+          "emitterChainId": 10009,
+          "emitter": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+          "vaaHash": "0x27ddbedf084c9b071aae449f7d88c91c6ce0a2fa96fe3c28789cae9b362d156f",
+          "finality": "FINALIZED",
+          "consumed": true
+        }
+      ]
     },
     {
-      settlementId: '0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0',
-      deploymentId: '0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6',
-      classification: 'SETTLED_FINAL',
-      canonicalState: 'SETTLED',
-      verifiedAt: '2026-08-09T00:01:37.488Z',
-      passed: 18,
-      total: 18,
-      trustRoot:
-        'deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.',
-      searchedBlockRanges: {
-        '10143': {
-          from: '52068188',
-          to: '52088188',
+      "settlementId": "0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0",
+      "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+      "classification": "SETTLED_FINAL",
+      "canonicalState": "SETTLED",
+      "verifiedAt": "2026-08-09T00:01:37.488Z",
+      "passed": 18,
+      "total": 18,
+      "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.",
+      "searchedBlockRanges": {
+        "10143": {
+          "from": "52068188",
+          "to": "52088188"
         },
-        '84532': {
-          from: '45212627',
-          to: '45232627',
-        },
+        "84532": {
+          "from": "45212627",
+          "to": "45232627"
+        }
       },
-      source: 'docs/evidence/verification-c113ad335d.json',
-      messages: [
+      "source": "docs/evidence/verification-c113ad335d.json",
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '3',
-          emitterChainId: 10004,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0xb145f27909273d15c8cf34478af3f675a9bf9aff7cefa6c4390695b8771065d1',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "3",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0xb145f27909273d15c8cf34478af3f675a9bf9aff7cefa6c4390695b8771065d1",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'ASSET_HELD',
-          sequence: '4',
-          emitterChainId: 10004,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0x671555806c3f8fbd10e09b1e1184771932cc9cc4fd971f0903a7a1bbdfb9e4e3',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_HELD",
+          "sequence": "4",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x671555806c3f8fbd10e09b1e1184771932cc9cc4fd971f0903a7a1bbdfb9e4e3",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'ASSET_RELEASED',
-          sequence: '5',
-          emitterChainId: 10004,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0xdc4d795d4b70043b26be010d295e807a231bde56b9f8f281911e4e7e3c5c1a14',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_RELEASED",
+          "sequence": "5",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0xdc4d795d4b70043b26be010d295e807a231bde56b9f8f281911e4e7e3c5c1a14",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'CASH_PREPARED',
-          sequence: '2',
-          emitterChainId: 10009,
-          emitter: '0x8151D682836f5B7106181bc8e48DC899ab538930',
-          vaaHash: '0xf469fe17983ff72ca0b6d8d704db609a63d308ec68dd685b3db6304e0ab9c8b3',
-          finality: 'FINALIZED',
-          consumed: false,
+          "messageType": "CASH_PREPARED",
+          "sequence": "2",
+          "emitterChainId": 10009,
+          "emitter": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+          "vaaHash": "0xf469fe17983ff72ca0b6d8d704db609a63d308ec68dd685b3db6304e0ab9c8b3",
+          "finality": "FINALIZED",
+          "consumed": false
         },
         {
-          messageType: 'COMMIT',
-          sequence: '1',
-          emitterChainId: 10009,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0x1bcf6ae74cf6c0596cbb162059b11902b52eef068a9ab16573035a1bb5473ac0',
-          finality: 'FINALIZED',
-          consumed: true,
-        },
-      ],
+          "messageType": "COMMIT",
+          "sequence": "1",
+          "emitterChainId": 10009,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x1bcf6ae74cf6c0596cbb162059b11902b52eef068a9ab16573035a1bb5473ac0",
+          "finality": "FINALIZED",
+          "consumed": true
+        }
+      ]
     },
     {
-      settlementId: '0xf5d9093fb4585efd56e976737b5e5ca6c29c6b405021f3e6e62bd7d439762f58',
-      deploymentId: '0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6',
-      classification: 'SETTLED_FINAL',
-      canonicalState: 'SETTLED',
-      verifiedAt: '2026-08-08T21:02:23.529Z',
-      passed: 18,
-      total: 18,
-      trustRoot:
-        'deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.',
-      searchedBlockRanges: {
-        '10143': {
-          from: '52032914',
-          to: '52052914',
+      "settlementId": "0xf5d9093fb4585efd56e976737b5e5ca6c29c6b405021f3e6e62bd7d439762f58",
+      "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+      "classification": "SETTLED_FINAL",
+      "canonicalState": "SETTLED",
+      "verifiedAt": "2026-08-08T21:02:23.529Z",
+      "passed": 18,
+      "total": 18,
+      "trustRoot": "deployment manifests, two chain RPCs, and the Wormhole guardian set. No application database.",
+      "searchedBlockRanges": {
+        "10143": {
+          "from": "52032914",
+          "to": "52052914"
         },
-        '84532': {
-          from: '45207248',
-          to: '45227248',
-        },
+        "84532": {
+          "from": "45207248",
+          "to": "45227248"
+        }
       },
-      source: 'docs/evidence/verification-f5d9093fb4.json',
-      messages: [
+      "source": "docs/evidence/verification-f5d9093fb4.json",
+      "messages": [
         {
-          messageType: 'ASSET_PREPARED',
-          sequence: '0',
-          emitterChainId: 10004,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0x0af1782b25faaa622188942e59e0897b1366dd371142bd6689efa48013cdad27',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_PREPARED",
+          "sequence": "0",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x0af1782b25faaa622188942e59e0897b1366dd371142bd6689efa48013cdad27",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'ASSET_RELEASED',
-          sequence: '1',
-          emitterChainId: 10004,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0x976b11d1788be10e30212b2f04b088907c4120cd4e2b5ce08f88168817b58bce',
-          finality: 'FINALIZED',
-          consumed: true,
+          "messageType": "ASSET_RELEASED",
+          "sequence": "1",
+          "emitterChainId": 10004,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0x976b11d1788be10e30212b2f04b088907c4120cd4e2b5ce08f88168817b58bce",
+          "finality": "FINALIZED",
+          "consumed": true
         },
         {
-          messageType: 'CASH_PREPARED',
-          sequence: '0',
-          emitterChainId: 10009,
-          emitter: '0x8151D682836f5B7106181bc8e48DC899ab538930',
-          vaaHash: '0x6274635c594700d48b7b33e8f0ebf01b3e1f955ad658cf0839ef094f2e6f751f',
-          finality: 'FINALIZED',
-          consumed: false,
+          "messageType": "CASH_PREPARED",
+          "sequence": "0",
+          "emitterChainId": 10009,
+          "emitter": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+          "vaaHash": "0x6274635c594700d48b7b33e8f0ebf01b3e1f955ad658cf0839ef094f2e6f751f",
+          "finality": "FINALIZED",
+          "consumed": false
         },
         {
-          messageType: 'COMMIT',
-          sequence: '0',
-          emitterChainId: 10009,
-          emitter: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          vaaHash: '0xce1d906166487bdca8653cdbc0785a4222a51db8d2cfbd78018c82539a71e824',
-          finality: 'FINALIZED',
-          consumed: true,
-        },
-      ],
-    },
+          "messageType": "COMMIT",
+          "sequence": "0",
+          "emitterChainId": 10009,
+          "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "vaaHash": "0xce1d906166487bdca8653cdbc0785a4222a51db8d2cfbd78018c82539a71e824",
+          "finality": "FINALIZED",
+          "consumed": true
+        }
+      ]
+    }
   ],
-  manifests: [
+  "manifests": [
     {
-      file: 'contracts/deployments/base-sepolia-0x893ca44e.json',
-      deploymentId: '0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417',
-      gitCommit: 'b23cfb87a86d88248c16d7d3be1e3b9cc79b0787',
-      solcVersion: '0.8.36',
-      timestamp: '2026-08-08T14:25:48.128Z',
-      contracts: [
+      "file": "contracts/deployments/base-sepolia-0x893ca44e.json",
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "gitCommit": "b23cfb87a86d88248c16d7d3be1e3b9cc79b0787",
+      "solcVersion": "0.8.36",
+      "timestamp": "2026-08-08T14:25:48.128Z",
+      "contracts": [
         {
-          role: 'ConduitRWACVA',
-          chain: 'baseSepolia',
-          address: '0x7a78912533b43C483621200b4919806c0B855E5b',
-          codeHash: '0x7ac7b42358fd8cf1ce1510acb890792dd3a436f7f0fc9e8cdc5719686efe4fd5',
+          "role": "ConduitRWACVA",
+          "chain": "baseSepolia",
+          "address": "0x7a78912533b43C483621200b4919806c0B855E5b",
+          "codeHash": "0x7ac7b42358fd8cf1ce1510acb890792dd3a436f7f0fc9e8cdc5719686efe4fd5"
         },
         {
-          role: 'RWACVASettlementAdapter',
-          chain: 'baseSepolia',
-          address: '0x51c3D536e94fB5b944c2AF8946d6916543bdf93a',
-          codeHash: '0x7ecf114b2e08f0af0dd7ccb185c0b3905621fe7cf6578251c5153836f2eeb715',
-        },
+          "role": "RWACVASettlementAdapter",
+          "chain": "baseSepolia",
+          "address": "0x51c3D536e94fB5b944c2AF8946d6916543bdf93a",
+          "codeHash": "0x7ecf114b2e08f0af0dd7ccb185c0b3905621fe7cf6578251c5153836f2eeb715"
+        }
       ],
-      finalityProfile: {
-        settlement: 'FINALIZED',
-        observation: 'INSTANT',
-        note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
+      "finalityProfile": {
+        "settlement": "FINALIZED",
+        "observation": "INSTANT",
+        "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
       },
-      complianceProfile: {
-        maxAttestationValiditySeconds: 900,
-        signerCount: 1,
-        quorum: 1,
-        snapshotIsLiveState: true,
-        note: 'The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014.',
+      "complianceProfile": {
+        "maxAttestationValiditySeconds": 900,
+        "signerCount": 1,
+        "quorum": 1,
+        "snapshotIsLiveState": true,
+        "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
       },
-      cleanverseAssetSnapshotHash:
-        '0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918',
+      "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918"
     },
     {
-      file: 'contracts/deployments/base-sepolia-0x9303f240.json',
-      deploymentId: '0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843',
-      gitCommit: 'a2caa43a016f9c1f01a1b2194a4ae2b0f752c797',
-      solcVersion: '0.8.36',
-      timestamp: '2026-08-08T08:57:01.397Z',
-      contracts: [
+      "file": "contracts/deployments/base-sepolia-0x9303f240.json",
+      "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
+      "gitCommit": "a2caa43a016f9c1f01a1b2194a4ae2b0f752c797",
+      "solcVersion": "0.8.36",
+      "timestamp": "2026-08-08T08:57:01.397Z",
+      "contracts": [
         {
-          role: 'ConduitRWACVA',
-          chain: 'baseSepolia',
-          address: '0x7a78912533b43C483621200b4919806c0B855E5b',
-          codeHash: '0x7ac7b42358fd8cf1ce1510acb890792dd3a436f7f0fc9e8cdc5719686efe4fd5',
+          "role": "ConduitRWACVA",
+          "chain": "baseSepolia",
+          "address": "0x7a78912533b43C483621200b4919806c0B855E5b",
+          "codeHash": "0x7ac7b42358fd8cf1ce1510acb890792dd3a436f7f0fc9e8cdc5719686efe4fd5"
         },
         {
-          role: 'RWACVASettlementAdapter',
-          chain: 'baseSepolia',
-          address: '0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE',
-          codeHash: '0x715e863143cb078b398ae106c62413e353ef858beeaa708d717a451f459e1130',
-        },
+          "role": "RWACVASettlementAdapter",
+          "chain": "baseSepolia",
+          "address": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+          "codeHash": "0x715e863143cb078b398ae106c62413e353ef858beeaa708d717a451f459e1130"
+        }
       ],
-      finalityProfile: {
-        settlement: 'FINALIZED',
-        observation: 'INSTANT',
-        note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
+      "finalityProfile": {
+        "settlement": "FINALIZED",
+        "observation": "INSTANT",
+        "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
       },
-      complianceProfile: {
-        maxAttestationValiditySeconds: 900,
-        signerCount: 1,
-        quorum: 1,
-        snapshotIsLiveState: true,
-        note: 'The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014.',
+      "complianceProfile": {
+        "maxAttestationValiditySeconds": 900,
+        "signerCount": 1,
+        "quorum": 1,
+        "snapshotIsLiveState": true,
+        "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
       },
-      cleanverseAssetSnapshotHash:
-        '0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918',
+      "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918"
     },
     {
-      file: 'contracts/deployments/base-sepolia-0xdcb9db12.json',
-      deploymentId: '0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6',
-      gitCommit: 'ed413db9f8a6287d72c84db6ee69fe9a8d2d5260',
-      solcVersion: '0.8.36',
-      timestamp: '2026-08-08T19:46:32.821Z',
-      contracts: [
+      "file": "contracts/deployments/base-sepolia-0xdcb9db12.json",
+      "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+      "gitCommit": "ed413db9f8a6287d72c84db6ee69fe9a8d2d5260",
+      "solcVersion": "0.8.36",
+      "timestamp": "2026-08-08T19:46:32.821Z",
+      "contracts": [
         {
-          role: 'ConduitRWACVA',
-          chain: 'baseSepolia',
-          address: '0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B',
-          codeHash: '0x27e4d710348bb18265ef5d2ddddf473ecd64e52e7a8f6b0e05adb7b2f642e5b1',
+          "role": "ConduitRWACVA",
+          "chain": "baseSepolia",
+          "address": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+          "codeHash": "0x27e4d710348bb18265ef5d2ddddf473ecd64e52e7a8f6b0e05adb7b2f642e5b1"
         },
         {
-          role: 'RWACVASettlementAdapter',
-          chain: 'baseSepolia',
-          address: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          codeHash: '0x25e5cbc75faf7e9c50287694968c68339ef372c852555c2a08255ca00b349916',
-        },
+          "role": "RWACVASettlementAdapter",
+          "chain": "baseSepolia",
+          "address": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "codeHash": "0x25e5cbc75faf7e9c50287694968c68339ef372c852555c2a08255ca00b349916"
+        }
       ],
-      finalityProfile: {
-        settlement: 'FINALIZED',
-        observation: 'INSTANT',
-        note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
+      "finalityProfile": {
+        "settlement": "FINALIZED",
+        "observation": "INSTANT",
+        "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
       },
-      complianceProfile: {
-        maxAttestationValiditySeconds: 900,
-        signerCount: 1,
-        quorum: 1,
-        snapshotIsLiveState: true,
-        note: 'The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014.',
+      "complianceProfile": {
+        "maxAttestationValiditySeconds": 900,
+        "signerCount": 1,
+        "quorum": 1,
+        "snapshotIsLiveState": true,
+        "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
       },
-      cleanverseAssetSnapshotHash:
-        '0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918',
+      "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918"
     },
     {
-      file: 'contracts/deployments/monad-testnet-0x893ca44e.json',
-      deploymentId: '0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417',
-      gitCommit: 'b23cfb87a86d88248c16d7d3be1e3b9cc79b0787',
-      solcVersion: '0.8.36',
-      timestamp: '2026-08-08T14:25:52.037Z',
-      contracts: [
+      "file": "contracts/deployments/monad-testnet-0x893ca44e.json",
+      "deploymentId": "0x893ca44ecf017ba183180fb358fbc27ed570df9e56d7d35a465a9ed5cb1a9417",
+      "gitCommit": "b23cfb87a86d88248c16d7d3be1e3b9cc79b0787",
+      "solcVersion": "0.8.36",
+      "timestamp": "2026-08-08T14:25:52.037Z",
+      "contracts": [
         {
-          role: 'SettlementCoordinator',
-          chain: 'monadTestnet',
-          address: '0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86',
-          codeHash: '0xa8998e3674c57f90ae8205fa5b87c2ccbce32a75e09ef7c5b96a0de8f0b61dfe',
+          "role": "SettlementCoordinator",
+          "chain": "monadTestnet",
+          "address": "0x0AEBe99A17796325Da45E49Ef3Ba8BD13bbE5c86",
+          "codeHash": "0xa8998e3674c57f90ae8205fa5b87c2ccbce32a75e09ef7c5b96a0de8f0b61dfe"
         },
         {
-          role: 'CashEscrow',
-          chain: 'monadTestnet',
-          address: '0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b',
-          codeHash: '0x5284f0fd116489a8348d64614a595847bf937e8da4d990d5f9900787b776bfae',
+          "role": "CashEscrow",
+          "chain": "monadTestnet",
+          "address": "0xee40c930Be5A67E9fC8F6237E9aca2B94A8Bd85b",
+          "codeHash": "0x5284f0fd116489a8348d64614a595847bf937e8da4d990d5f9900787b776bfae"
         },
         {
-          role: 'ConduitSandboxSettlementCVA',
-          chain: 'monadTestnet',
-          address: '0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf',
-          codeHash: '0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a',
+          "role": "ConduitSandboxSettlementCVA",
+          "chain": "monadTestnet",
+          "address": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+          "codeHash": "0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a"
         },
         {
-          role: 'ConduitVaultRegistrar',
-          chain: 'monadTestnet',
-          address: '0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5',
-          codeHash: '0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f',
-        },
+          "role": "ConduitVaultRegistrar",
+          "chain": "monadTestnet",
+          "address": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
+          "codeHash": "0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f"
+        }
       ],
-      finalityProfile: {
-        settlement: 'FINALIZED',
-        observation: 'INSTANT',
-        note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
+      "finalityProfile": {
+        "settlement": "FINALIZED",
+        "observation": "INSTANT",
+        "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
       },
-      complianceProfile: {
-        maxAttestationValiditySeconds: 900,
-        signerCount: 1,
-        quorum: 1,
-        snapshotIsLiveState: true,
-        note: 'The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014.',
+      "complianceProfile": {
+        "maxAttestationValiditySeconds": 900,
+        "signerCount": 1,
+        "quorum": 1,
+        "snapshotIsLiveState": true,
+        "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
       },
-      cleanverseAssetSnapshotHash:
-        '0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918',
+      "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918"
     },
     {
-      file: 'contracts/deployments/monad-testnet-0x9303f240.json',
-      deploymentId: '0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843',
-      gitCommit: 'a2caa43a016f9c1f01a1b2194a4ae2b0f752c797',
-      solcVersion: '0.8.36',
-      timestamp: '2026-08-08T08:57:04.392Z',
-      contracts: [
+      "file": "contracts/deployments/monad-testnet-0x9303f240.json",
+      "deploymentId": "0x9303f240f88e5aba93761e010b75b13681d0c03af58d945c241cc402dadd0843",
+      "gitCommit": "a2caa43a016f9c1f01a1b2194a4ae2b0f752c797",
+      "solcVersion": "0.8.36",
+      "timestamp": "2026-08-08T08:57:04.392Z",
+      "contracts": [
         {
-          role: 'SettlementCoordinator',
-          chain: 'monadTestnet',
-          address: '0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE',
-          codeHash: '0x25ef57d0b10ca039c4151e3906199e6cfd66c92543c1148fc26ca28514f19204',
+          "role": "SettlementCoordinator",
+          "chain": "monadTestnet",
+          "address": "0xE4bA8F4D65F8c62393B47bf47eF6eea8F07F45BE",
+          "codeHash": "0x25ef57d0b10ca039c4151e3906199e6cfd66c92543c1148fc26ca28514f19204"
         },
         {
-          role: 'CashEscrow',
-          chain: 'monadTestnet',
-          address: '0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB',
-          codeHash: '0x831025f3f3eff2f0caeb25f0c2e6428329766141918eadd535f457433cf31930',
+          "role": "CashEscrow",
+          "chain": "monadTestnet",
+          "address": "0x793c7a8f0c9549ee6cAf7EcC014DDafB7da601EB",
+          "codeHash": "0x831025f3f3eff2f0caeb25f0c2e6428329766141918eadd535f457433cf31930"
         },
         {
-          role: 'ConduitSandboxSettlementCVA',
-          chain: 'monadTestnet',
-          address: '0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf',
-          codeHash: '0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a',
+          "role": "ConduitSandboxSettlementCVA",
+          "chain": "monadTestnet",
+          "address": "0xe32825bb4BF312688233f68aBde3Eb6dCbc89caf",
+          "codeHash": "0x17869cb56e2de012a6c8f37ab69f944d05350b3c066a571387462fee7de2485a"
         },
         {
-          role: 'ConduitVaultRegistrar',
-          chain: 'monadTestnet',
-          address: '0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5',
-          codeHash: '0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f',
-        },
+          "role": "ConduitVaultRegistrar",
+          "chain": "monadTestnet",
+          "address": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
+          "codeHash": "0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f"
+        }
       ],
-      finalityProfile: {
-        settlement: 'FINALIZED',
-        observation: 'INSTANT',
-        note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
+      "finalityProfile": {
+        "settlement": "FINALIZED",
+        "observation": "INSTANT",
+        "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
       },
-      complianceProfile: {
-        maxAttestationValiditySeconds: 900,
-        signerCount: 1,
-        quorum: 1,
-        snapshotIsLiveState: true,
-        note: 'The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014.',
+      "complianceProfile": {
+        "maxAttestationValiditySeconds": 900,
+        "signerCount": 1,
+        "quorum": 1,
+        "snapshotIsLiveState": true,
+        "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
       },
-      cleanverseAssetSnapshotHash:
-        '0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918',
+      "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918"
     },
     {
-      file: 'contracts/deployments/monad-testnet-0xdcb9db12.json',
-      deploymentId: '0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6',
-      gitCommit: 'ed413db9f8a6287d72c84db6ee69fe9a8d2d5260',
-      solcVersion: '0.8.36',
-      timestamp: '2026-08-08T19:46:42.117Z',
-      contracts: [
+      "file": "contracts/deployments/monad-testnet-0xdcb9db12.json",
+      "deploymentId": "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6",
+      "gitCommit": "ed413db9f8a6287d72c84db6ee69fe9a8d2d5260",
+      "solcVersion": "0.8.36",
+      "timestamp": "2026-08-08T19:46:42.117Z",
+      "contracts": [
         {
-          role: 'SettlementCoordinator',
-          chain: 'monadTestnet',
-          address: '0xb08bC7F285dd3fC1047798b661E93AB7427a7A61',
-          codeHash: '0xce2fc566e7046dd6451438404d1bc42aaf784ae136ccae74d03eac4d0c7b7899',
+          "role": "SettlementCoordinator",
+          "chain": "monadTestnet",
+          "address": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+          "codeHash": "0xce2fc566e7046dd6451438404d1bc42aaf784ae136ccae74d03eac4d0c7b7899"
         },
         {
-          role: 'CashEscrow',
-          chain: 'monadTestnet',
-          address: '0x8151D682836f5B7106181bc8e48DC899ab538930',
-          codeHash: '0x4751e1ab11dbab6b4df484e08b4127fb643e24c284b59a7e57da62fc5dc4e574',
+          "role": "CashEscrow",
+          "chain": "monadTestnet",
+          "address": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+          "codeHash": "0x4751e1ab11dbab6b4df484e08b4127fb643e24c284b59a7e57da62fc5dc4e574"
         },
         {
-          role: 'ConduitSandboxSettlementCVA',
-          chain: 'monadTestnet',
-          address: '0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16',
-          codeHash: '0x27e4d710348bb18265ef5d2ddddf473ecd64e52e7a8f6b0e05adb7b2f642e5b1',
+          "role": "ConduitSandboxSettlementCVA",
+          "chain": "monadTestnet",
+          "address": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+          "codeHash": "0x27e4d710348bb18265ef5d2ddddf473ecd64e52e7a8f6b0e05adb7b2f642e5b1"
         },
         {
-          role: 'ConduitVaultRegistrar',
-          chain: 'monadTestnet',
-          address: '0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5',
-          codeHash: '0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f',
-        },
+          "role": "ConduitVaultRegistrar",
+          "chain": "monadTestnet",
+          "address": "0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5",
+          "codeHash": "0x1f84807a372a2a58148b0fc963bd5c2ed7f9778e995fda60fe201161adfef73f"
+        }
       ],
-      finalityProfile: {
-        settlement: 'FINALIZED',
-        observation: 'INSTANT',
-        note: 'Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible.',
+      "finalityProfile": {
+        "settlement": "FINALIZED",
+        "observation": "INSTANT",
+        "note": "Enforced on chain per message class and bound into the bytecode as an immutable, so the codeHash above covers it. An authentic VAA below this level is refused: parseAndVerifyVM proves guardians signed, not that the source state is irreversible."
       },
-      complianceProfile: {
-        maxAttestationValiditySeconds: 900,
-        signerCount: 1,
-        quorum: 1,
-        snapshotIsLiveState: true,
-        note: 'The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014.',
+      "complianceProfile": {
+        "maxAttestationValiditySeconds": 900,
+        "signerCount": 1,
+        "quorum": 1,
+        "snapshotIsLiveState": true,
+        "note": "The validity window is a constructor immutable and is covered by the bytecode hash. The signer set and quorum are live state: re-read them rather than trusting this snapshot. ADR-0014."
       },
-      cleanverseAssetSnapshotHash:
-        '0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918',
-    },
-  ],
+      "cleanverseAssetSnapshotHash": "0x764fd8b5a8afd11ffdb2d492257d86f3daeea79bf2e0b592ec837d303a48e918"
+    }
+  ]
 };

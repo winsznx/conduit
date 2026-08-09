@@ -440,6 +440,24 @@ export function nextAction(snapshot: Snapshot): NextAction {
     }
 
     const fresh = snapshot.fresh;
+
+    // The outage arm comes first, and the ordering is the whole point. An
+    // unavailable answer carries no attestation, so it also carries no expiry —
+    // and checking the expiry first would report the one thing that must never
+    // be reported as "just ask again": nobody was asked, and nobody refused.
+    if (fresh?.unavailable === true) {
+      return gated(snapshot, {
+        kind: 'FRESH_COMPLIANCE_REQUIRED',
+        title: 'Compliance did not answer',
+        detail:
+          'Cleanverse could not be reached, so nobody was refused and nobody was cleared. An outage is ' +
+          'the absence of a decision, and Conduit will not treat it as one.',
+        actor: 'anyone',
+        chainId: MONAD_TESTNET,
+        call: 'run-fresh-compliance',
+        blocked: 'No compliance decision exists. Ask again rather than committing on silence.',
+      });
+    }
     if (fresh === undefined || fresh.expiresAt <= snapshot.nowSeconds) {
       return gated(snapshot, {
         kind: 'FRESH_COMPLIANCE_REQUIRED',
@@ -451,19 +469,6 @@ export function nextAction(snapshot: Snapshot): NextAction {
         actor: 'anyone',
         chainId: MONAD_TESTNET,
         call: 'run-fresh-compliance',
-      });
-    }
-    if (fresh.unavailable) {
-      return gated(snapshot, {
-        kind: 'FRESH_COMPLIANCE_REQUIRED',
-        title: 'Compliance did not answer',
-        detail:
-          'Cleanverse could not be reached, so nobody was refused and nobody was cleared. An outage is ' +
-          'the absence of a decision, and Conduit will not treat it as one.',
-        actor: 'anyone',
-        chainId: MONAD_TESTNET,
-        call: 'run-fresh-compliance',
-        blocked: 'No compliance decision exists. Ask again rather than committing on silence.',
       });
     }
     if (!fresh.eligible) {

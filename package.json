@@ -32,7 +32,9 @@
     "dvp:preflight": "node --env-file=.env scripts/dvp-preflight.mjs",
     "dvp:run": "node --env-file=.env scripts/run-dvp.mjs",
     "verify": "node scripts/verify.mjs",
-    "clean": "rm -rf node_modules '**/node_modules' '**/dist' '**/*.tsbuildinfo' cache out coverage"
+    "clean": "rm -rf node_modules '**/node_modules' '**/dist' '**/*.tsbuildinfo' cache out coverage",
+    "evidence:build": "node scripts/build-evidence-index.mjs",
+    "evidence:check": "node scripts/build-evidence-index.mjs --check"
   },
   "devDependencies": {
     "@conduit-protocol/app-api": "workspace:*",

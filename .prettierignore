@@ -11,6 +11,9 @@ design.md
 # would fail the gate for a whitespace change.
 contracts/test/fixtures/
 
+# Same reason: `pnpm evidence:check` byte-compares this against docs/evidence.
+apps/web/src/evidence-index.ts
+
 # generated / vendored
 pnpm-lock.yaml
 foundry.lock

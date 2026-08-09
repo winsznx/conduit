@@ -228,7 +228,10 @@ const PRIMITIVES = `
 .table-hover tbody tr:hover{background:var(--color-surface-alt)}
 .table-scroll{overflow-x:auto}
 .kv{width:100%;border-collapse:collapse}
-.kv td{padding:6px 0;font-size:var(--text-body);vertical-align:top}
+/* A key-value row carries hashes, ISO timestamps and repository paths, none of
+   which have a space in them. Without this the second column sets the table's
+   minimum width and the whole page scrolls sideways on a phone. */
+.kv td{padding:6px 0;font-size:var(--text-body);vertical-align:top;overflow-wrap:anywhere}
 .kv td:first-child{color:var(--color-mid-gray);width:40%;padding-right:var(--spacing-16)}
 
 .stat .stat-label{font-size:var(--text-caption);line-height:var(--leading-caption);letter-spacing:var(--tracking-caption);text-transform:uppercase;color:var(--color-mid-gray);font-weight:var(--font-weight-medium)}
