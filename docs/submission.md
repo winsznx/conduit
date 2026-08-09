@@ -133,18 +133,28 @@ Generation 3, canonical. Core contracts are non-upgradeable, so a new version is
 a new generation and old settlements stay verifiable against the one that
 produced them.
 
-| Contract                    | Chain         | Address                                      |
-| --------------------------- | ------------- | -------------------------------------------- |
-| SettlementCoordinator       | Monad Testnet | `0xb08bC7F285dd3fC1047798b661E93AB7427a7A61` |
-| CashEscrow                  | Monad Testnet | `0x8151D682836f5B7106181bc8e48DC899ab538930` |
-| ConduitSandboxSettlementCVA | Monad Testnet | `0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16` |
-| ConduitVaultRegistrar       | Monad Testnet | `0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5` |
-| AuthorityRegistry           | Monad Testnet | `0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7` |
-| DispositionController       | Monad Testnet | `0x3c4060D402675A25CAd836247CFA0B95614efe81` |
-| ConduitRWACVA               | Base Sepolia  | `0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B` |
-| RWACVASettlementAdapter     | Base Sepolia  | `0xb08bC7F285dd3fC1047798b661E93AB7427a7A61` |
-| AuthorityRegistry           | Base Sepolia  | `0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45` |
-| DispositionController       | Base Sepolia  | `0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7` |
+| Chain         | Contract                        | Address           | Source                                                                     | Explorer                                                                                              | Verified source                                                                        |
+| ------------- | ------------------------------- | ----------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Monad Testnet | **SettlementCoordinator**       | `0xb08bC7F2…7A61` | [`SettlementCoordinator.sol`](contracts/src/SettlementCoordinator.sol)     | [View contract](https://testnet.monadexplorer.com/address/0xb08bC7F285dd3fC1047798b661E93AB7427a7A61) | [Sourcify](https://repo.sourcify.dev/10143/0xb08bC7F285dd3fC1047798b661E93AB7427a7A61) |
+| Monad Testnet | **CashEscrow**                  | `0x8151D682…8930` | [`CashEscrow.sol`](contracts/src/CashEscrow.sol)                           | [View contract](https://testnet.monadexplorer.com/address/0x8151D682836f5B7106181bc8e48DC899ab538930) | [Sourcify](https://repo.sourcify.dev/10143/0x8151D682836f5B7106181bc8e48DC899ab538930) |
+| Monad Testnet | **ConduitSandboxSettlementCVA** | `0xFEfd2eA2…1F16` | [`ConduitRWACVA.sol`](contracts/src/ConduitRWACVA.sol)                     | [View contract](https://testnet.monadexplorer.com/address/0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16) | [Sourcify](https://repo.sourcify.dev/10143/0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16) |
+| Monad Testnet | **ConduitVaultRegistrar**       | `0x3FFd3944…EBA5` | [`ConduitVaultRegistrar.sol`](contracts/src/ConduitVaultRegistrar.sol)     | [View contract](https://testnet.monadexplorer.com/address/0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5) | [Sourcify](https://repo.sourcify.dev/10143/0x3FFd39444EBba2307B34c5F36F96e4e04511EBA5) |
+| Monad Testnet | **AuthorityRegistry**           | `0xEa92410a…D1D7` | [`AuthorityRegistry.sol`](contracts/src/AuthorityRegistry.sol)             | [View contract](https://testnet.monadexplorer.com/address/0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7) | [Sourcify](https://repo.sourcify.dev/10143/0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7) |
+| Monad Testnet | **DispositionController**       | `0x3c4060D4…fe81` | [`DispositionController.sol`](contracts/src/DispositionController.sol)     | [View contract](https://testnet.monadexplorer.com/address/0x3c4060D402675A25CAd836247CFA0B95614efe81) | [Sourcify](https://repo.sourcify.dev/10143/0x3c4060D402675A25CAd836247CFA0B95614efe81) |
+| Base Sepolia  | **AuthorityRegistry**           | `0x33BB1eBa…0E45` | [`AuthorityRegistry.sol`](contracts/src/AuthorityRegistry.sol)             | [View contract](https://sepolia.basescan.org/address/0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45)      | [Sourcify](https://repo.sourcify.dev/84532/0x33BB1eBa633d527f664bEFEd0FD6F13E0bE70E45) |
+| Base Sepolia  | **DispositionController**       | `0xEa92410a…D1D7` | [`DispositionController.sol`](contracts/src/DispositionController.sol)     | [View contract](https://sepolia.basescan.org/address/0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7)      | [Sourcify](https://repo.sourcify.dev/84532/0xEa92410aBCc1712C303174E3a2Cf4FF6Dfc7D1D7) |
+| Base Sepolia  | **ConduitRWACVA**               | `0xDdB1AE56…989B` | [`ConduitRWACVA.sol`](contracts/src/ConduitRWACVA.sol)                     | [View contract](https://sepolia.basescan.org/address/0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B)      | [Sourcify](https://repo.sourcify.dev/84532/0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B) |
+| Base Sepolia  | **RWACVASettlementAdapter**     | `0xb08bC7F2…7A61` | [`RWACVASettlementAdapter.sol`](contracts/src/RWACVASettlementAdapter.sol) | [View contract](https://sepolia.basescan.org/address/0xb08bC7F285dd3fC1047798b661E93AB7427a7A61)      | [Sourcify](https://repo.sourcify.dev/84532/0xb08bC7F285dd3fC1047798b661E93AB7427a7A61) |
+
+All ten have code, run bytecode whose hash matches the deployment manifest, and
+carry **full creation and runtime source matches on Sourcify**. That is asserted
+on every `pnpm verify` run and captured with a timestamp in
+[`docs/evidence/onchain-verification.json`](evidence/onchain-verification.json);
+a Sourcify outage fails the gate rather than passing it.
+
+Non-upgradeable: no proxy, no admin key that can change behaviour, no
+implementation slot. Superseded generations are in
+[docs/deployments.md](deployments.md).
 
 Deployment id `0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6`,
 solc 0.8.36 exact-pinned, manifests under `contracts/deployments/`.
@@ -204,7 +214,7 @@ SETTLED_FINAL           independently verified
 ```
 
 - Settlement: <https://conduit.timjosh507.workers.dev/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0>
-- The same path on generation 1: `0x30aa1b73…`
+- The same path on generation 2: `0x30aa1b73…`
 
 ## Test counts
 

@@ -176,11 +176,15 @@ const RUNS = [
   }),
   runPackage({
     file: 'phase-07-compliance-change-0x893ca44e.json',
-    generation: 1,
+    // Generation 2, not 1. `0x893ca44e` was deployed at 14:25 and `0x9303f240`
+    // at 08:57 the same day, and the projection's own `supersededBy` chain runs
+    // 0x9303f240 → 0x893ca44e → 0xdcb9db12. This was labelled 1 from memory of
+    // which hash came first rather than from the manifest timestamps.
+    generation: 2,
     title: 'The same path, first demonstrated',
     summary:
-      'The first live HELD-then-dispositioned settlement, on the first deployment generation. It stays ' +
-      'verifiable against generation-1 contracts; the current generation cannot answer for it.',
+      'The first live HELD-then-dispositioned settlement, on the generation before the canonical one. ' +
+      'It stays verifiable against generation-2 contracts; the current generation cannot answer for it.',
     chainOf: chainForStage,
   }),
 ];

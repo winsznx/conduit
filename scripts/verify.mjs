@@ -216,6 +216,15 @@ const STEPS = [
     exec: () => run('node', ['scripts/check-deployment-manifests.mjs'], { allowFailure: true }),
   },
   {
+    id: 'onchain',
+    // "The contracts are verified" is the easiest claim in a submission to make
+    // and the easiest to stop being true, because it lives on someone else's
+    // server. Asked here, from the public endpoint, every run.
+    title: 'canonical contracts are deployed, match the manifest, and are publicly verified',
+    exec: () =>
+      run('node', ['scripts/check-onchain-verification.mjs', '--check'], { allowFailure: true }),
+  },
+  {
     id: 'e2e',
     title: 'playwright end-to-end harness',
     exec: () => run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true }),

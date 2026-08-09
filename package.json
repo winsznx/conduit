@@ -34,7 +34,9 @@
     "verify": "node scripts/verify.mjs",
     "clean": "rm -rf node_modules '**/node_modules' '**/dist' '**/*.tsbuildinfo' cache out coverage",
     "evidence:build": "node scripts/build-evidence-index.mjs && node scripts/build-evidence-manifest.mjs",
-    "evidence:check": "node scripts/build-evidence-index.mjs --check && node scripts/build-evidence-manifest.mjs --check"
+    "evidence:check": "node scripts/build-evidence-index.mjs --check && node scripts/build-evidence-manifest.mjs --check",
+    "onchain:capture": "node scripts/check-onchain-verification.mjs",
+    "onchain:check": "node scripts/check-onchain-verification.mjs --check"
   },
   "devDependencies": {
     "@conduit-protocol/app-api": "workspace:*",

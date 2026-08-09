@@ -496,9 +496,9 @@ export const EVIDENCE_INDEX: EvidenceIndex = {
     },
     {
       "settlementId": "0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17",
-      "generation": 1,
+      "generation": 2,
       "title": "The same path, first demonstrated",
-      "summary": "The first live HELD-then-dispositioned settlement, on the first deployment generation. It stays verifiable against generation-1 contracts; the current generation cannot answer for it.",
+      "summary": "The first live HELD-then-dispositioned settlement, on the generation before the canonical one. It stays verifiable against generation-2 contracts; the current generation cannot answer for it.",
       "outcome": "HELD_THEN_DISPOSITIONED_TO_SETTLED",
       "startedAt": "2026-08-08T14:28:24.744Z",
       "finishedAt": "2026-08-08T15:36:25.327Z",
