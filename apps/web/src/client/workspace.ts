@@ -1383,7 +1383,11 @@ function paintFinality(host: HTMLElement, messages: readonly MessageRow[]): void
       [
         'FINALIZED',
         message.finalized
-          ? `guardian set signed${message.finalitySeconds === undefined ? '' : ` after ${String(message.finalitySeconds)} seconds`}`
+          ? `guardian set signed${
+              message.finalitySeconds === undefined
+                ? ''
+                : `, observed ${String(message.finalitySeconds)} seconds after publication`
+            }`
           : 'not yet',
         message.finalized,
       ],
@@ -1421,7 +1425,9 @@ function paintFinality(host: HTMLElement, messages: readonly MessageRow[]): void
       'div',
       'note',
       'Conduit can observe settlement state earlier, but irreversible COMMIT waits for the ' +
-        'configured economic finality.',
+        'configured economic finality. The seconds above are the interval from publication to the ' +
+        'first time this deployment saw a signature — an upper bound on finality, not a benchmark, ' +
+        'and never averaged with any other observation.',
     ),
   );
   host.append(card);
