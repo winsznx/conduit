@@ -26,6 +26,8 @@
 
 import CLIENT_BUNDLE from './client.bundle.js.txt';
 import { CLIENT_PATH } from './client-manifest.js';
+import { checkTargets, deploymentConfig, targetForChain } from './deployment.js';
+import { checkEligibility, isAddress } from './eligibility.js';
 import type { Env } from './data.js';
 import {
   deployments,
@@ -187,6 +189,60 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
       commit: env.COMMIT_SHA,
       deployment: env.DEPLOYMENT_ID,
     });
+  }
+
+  /**
+   * Eligibility, asked of Cleanverse on the caller's behalf.
+   *
+   * `GET` with the subject in the query string, because it is a read with no
+   * side effect and a shareable URL is useful when debugging a refusal. The
+   * inputs are public — an address and a chain — and the response carries no
+   * identity data, only a verdict and the endpoint's own answer.
+   *
+   * A failure to reach Cleanverse is reported as `UNAVAILABLE` with HTTP 200,
+   * deliberately. The request succeeded; it is the *answer* that is missing,
+   * and a 503 here would make an outage indistinguishable from a refusal to
+   * every caller that only checks the status line.
+   */
+  if (path === '/api/eligibility') {
+    const config = deploymentConfig(env);
+    if (config === undefined) {
+      return json(
+        { error: { code: 'not_configured', message: 'no deployment addresses are configured' } },
+        503,
+      );
+    }
+    const subject = url.searchParams.get('subject') ?? '';
+    const chainParam = url.searchParams.get('chainId');
+
+    if (!isAddress(subject)) {
+      return json(
+        {
+          error: {
+            code: 'invalid_request',
+            message: 'subject must be a 20-byte hex address',
+          },
+        },
+        400,
+      );
+    }
+
+    const targets =
+      chainParam === null
+        ? checkTargets(config)
+        : [targetForChain(config, Number(chainParam))].filter((target) => target !== undefined);
+
+    if (targets.length === 0) {
+      return json(
+        { error: { code: 'invalid_request', message: `no such chain: ${String(chainParam)}` } },
+        400,
+      );
+    }
+
+    const results = await Promise.all(
+      targets.map((target) => checkEligibility(env, target, subject)),
+    );
+    return json({ subject, results });
   }
 
   // ── Landing ───────────────────────────────────────────────────────────────

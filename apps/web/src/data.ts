@@ -37,6 +37,20 @@ export interface Env {
   readonly BASE_RPC_URL: string;
   readonly DEPLOYMENT_ID: string;
   readonly COMMIT_SHA: string;
+  /**
+   * Cleanverse credentials. Secrets, never `[vars]`, and never sent to the
+   * browser — the eligibility endpoint exists so the browser never needs them.
+   */
+  readonly CLEANVERSE_BASE_URL?: string;
+  readonly CLEANVERSE_API_ID?: string;
+  readonly CLEANVERSE_API_KEY_BASE64?: string;
+  readonly CLEANVERSE_REQUEST_TIMEOUT_MS?: string;
+  /** Generation-3 contract addresses the composer and eligibility checks need. */
+  readonly SETTLEMENT_CVA_ADDRESS?: string;
+  readonly RWA_CVA_ADDRESS?: string;
+  readonly CASH_ESCROW_ADDRESS?: string;
+  readonly SETTLEMENT_COORDINATOR_ADDRESS?: string;
+  readonly RWA_CVA_ADAPTER_ADDRESS?: string;
 }
 
 type Sql = ReturnType<typeof postgres>;
