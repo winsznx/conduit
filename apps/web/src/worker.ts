@@ -8,10 +8,17 @@
  *
  * ## Nothing here decides anything
  *
- * Every route is a read. There is no signer in this Worker, no private key, and
- * no path that moves value. The `/app/settlements/new` composer builds the terms
- * of an intent and hands them to the CLI, which holds the key; a read surface
- * that could sign would be a different threat model wearing the same URL.
+ * There is no signer in this Worker and no private key. That has not changed
+ * now that participants can act: signing happens in the user's own wallet, in
+ * their browser, and this Worker sees a signature and a settlement id — both of
+ * which anyone can re-derive. A service that could sign on a user's behalf
+ * would be custody rather than settlement.
+ *
+ * One route accepts a write, `POST /api/intents`, and it writes to the
+ * projection only. Storing a signed intent lets a counterparty open the same
+ * settlement from their own browser. It authorises nothing: the coordinator
+ * verifies both signatures against the digest itself, and a database that
+ * disagreed with the chain would simply be wrong.
  *
  * The projection this reads is convenient and is never evidence. A settlement's
  * authority is the coordinator on chain, and a reader who wants proof runs the
@@ -28,6 +35,7 @@ import CLIENT_BUNDLE from './client.bundle.js.txt';
 import { CLIENT_PATH } from './client-manifest.js';
 import { checkTargets, deploymentConfig, targetForChain } from './deployment.js';
 import { checkEligibility, isAddress } from './eligibility.js';
+import { signRequest, storeSignedIntent } from './intents.js';
 import type { Env } from './data.js';
 import {
   deployments,
@@ -50,6 +58,7 @@ import {
   renderOverview,
   renderSettlement,
   renderSettlements,
+  renderSignRequest,
   renderSystem,
   renderVerification,
   renderVerifierHome,
@@ -133,6 +142,18 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
+    if (request.method === 'POST' && path === '/api/intents') {
+      try {
+        return await storeIntent(request, env);
+      } catch (error) {
+        console.error('storeIntent failed', error);
+        return json(
+          { error: { code: 'store_failed', message: 'the signed intent could not be stored' } },
+          500,
+        );
+      }
+    }
+
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return json(
         {
@@ -170,6 +191,24 @@ export default {
     }
   },
 };
+
+/**
+ * The one write this Worker accepts.
+ *
+ * It records a signature so a counterparty can find the settlement. Every field
+ * is revalidated: the id is recomputed from the terms rather than trusted, the
+ * signature is recovered, and only the payer or seller the terms name may sign.
+ */
+async function storeIntent(request: Request, env: Env): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: { code: 'invalid_request', message: 'body is not JSON' } }, 400);
+  }
+  const result = await storeSignedIntent(env, body);
+  return json(result.body, result.status);
+}
 
 /** The generation label shown in the shell, short enough to read at a glance. */
 function generationLabel(env: Env): string {
@@ -269,7 +308,7 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
   }
 
   if (path === '/app/settlements/new') {
-    return html(renderComposer(generationLabel(env)));
+    return html(renderComposer(generationLabel(env), deploymentConfig(env)));
   }
 
   const settlementMatch = /^\/app\/settlements\/(0x[0-9a-fA-F]{64})$/.exec(path);
@@ -286,6 +325,28 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
       );
     }
     return html(renderSettlement(generationLabel(env), view));
+  }
+
+  const signMatch = /^\/app\/settlements\/(0x[0-9a-fA-F]{64})\/sign$/.exec(path);
+  const signId = signMatch?.[1];
+  if (signId !== undefined) {
+    const config = deploymentConfig(env);
+    const request = config === undefined ? undefined : await signRequest(env, signId.toLowerCase());
+    if (config === undefined || request === undefined) {
+      return html(
+        renderNotFound(
+          'No such settlement request',
+          'Nothing with this identifier has been signed and shared. A signing link is created when the first party signs; check the link you were sent.',
+        ),
+        404,
+      );
+    }
+    return html(
+      renderSignRequest(generationLabel(env), signId.toLowerCase(), {
+        ...request,
+        deployment: config,
+      }),
+    );
   }
 
   if (path === '/app/dispositions') {

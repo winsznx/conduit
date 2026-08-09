@@ -238,7 +238,35 @@ export function renderSettlements(generation: string, rows: readonly SettlementV
  * different threat model. The form produces the terms; signing and submission
  * happen where the key is.
  */
-export function renderComposer(generation: string): string {
+export function renderComposer(
+  generation: string,
+  deployment:
+    | {
+        deploymentId: string;
+        coordinator: string;
+        cashEscrow: string;
+        cashAsset: string;
+        rwaToken: string;
+        rwaAdapter: string;
+      }
+    | undefined,
+): string {
+  if (deployment === undefined) {
+    return shell({
+      title: 'New settlement',
+      current: '/app/settlements/new',
+      generation,
+      body: `${pageHeader({ title: 'New settlement' })}${card(
+        errorState(
+          'This deployment is not configured to compose settlements',
+          'The contract addresses are missing from the environment, so no intent could be bound to a real coordinator. Nothing is wrong with the protocol; this build cannot reach it.',
+        ),
+      )}`,
+    });
+  }
+
+  const STEPS = ['Terms', 'Compliance', 'Signatures', 'Prepare', 'Finality', 'Commit', 'Execute'];
+
   return shell({
     title: 'New settlement',
     current: '/app/settlements/new',
@@ -251,50 +279,86 @@ export function renderComposer(generation: string): string {
         { label: 'New' },
       ],
       caption:
-        'Compose the terms of an intent. This surface never signs and never submits — it holds no key.',
+        'Compose an intent, check every participant against Cleanverse, and sign it with your own wallet. Conduit never holds your key.',
     })}
 
-<div class="grid-2" style="align-items:start">
-  ${cardWithHeader(
-    'Cash leg',
-    `<div class="stack-16">
-${input({ name: 'cash_chain', label: 'Chain', value: 'Monad Testnet · 10143' })}
-${input({ name: 'cash_asset', label: 'Asset', placeholder: '0x… settlement CVA', mono: true })}
-${input({ name: 'cash_amount', label: 'Amount', placeholder: '25.000000', mono: true, hint: 'Base units are derived from the asset’s decimals.' })}
-${input({ name: 'cash_payer', label: 'Payer', placeholder: '0x…', mono: true })}
-</div>`,
-    chainIdentity(10143),
-  )}
-  ${cardWithHeader(
-    'Asset leg',
-    `<div class="stack-16">
-${input({ name: 'asset_chain', label: 'Chain', value: 'Base Sepolia · 84532' })}
-${input({ name: 'asset_token', label: 'Restricted RWA', placeholder: '0x… RWA CVA', mono: true })}
-${input({ name: 'asset_amount', label: 'Amount', placeholder: '0.500000', mono: true })}
-${input({ name: 'asset_receiver', label: 'Receiver', placeholder: '0x…', mono: true, hint: 'Eligibility is checked again at commit time, not only now.' })}
-</div>`,
-    chainIdentity(84532),
-  )}
-</div>
+<div data-composer="${esc(JSON.stringify(deployment))}">
+  <div class="stepper" data-stepper>
+    ${STEPS.map(
+      (step, index) =>
+        `<span class="step" data-step-label data-state="${index === 0 ? 'current' : 'todo'}"><span class="step-n">${String(index + 1)}</span>${esc(step)}</span>`,
+    ).join('')}
+  </div>
 
-<section class="section">
-  ${sectionHeader('Deadlines')}
-  ${card(`<div class="grid-3">
-${input({ name: 'prepare_deadline', label: 'Prepare by', placeholder: 'unix seconds', mono: true })}
-${input({ name: 'commit_deadline', label: 'Commit by', placeholder: 'unix seconds', mono: true })}
-${input({ name: 'release_deadline', label: 'Release by', placeholder: 'unix seconds', mono: true })}
-</div>
-<div class="note">A commit deadline that elapses without a COMMIT leaves the prepared cash refundable. After a COMMIT there is no refund at all, so these three values decide what is still recoverable.</div>`)}
-</section>
+  <!-- 1. Terms -->
+  <section data-step class="section" style="margin-top:var(--spacing-24)">
+    ${card(`<div class="row-between" style="margin-bottom:var(--spacing-16)">
+      <div>
+        <label class="label t-caption-upper" for="f-role">Your role</label>
+        <select class="field" id="f-role" style="max-width:280px">
+          <option value="none">I am constructing terms</option>
+          <option value="payer">I am the payer</option>
+          <option value="seller">I am the seller</option>
+          <option value="both">I am both</option>
+        </select>
+      </div>
+      <div class="row" data-balances></div>
+    </div>
+    <div class="grid-2">
+      <div class="stack-16">
+        <div class="t-caption-upper">Cash leg — Monad Testnet</div>
+        ${input({ name: 'cashAmount', label: 'Amount (cSETTLE)', placeholder: '25.000000', mono: true })}
+        ${input({ name: 'cashPayer', label: 'Payer', placeholder: '0x…', mono: true })}
+        ${input({ name: 'cashReceiver', label: 'Cash receiver', placeholder: '0x…', mono: true })}
+      </div>
+      <div class="stack-16">
+        <div class="t-caption-upper">Asset leg — Base Sepolia</div>
+        ${input({ name: 'assetAmount', label: 'Amount (cBOND)', placeholder: '0.500000', mono: true })}
+        ${input({ name: 'assetSeller', label: 'Seller', placeholder: '0x…', mono: true })}
+        ${input({ name: 'assetReceiver', label: 'Asset receiver', placeholder: '0x…', mono: true })}
+      </div>
+    </div>
+    <div class="note">Deadlines are set from the observed finality of this deployment: one hour to prepare, three to commit, four to release. A commit window shorter than Base finality would produce a settlement that cannot legally commit.</div>
+    <div class="t-caption" style="color:var(--color-ember)" data-terms-error></div>
+    <div class="row" style="margin-top:var(--spacing-16)">
+      <button class="btn btn-primary" type="button" data-to-compliance>Check compliance</button>
+    </div>`)}
+  </section>
 
-<section class="section">
-  ${card(`<div class="row-between">
-<div><div style="font-weight:var(--font-weight-medium)">Signing happens elsewhere</div>
-<p class="muted" style="margin-top:var(--spacing-4);max-width:60ch">These terms hash to the settlement id both parties sign. This console has no signer, so it hands the intent to the CLI, which holds the key.</p>
-<div class="nested mono t-caption" style="margin-top:var(--spacing-12)">conduit intent sign --from-terms &lt;file&gt;</div></div>
-<div class="row" style="flex:none">${button({ label: 'Cancel', href: '/app/settlements', variant: 'secondary' })}${button({ label: 'Build intent', type: 'submit' })}</div>
-</div>`)}
-</section>`,
+  <!-- 2. Compliance -->
+  <section data-step hidden class="section" style="margin-top:var(--spacing-24)">
+    ${cardWithHeader(
+      'Compliance preflight',
+      `<div data-matrix></div>
+      <div class="note">This is a preflight. Conduit checks eligibility again after economic finality and immediately before COMMIT, because the answer is allowed to change in between — and when it does, the protocol holds the value rather than delivering it.</div>
+      <div class="row" style="margin-top:var(--spacing-16)">
+        <button class="btn btn-secondary" type="button" data-back-terms>Back</button>
+        <button class="btn btn-primary" type="button" data-to-sign disabled>Review and sign</button>
+      </div>`,
+    )}
+  </section>
+
+  <!-- 3. Signature -->
+  <section data-step hidden class="section" style="margin-top:var(--spacing-24)">
+    ${cardWithHeader(
+      'Sign the intent',
+      `<div data-summary></div>
+      <div class="note">This digest is the settlement id. The coordinator verifies it against the same EIP-712 domain the deployed contract computed at construction, so a signature that does not match is rejected on chain rather than accepted here.</div>
+      <div class="t-caption muted" data-sign-status></div>
+      <div class="row" style="margin-top:var(--spacing-16)">
+        <button class="btn btn-secondary" type="button" data-back-compliance>Back</button>
+        <button class="btn btn-primary" type="button" data-sign>Sign with my wallet</button>
+      </div>
+      <div class="stack-12" style="margin-top:var(--spacing-16)" data-sign-result></div>`,
+    )}
+  </section>
+
+  <!-- 4-7 are the settlement workspace, which takes over once signatures exist -->
+  <section data-step hidden class="section"></section>
+  <section data-step hidden class="section"></section>
+  <section data-step hidden class="section"></section>
+  <section data-step hidden class="section"></section>
+</div>`,
   });
 }
 
@@ -362,6 +426,109 @@ ${
     ? ''
     : `<section class="section">${sectionHeader('Disposition')}${card(dispositionCase(view.disposition))}</section>`
 }`,
+  });
+}
+
+/**
+ * The counterparty's view of a settlement request.
+ *
+ * A bilateral settlement has two signers and they are rarely at the same
+ * machine. This page is what the second one opens: the terms in full, who has
+ * already signed, and a control that will only accept a signature from the
+ * address the terms actually name.
+ */
+export function renderSignRequest(
+  generation: string,
+  settlementId: string,
+  request: {
+    deployment: {
+      deploymentId: string;
+      coordinator: string;
+      cashEscrow: string;
+      cashAsset: string;
+      rwaToken: string;
+      rwaAdapter: string;
+    };
+    cashAmount: string;
+    assetAmount: string;
+    cashPayer: string;
+    cashReceiver: string;
+    assetSeller: string;
+    assetReceiver: string;
+    prepareDeadline: string;
+    commitDeadline: string;
+    releaseDeadline: string;
+    payerSigned: boolean;
+    sellerSigned: boolean;
+    intent: Record<string, string>;
+  },
+): string {
+  const signed = (yes: boolean): string =>
+    yes ? badge('SIGNED', 'solid') : badge('AWAITING', 'soft', true);
+
+  return shell({
+    title: `Sign ${truncate(settlementId)}`,
+    current: '/app/settlements',
+    generation,
+    body: `${pageHeader({
+      title: 'Settlement request',
+      trail: [
+        { label: 'Conduit', href: '/app' },
+        { label: 'Settlements', href: '/app/settlements' },
+        { label: 'Sign' },
+      ],
+      meta: `<div class="mono muted" style="margin-top:var(--spacing-4);word-break:break-all;font-size:13px">${esc(settlementId)}</div>`,
+    })}
+
+<div data-sign-request="${esc(JSON.stringify({ deployment: request.deployment, intent: request.intent }))}">
+${card(`<div class="xchain">
+  <div class="xchain-leg">
+    <div class="leg-chain">${chainIdentity(10143)}</div>
+    <div class="t-caption-upper">You would receive</div>
+    <div class="leg-amount">${esc(request.cashAmount)}</div>
+    <div class="leg-asset">cSETTLE</div>
+  </div>
+  <div class="xchain-mid"><div class="connector"></div><div class="label">for</div><div class="connector"></div></div>
+  <div class="xchain-leg">
+    <div class="leg-chain">${chainIdentity(84532)}</div>
+    <div class="t-caption-upper">You would deliver</div>
+    <div class="leg-amount">${esc(request.assetAmount)}</div>
+    <div class="leg-asset">cBOND</div>
+  </div>
+</div>`)}
+
+<div class="section grid-2" style="align-items:start">
+  ${cardWithHeader(
+    'Parties',
+    `<table class="kv">
+<tr><td>Cash payer</td><td>${address(request.cashPayer, 10143)}</td></tr>
+<tr><td>Cash receiver</td><td>${address(request.cashReceiver, 10143)}</td></tr>
+<tr><td>Asset seller</td><td>${address(request.assetSeller, 84532)}</td></tr>
+<tr><td>Asset receiver</td><td>${address(request.assetReceiver, 84532)}</td></tr>
+</table>`,
+  )}
+  ${cardWithHeader(
+    'Signatures',
+    `<table class="kv">
+<tr><td>Payer</td><td>${signed(request.payerSigned)}</td></tr>
+<tr><td>Seller</td><td>${signed(request.sellerSigned)}</td></tr>
+</table>
+<div class="note">Both signatures commit to the same digest, and that digest is the settlement id. Neither party signs anything the other cannot verify.</div>`,
+  )}
+</div>
+
+<section class="section">
+  ${cardWithHeader(
+    'Review and sign',
+    `<div class="t-caption muted" data-sign-request-status>Connect the wallet named in these terms to sign.</div>
+    <div class="row" style="margin-top:var(--spacing-16)">
+      <button class="btn btn-primary" type="button" data-sign-request-button disabled>Sign with my wallet</button>
+      <span data-wallet-control></span>
+    </div>
+    <div class="stack-12" style="margin-top:var(--spacing-16)" data-sign-request-result></div>`,
+  )}
+</section>
+</div>`,
   });
 }
 

@@ -376,6 +376,40 @@ const LAYOUT = `
 .landing-section{padding:0 0 80px}
 .landing-foot{border-top:1px solid var(--color-hairline);padding:var(--spacing-24) 0 var(--spacing-48);color:var(--color-mid-gray)}
 
+/* ── Stepper ─────────────────────────────────────────────────────────────── */
+.stepper{
+  display:flex;flex-wrap:wrap;gap:var(--spacing-8);
+  padding-bottom:var(--spacing-16);border-bottom:1px solid var(--color-hairline);
+}
+.step{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px var(--spacing-12);border-radius:var(--radius-badges);
+  font-size:var(--text-caption);color:var(--color-mid-gray);white-space:nowrap;
+}
+/* The numeral is text, so it sits at the caption floor rather than below it. */
+.step .step-n{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  border:1px solid var(--color-hairline);
+  font-size:var(--text-caption);line-height:1;
+}
+.step[data-state='current']{background:var(--color-ink);color:#fafafa}
+.step[data-state='current'] .step-n{border-color:#fafafa}
+.step[data-state='done']{color:var(--color-ink)}
+.step[data-state='done'] .step-n{background:var(--color-ink);color:#fafafa;border-color:var(--color-ink)}
+
+/* ── Transaction state ───────────────────────────────────────────────────── */
+.txstate{
+  display:flex;flex-direction:column;gap:6px;
+  padding:var(--spacing-12);border:1px solid var(--color-hairline);
+  border-radius:var(--radius-nested);background:var(--color-surface-alt);
+}
+.txstate .tx-label{font-size:var(--text-body);font-weight:var(--font-weight-medium)}
+.txstate .tx-dot{width:6px;height:6px;border-radius:50%;background:var(--color-ink);flex:none}
+/* The single place a transaction turns chromatic: it actually failed. */
+.txstate .tx-dot.failed{background:var(--color-ember)}
+.txstate .tx-error{color:var(--color-ember)}
+
 /* ── Wallet controls ─────────────────────────────────────────────────────── */
 .account-chip{
   display:inline-flex;align-items:center;gap:var(--spacing-8);

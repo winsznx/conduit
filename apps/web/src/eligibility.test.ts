@@ -24,14 +24,11 @@ const TARGET: CheckTarget = {
   assetSymbol: 'cSETTLE',
 };
 
-// Env is only read when no client override is supplied, so these are inert.
-const ENV = {
-  DATABASE_URL: '',
-  MONAD_RPC_URL: '',
-  BASE_RPC_URL: '',
-  DEPLOYMENT_ID: '0xdeadbeef',
-  COMMIT_SHA: 'test',
-} as unknown as Env;
+// A Worker env with no Cleanverse credentials bound. Deliberately built by
+// cast rather than by naming every field: `security-boundaries.test.ts` fails
+// any file under `apps/web/src` that mentions the connection-string variable,
+// and that check is worth more than the convenience of a literal here.
+const ENV = { DEPLOYMENT_ID: '0xdeadbeef', COMMIT_SHA: 'test' } as unknown as Env;
 
 /** A 32-byte AES key. Test-only, and not a secret in any environment. */
 const TEST_KEY = Buffer.alloc(32, 7).toString('base64');

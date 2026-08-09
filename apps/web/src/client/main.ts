@@ -11,11 +11,14 @@
  * before: a complete, honest, read-only console.
  */
 
+import { mountComposer, mountSignRequest } from './composer.js';
 import { mountWalletControls } from './wallet-ui.js';
 import { wallet } from './wallet.js';
 
 function start(): void {
   mountWalletControls();
+  mountComposer();
+  mountSignRequest();
   // Silent reconnect. Never prompts — it only asks whether this site is still
   // authorised from a previous visit.
   void wallet.restore();
