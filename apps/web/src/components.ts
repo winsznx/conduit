@@ -18,6 +18,7 @@ import {
   type MessageView,
   type SettlementView,
 } from './domain.js';
+import { evmChainFor } from './explorers.js';
 import {
   address,
   assetIdentity,
@@ -30,6 +31,7 @@ import {
   icon,
   stateBadge,
   truncate,
+  vaaLink,
 } from './ui.js';
 
 // ── Shell ───────────────────────────────────────────────────────────────────
@@ -180,16 +182,24 @@ export function messageRoute(messages: readonly MessageView[]): string {
     return `<div class="empty"><p>No messages found in the searched range.</p></div>`;
   }
   const rows = messages
-    .map(
-      (message) => `<tr>
-<td class="mono">${esc(message.messageType)}</td>
+    .map((message) => {
+      const evmChain = evmChainFor(message.wormholeChainId);
+      // The emitter is an address on its own chain, so it links there. The
+      // message itself links to the signed VAA, which is the artefact the
+      // coordinator actually consumed.
+      const emitter =
+        evmChain === undefined
+          ? `<span class="mono" style="font-size:13px">${esc(truncate(message.emitter, 8, 6))}</span>`
+          : address(message.emitter, evmChain);
+      return `<tr>
+<td class="mono">${vaaLink(message.wormholeChainId, message.emitter, message.sequence, esc(message.messageType))}</td>
 <td class="mono muted">${esc(message.sequence)}</td>
-<td>${chainIdentity(message.wormholeChainId === 10004 ? 84532 : 10143, { compact: true })} <span class="mono" style="font-size:13px">${esc(truncate(message.emitter, 8, 6))}</span></td>
+<td><span class="row">${evmChain === undefined ? '' : chainIdentity(evmChain, { compact: true })}${emitter}</span></td>
 <td>${stateBadge(message.finality)}</td>
 <td style="min-width:140px">${finalityProgress(message.finalitySeconds)}</td>
 <td>${message.consumed ? badge('consumed', 'outline') : '<span class="muted t-caption">no consumer</span>'}</td>
-</tr>`,
-    )
+</tr>`;
+    })
     .join('');
 
   return `<div class="table-scroll"><table class="table table-hover">

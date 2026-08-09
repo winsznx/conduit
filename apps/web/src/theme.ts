@@ -240,16 +240,26 @@ const PRIMITIVES = `
 .addr{display:inline-flex;align-items:baseline;gap:6px;font-family:var(--font-mono);font-size:13px}
 .addr .chain{color:var(--color-mid-gray)}
 .addr .val{color:var(--color-ink)}
+
+/* An outbound link. The arrow is the affordance rather than a colour, because
+   the system has no link blue to spend — it stays hairline-quiet until hover,
+   where the underline does the work. */
+.ext{display:inline-flex;align-items:baseline;gap:5px;text-decoration:none;color:inherit}
+.ext:hover{text-decoration:underline;text-underline-offset:2px}
+.ext .ext-mark{color:var(--color-mid-gray);flex:none;align-self:center;opacity:0}
+.ext:hover .ext-mark,.ext:focus-visible .ext-mark{opacity:1}
+/* Touch pointers get no hover, so the arrow is always visible there. */
+@media (hover:none){.ext .ext-mark{opacity:1}}
 .identity{display:inline-flex;align-items:center;gap:var(--spacing-8)}
-/* The letter is text, so it sits at the caption size rather than below it —
-   design.md puts a hard floor at 12px and a chain mark is not an exception. */
-.chain-mark{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:22px;height:22px;border-radius:var(--radius-small);
-  border:1px solid var(--color-hairline);background:var(--color-paper);
-  font-size:var(--text-caption);line-height:1;
-  font-weight:var(--font-weight-semibold);color:var(--color-ink);
-  letter-spacing:0;flex:none;
+/* Real brand marks, monochrome. No container: the marks carry their own
+   silhouette, and boxing Base's rounded square inside another rounded box
+   produced a square-in-a-square. They inherit colour, so a mark inside muted
+   text goes grey with it. */
+.mark{flex:none;color:var(--color-ink)}
+.muted .mark,.mark.muted{color:var(--color-mid-gray)}
+.mark-fallback{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  border:1px solid var(--color-hairline);flex:none;
 }
 
 /* ── Notes and empty/error states ────────────────────────────────────────── */

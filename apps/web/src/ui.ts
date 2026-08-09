@@ -7,6 +7,9 @@
  * button.
  */
 
+import { addressUrl, explorerName, txUrl, vaaUrl } from './explorers.js';
+import { mark, markForAsset, markForChain } from './marks.js';
+
 /** HTML-escape. Every interpolated value in this app goes through it. */
 export function esc(value: unknown): string {
   return String(value)
@@ -46,6 +49,8 @@ const ICONS: Readonly<Record<string, string>> = Object.freeze({
     '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  external:
+    '<path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
 });
 
 export function icon(name: string, size = 16): string {
@@ -200,9 +205,9 @@ ${options.note === undefined ? '' : `<div class="stat-note">${esc(options.note)}
 
 // ── Identity ────────────────────────────────────────────────────────────────
 
-const CHAINS: Readonly<Record<number, { name: string; mark: string }>> = Object.freeze({
-  10143: { name: 'Monad Testnet', mark: 'M' },
-  84532: { name: 'Base Sepolia', mark: 'B' },
+const CHAINS: Readonly<Record<number, { name: string }>> = Object.freeze({
+  10143: { name: 'Monad Testnet' },
+  84532: { name: 'Base Sepolia' },
 });
 
 export function chainName(chainId: number): string {
@@ -210,34 +215,91 @@ export function chainName(chainId: number): string {
 }
 
 /**
- * A chain mark, because two different contracts in this deployment share the
- * same twenty bytes on different chains. Any address shown without its chain is
- * ambiguous, and the verifier treats that ambiguity as a finding.
+ * A chain's real mark and its name.
+ *
+ * The mark matters beyond decoration: two different contracts in this
+ * deployment share the same twenty bytes on different chains, so an address
+ * shown without its chain is ambiguous and the verifier treats that ambiguity
+ * as a finding. A chain nobody has a mark for falls back to a hairline dot
+ * rather than a wrong logo.
  */
 export function chainIdentity(chainId: number, options?: { readonly compact?: boolean }): string {
-  const chain = CHAINS[chainId];
-  const mark = `<span class="chain-mark">${esc(chain?.mark ?? '?')}</span>`;
-  if (options?.compact === true) return mark;
-  return `<span class="identity">${mark}<span>${esc(chain?.name ?? `chain ${String(chainId)}`)}</span></span>`;
+  const name = chainName(chainId);
+  const which = markForChain(chainId);
+  const glyph =
+    which === undefined
+      ? `<span class="mark-fallback" title="${esc(name)}"></span>`
+      : mark(which, 18, options?.compact === true);
+  if (options?.compact === true) return glyph;
+  return `<span class="identity">${glyph}<span>${esc(name)}</span></span>`;
 }
 
-export function assetIdentity(symbol: string, address: string, chainId: number): string {
-  return `<span class="identity">${chainIdentity(chainId, { compact: true })}<span><span style="font-weight:var(--font-weight-medium)">${esc(symbol)}</span> <span class="mono muted" style="font-size:13px">${esc(truncate(address))}</span></span></span>`;
+/**
+ * An asset, marked by who issues it.
+ *
+ * `cSETTLE` is a Cleanverse A-Token and carries the Cleanverse mark; the
+ * restricted bond is issued here and carries a drawn one, because borrowing a
+ * logo for it would imply an issuer that does not exist.
+ */
+export function assetIdentity(symbol: string, contract: string, chainId: number): string {
+  const label = `<span style="font-weight:var(--font-weight-medium)">${esc(symbol)}</span>`;
+  if (contract === '')
+    return `<span class="identity">${mark(markForAsset(symbol), 18)}${label}</span>`;
+  return `<span class="identity">${mark(markForAsset(symbol), 18)}<span>${label} ${address(contract, chainId)}</span></span>`;
 }
 
 export function truncate(value: string, head = 10, tail = 6): string {
   return value.length > head + tail + 1 ? `${value.slice(0, head)}…${value.slice(-tail)}` : value;
 }
 
+/** An external link, always safe and always marked as leaving the page. */
+export function external(href: string, body: string, title: string): string {
+  return `<a class="ext" href="${esc(href)}" title="${esc(title)}" target="_blank" rel="noopener noreferrer">${body}<span class="ext-mark" aria-hidden="true">${icon('external', 12)}</span></a>`;
+}
+
 /**
- * An address is always chain-qualified and always carries its full value in
- * `title`, so the truncation is presentational and never destroys information.
+ * An address: chain-qualified, truncated for reading, whole in `title`, and
+ * linked to the explorer for that chain.
+ *
+ * The chain prefix is not ornament. Two contracts in this deployment share the
+ * same twenty bytes on different chains, so the same string resolves to
+ * different code depending on where you look — and the link has to go to the
+ * right one. A chain with no explorer renders as plain text rather than a
+ * link that would land somewhere wrong.
  */
 export function address(value: string, chainId?: number): string {
   const qualified = chainId === undefined ? value : `eip155:${String(chainId)}:${value}`;
-  return `<span class="addr" title="${esc(qualified)}">${
+  const inner = `${
     chainId === undefined ? '' : `<span class="chain">${esc(chainId)}</span>`
-  }<span class="val">${esc(truncate(value))}</span></span>`;
+  }<span class="val">${esc(truncate(value))}</span>`;
+
+  const href = chainId === undefined ? undefined : addressUrl(chainId, value);
+  if (href === undefined) return `<span class="addr" title="${esc(qualified)}">${inner}</span>`;
+
+  const where = explorerName(chainId ?? 0) ?? 'the explorer';
+  return `<span class="addr">${external(href, inner, `${qualified} — open on ${where}`)}</span>`;
+}
+
+/** A transaction hash, linked to the explorer for the chain that mined it. */
+export function txHash(hash: string, chainId: number): string {
+  const href = txUrl(chainId, hash);
+  const body = `<span class="val">${esc(truncate(hash))}</span>`;
+  if (href === undefined) return `<span class="addr" title="${esc(hash)}">${body}</span>`;
+  return `<span class="addr">${external(href, body, `${hash} — open on ${explorerName(chainId) ?? 'the explorer'}`)}</span>`;
+}
+
+/** A signed VAA, linked to Wormholescan by emitter and sequence. */
+export function vaaLink(
+  wormholeChainId: number,
+  emitter: string,
+  sequence: string,
+  body: string,
+): string {
+  return external(
+    vaaUrl(wormholeChainId, emitter, sequence),
+    body,
+    `sequence ${sequence} from ${emitter} — open the signed VAA on Wormholescan`,
+  );
 }
 
 // ── Empty, error, loading ───────────────────────────────────────────────────
