@@ -112,7 +112,13 @@ describe('the database credential cannot reach a browser', () => {
     // it by name rather than widening the pattern, so a *new* file that touches
     // the credential still fails. The moment this app grows a client bundle,
     // that bundle's directory goes in the list below and nothing else changes.
-    const serverOnly = new Set(['apps/web/src/worker.ts']);
+    // `data.ts` is the Worker's read layer and is imported by `worker.ts` alone.
+    // It is named here for the same reason `worker.ts` is: it legitimately holds
+    // the credential, and naming it keeps the check sharp for the next file that
+    // does so by accident. This app still ships no client bundle at all — its
+    // CSP is `default-src 'none'` with no script source — so there is nothing
+    // for either file to leak into.
+    const serverOnly = new Set(['apps/web/src/worker.ts', 'apps/web/src/data.ts']);
     const offenders: string[] = [];
     for (const app of ['apps/web/src', 'packages/ui/src']) {
       const dir = join(ROOT, app);

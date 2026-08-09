@@ -119,7 +119,11 @@ importers:
 
   apps/indexer: {}
 
-  apps/web: {}
+  apps/web:
+    dependencies:
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
 
   apps/worker: {}
 

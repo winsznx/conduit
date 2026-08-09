@@ -26,3 +26,7 @@ test-results/
 
 # Solidity is formatted by `forge fmt`, not Prettier.
 *.sol
+
+# Wrangler's local build cache
+**/.wrangler/
+qa/screens/

@@ -14,6 +14,8 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      // Wrangler's local build cache; regenerated on every dev run.
+      '**/.wrangler/**',
       '.tsbuild/**',
       'coverage/**',
       'out/**',
@@ -77,7 +79,7 @@ export default tseslint.config(
 
   // The repository-hygiene suite reads the filesystem and reports findings.
   {
-    files: ['tests/**/*.ts', 'e2e/**/*.ts'],
+    files: ['tests/**/*.ts', 'e2e/**/*.ts', 'apps/web/qa/**/*.ts'],
     rules: {
       'no-console': 'off',
     },

@@ -1,44 +1,55 @@
-import {
-  renderHome,
-  renderNotFound,
-  renderSettlement,
-  renderVerification,
-  type SettlementView,
-} from './render.js';
-
 /**
- * The deployed surface: the console, the public proof pages, and the read API.
+ * The deployed surface: the landing page, the settlement console, the public
+ * proof pages, and the read API.
  *
- * One Worker serves both because they answer the same questions from the same
- * data and splitting them would double the configuration for no isolation
- * benefit — neither can write anything.
+ * One Worker serves all of them because they answer the same questions from the
+ * same data, and splitting them would double the configuration for no isolation
+ * benefit — none of them can write anything.
  *
  * ## Nothing here decides anything
  *
- * Every route is a read. There is no signer in this Worker, no private key in
- * its bindings, and no endpoint that accepts a mutation. A settlement's state
- * comes from the coordinator; a verification comes from reading two chains and
- * the guardian set. If this Worker were compromised it could lie to a browser,
- * which is why `/verify` exists and why the CLI does the same job without
- * asking this service anything.
+ * Every route is a read. There is no signer in this Worker, no private key, and
+ * no path that moves value. The `/app/settlements/new` composer builds the terms
+ * of an intent and hands them to the CLI, which holds the key; a read surface
+ * that could sign would be a different threat model wearing the same URL.
  *
- * ## Secrets
+ * The projection this reads is convenient and is never evidence. A settlement's
+ * authority is the coordinator on chain, and a reader who wants proof runs the
+ * verifier against the chains rather than trusting this page.
  *
- * `DATABASE_URL` is a Worker *secret*, never a `var` — a `var` is plaintext in
- * `wrangler.toml` and in the dashboard, and this one is the whole database. It
- * is read at request time and never returned in any response, including error
- * responses, which is why failures here report a code rather than an exception
- * message.
+ * ## Presentation
+ *
+ * `design.md` is the authoritative visual specification. It is implemented in
+ * `theme.ts` as tokens, `ui.ts` as primitives and `components.ts` as the
+ * protocol's own vocabulary; routes here compose pages and never style.
  */
 
-export interface Env {
-  /** Secret. The Supabase transaction pooler, which needs `prepare: false`. */
-  readonly DATABASE_URL: string;
-  readonly MONAD_RPC_URL: string;
-  readonly BASE_RPC_URL: string;
-  readonly DEPLOYMENT_ID: string;
-  readonly COMMIT_SHA: string;
-}
+import type { Env } from './data.js';
+import {
+  deployments,
+  dispositionCases,
+  evidenceFor,
+  latestVerification,
+  recentSettlements,
+  settlementView,
+  totals,
+} from './data.js';
+import {
+  renderComposer,
+  renderDeployments,
+  renderDispositions,
+  renderError,
+  renderEvidence,
+  renderEvidenceHome,
+  renderLanding,
+  renderNotFound,
+  renderOverview,
+  renderSettlement,
+  renderSettlements,
+  renderSystem,
+  renderVerification,
+  renderVerifierHome,
+} from './pages.js';
 
 const HTML = { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' };
 const JSON_HEADERS = {
@@ -53,6 +64,10 @@ const JSON_HEADERS = {
  * somebody else's frame, and should not be able to load a script from anywhere.
  * The CSP is deliberately absolute: no external origin, no inline script, no
  * eval. The pages are server-rendered and need none of it.
+ *
+ * `font-src` is absent, which is why the design system's font token falls
+ * through to the platform sans rather than fetching Geist. Loading a webfont
+ * would mean allowing an origin here, and that trade is not worth a typeface.
  */
 const SECURITY_HEADERS = {
   'content-security-policy':
@@ -72,6 +87,10 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...JSON_HEADERS, ...SECURITY_HEADERS },
   });
+}
+
+function redirect(location: string): Response {
+  return new Response(null, { status: 308, headers: { location, ...SECURITY_HEADERS } });
 }
 
 const SETTLEMENT_ID = /^0x[0-9a-fA-F]{64}$/;
@@ -102,141 +121,172 @@ export default {
       // The message is deliberately not echoed. A stack trace from a Worker
       // holding a database credential is a place credentials surface.
       console.error('handler failed', error);
-      return json(
-        { error: { code: 'handler_failed', message: 'the request could not be served' } },
+      if (url.pathname.startsWith('/api/')) {
+        return json(
+          { error: { code: 'handler_failed', message: 'the request could not be served' } },
+          500,
+        );
+      }
+      return html(
+        renderError(
+          'The projection could not be read. This says nothing about the settlement itself — ' +
+            'chain state is unaffected by whether this page can reach its database.',
+        ),
         500,
       );
     }
   },
 };
 
+/** The generation label shown in the shell, short enough to read at a glance. */
+function generationLabel(env: Env): string {
+  return `${env.DEPLOYMENT_ID.slice(0, 10)}…`;
+}
+
 async function route(path: string, url: URL, env: Env): Promise<Response> {
+  // ── API ───────────────────────────────────────────────────────────────────
+
   if (path === '/health' || path === '/api/health') {
     return json({
       status: 'ok',
       commit: env.COMMIT_SHA,
       deployment: env.DEPLOYMENT_ID,
-      role: 'read-only console, proof pages and API; decides no settlement truth',
     });
   }
 
+  // ── Landing ───────────────────────────────────────────────────────────────
+
   if (path === '/') {
-    return html(renderHome(await recentSettlements(env)));
+    const [counts, recent] = await Promise.all([totals(env), recentSettlements(env, 1)]);
+    // The landing diagram shows a real trade, so it needs the full view. The
+    // list query deliberately skips terms, and passing that shallow row
+    // straight through rendered a settlement with no chain and no amounts.
+    const head = recent[0];
+    const featured = head === undefined ? undefined : await settlementView(env, head.settlementId);
+    return html(renderLanding(counts, featured === undefined ? [] : [featured]));
   }
 
-  if (path === '/settlements') {
-    return html(renderHome(await recentSettlements(env)));
+  // ── Console ───────────────────────────────────────────────────────────────
+
+  if (path === '/app') {
+    const [counts, recent] = await Promise.all([totals(env), recentSettlements(env, 8)]);
+    return html(renderOverview(generationLabel(env), counts, recent));
   }
 
-  const settlementMatch = /^\/settlements\/(0x[0-9a-fA-F]{64})$/.exec(path);
-  if (settlementMatch) {
-    const view = await settlementView(env, (settlementMatch[1] as string).toLowerCase());
+  if (path === '/app/settlements') {
+    return html(renderSettlements(generationLabel(env), await recentSettlements(env)));
+  }
+
+  if (path === '/app/settlements/new') {
+    return html(renderComposer(generationLabel(env)));
+  }
+
+  const settlementMatch = /^\/app\/settlements\/(0x[0-9a-fA-F]{64})$/.exec(path);
+  const settlementId = settlementMatch?.[1];
+  if (settlementId !== undefined) {
+    const view = await settlementView(env, settlementId.toLowerCase());
     if (view === undefined) {
       return html(
         renderNotFound(
-          'This settlement is not in the projection.',
-          'That is not proof it does not exist — the indexer may simply not have reached it. ' +
-            'Run `conduit verify <id>` against the chains before concluding anything.',
+          'This settlement is not in the projection',
+          'That is not proof it does not exist — the indexer may simply not have reached it. Run the verifier against the chains before concluding anything.',
         ),
         404,
       );
     }
-    return html(renderSettlement(view));
+    return html(renderSettlement(generationLabel(env), view));
   }
 
-  // `/verify?id=…` is what the form posts to; `/verify/:id` is the shareable link.
+  if (path === '/app/dispositions') {
+    return html(renderDispositions(generationLabel(env), await dispositionCases(env)));
+  }
+
+  const dispositionMatch = /^\/app\/dispositions\/(0x[0-9a-fA-F]{64})$/.exec(path);
+  if (dispositionMatch) {
+    const cases = await dispositionCases(env);
+    const found = cases.find(
+      (row) => row.caseId.toLowerCase() === dispositionMatch[1]?.toLowerCase(),
+    );
+    if (found === undefined) {
+      return html(
+        renderNotFound(
+          'No such disposition case',
+          'No case with this identifier is in the projection. Cases are opened only when committed value cannot be delivered and an order is filed.',
+        ),
+        404,
+      );
+    }
+    return redirect(`/app/settlements/${found.settlementId}`);
+  }
+
+  if (path === '/app/verifier') {
+    return html(renderVerifierHome(generationLabel(env)));
+  }
+
+  if (path === '/app/evidence') {
+    return html(renderEvidenceHome(generationLabel(env)));
+  }
+
+  if (path === '/app/deployments') {
+    return html(renderDeployments(generationLabel(env), await deployments(env)));
+  }
+
+  if (path === '/app/system') {
+    return html(
+      renderSystem(generationLabel(env), {
+        deploymentId: env.DEPLOYMENT_ID,
+        commit: env.COMMIT_SHA,
+      }),
+    );
+  }
+
+  // ── Public proof pages ────────────────────────────────────────────────────
+  //
+  // `/verify?id=…` is what the form posts to; `/verify/:id` is the shareable
+  // link. Both are public and neither requires the console.
+
   const verifyQuery = path === '/verify' ? url.searchParams.get('id') : undefined;
   const verifyMatch = /^\/verify\/(0x[0-9a-fA-F]{64})$/.exec(path);
   const toVerify = verifyMatch?.[1] ?? verifyQuery ?? undefined;
 
   if (path === '/verify' || verifyMatch) {
     if (toVerify === undefined || !SETTLEMENT_ID.test(toVerify)) {
-      return html(
-        renderNotFound(
-          'A settlement ID is 32 bytes of 0x-prefixed hex.',
-          'The most common cause is a truncated copy — check you have all 64 digits.',
-        ),
-        400,
-      );
+      return html(renderVerifierHome(generationLabel(env)), toVerify === undefined ? 200 : 400);
     }
-    const run = await latestVerification(env, toVerify.toLowerCase());
-    if (run === undefined) {
+    const settlementId = toVerify.toLowerCase();
+    const result = await latestVerification(env, settlementId);
+    if (result === undefined) {
       return html(
         renderNotFound(
-          'No verification run is recorded for this settlement.',
-          'The verifier reads two chains and the guardian set; run `conduit verify` to produce one.',
+          'No verification run for this settlement',
+          'Nothing has verified this identifier yet. A missing run is not a negative result — run the verifier against the chains to produce one.',
         ),
         404,
       );
     }
-    return html(renderVerification(toVerify.toLowerCase(), run), run.hadScanGap ? 409 : 200);
-  }
-
-  if (path === '/dispositions') {
-    return html(renderHome(await recentSettlements(env)));
+    return html(renderVerification(generationLabel(env), settlementId, result));
   }
 
   const evidenceMatch = /^\/evidence\/(0x[0-9a-fA-F]{64})$/.exec(path);
-  if (evidenceMatch) {
-    const manifest = await evidenceManifest(env, (evidenceMatch[1] as string).toLowerCase());
-    if (manifest === undefined) {
-      return json(
-        { error: { code: 'no_evidence', message: 'no manifest for this settlement' } },
-        404,
-      );
-    }
-    return json(manifest);
+  const evidenceId = evidenceMatch?.[1];
+  if (evidenceId !== undefined) {
+    const id = evidenceId.toLowerCase();
+    return html(renderEvidence(generationLabel(env), id, await evidenceFor(env, id)));
   }
+
+  // ── Legacy paths ──────────────────────────────────────────────────────────
+  //
+  // The console moved under /app. These were public links, so they redirect
+  // rather than 404.
+
+  if (path === '/settlements') return redirect('/app/settlements');
+  const legacySettlement = /^\/settlements\/(0x[0-9a-fA-F]{64})$/.exec(path);
+  if (legacySettlement) return redirect(`/app/settlements/${legacySettlement[1] ?? ''}`);
+  if (path === '/dispositions') return redirect('/app/dispositions');
 
   if (path.startsWith('/api/')) {
     return json({ error: { code: 'not_found', message: `no route for ${path}` } }, 404);
   }
 
-  return html(renderNotFound('No such page.', `Nothing is served at ${path}.`), 404);
-}
-
-/**
- * Reads are stubbed against the projection until the indexer runs in production.
- *
- * Returning an empty list rather than fabricating rows: a console that showed
- * plausible settlements nobody had indexed would be the most misleading thing
- * in the repository. The shape is real, the source is real, and the absence is
- * honest.
- */
-async function recentSettlements(env: Env): Promise<readonly SettlementView[]> {
-  void env;
-  return [];
-}
-
-async function settlementView(env: Env, settlementId: string): Promise<SettlementView | undefined> {
-  void env;
-  void settlementId;
-  return undefined;
-}
-
-async function latestVerification(
-  env: Env,
-  settlementId: string,
-): Promise<
-  | {
-      classification: string;
-      findings: readonly { check: string; ok: boolean; detail: string }[];
-      hadScanGap: boolean;
-      searchedRanges: Readonly<Record<string, { from: string; to: string }>>;
-      trustRoot: string;
-    }
-  | undefined
-> {
-  void env;
-  void settlementId;
-  return undefined;
-}
-
-async function evidenceManifest(
-  env: Env,
-  settlementId: string,
-): Promise<Record<string, unknown> | undefined> {
-  void env;
-  void settlementId;
-  return undefined;
+  return html(renderNotFound('No such page', `Nothing is served at ${path}.`), 404);
 }

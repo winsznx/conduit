@@ -1,0 +1,12 @@
+{
+  // The visual QA runs assertions inside the browser via `page.evaluate`, so it
+  // needs DOM lib types. It gets its own project rather than adding DOM to the
+  // shared test config, which would weaken typing for the Node-side suites.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}
