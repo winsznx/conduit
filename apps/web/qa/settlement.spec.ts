@@ -846,6 +846,41 @@ test.describe('settlement workspace', () => {
     expect(model.sent).not.toContain('issueCommit');
   });
 
+  test('offers a way out when the published sequence was never recorded', async ({ page }) => {
+    // #given both legs standing on their own chains and no message row — the
+    // exact shape the first live browser run stalled in, because a Wormhole
+    // sequence lives in an event and nothing on chain can give it back
+    const model = freshModel();
+    model.reservationOwner = account.address;
+    model.reservationAnnounced = true;
+    model.intendedReceiver = account.address;
+    model.cashPrepared = true;
+    model.settlementState = 1;
+    model.messages = [];
+
+    await installWallet(page, model);
+    await installApi(page, model);
+    await page.route(MONAD_RPC, (route) => serveRpc(route, model));
+    await page.route(BASE_RPC, (route) => serveRpc(route, model));
+
+    const id = await composeSignedSettlement(page);
+    await openWorkspace(page, id);
+
+    // #then the panel names the situation and offers the transaction hash
+    await expect(page.locator(actionKind)).toHaveText('AWAITING_ASSET_PREPARATION', {
+      timeout: 60_000,
+    });
+    const field = page.locator('[data-recover-hash]');
+    await expect(field).toBeVisible();
+
+    // #when a hash that is not a hash is offered, it is refused locally
+    await field.fill('not-a-hash');
+    await page.getByRole('button', { name: 'Recover the message' }).click();
+    await expect(page.locator('[data-action-host]')).toContainText(
+      'not a 32-byte transaction hash',
+    );
+  });
+
   test('a wallet that is not a party is told whose action it is', async ({ page }) => {
     const model = freshModel();
     await installWallet(page, model);
