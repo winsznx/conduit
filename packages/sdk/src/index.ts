@@ -1,17 +1,23 @@
 import {
   AuthorityType,
+  DOMAIN_NAME,
+  DOMAIN_VERSION,
   DispositionType,
   Leg,
   SETTLEMENT_INTENT_TYPE,
   caseIdFor,
-  conflictResolutionDigest,
+  createSettlementIntent,
   dispositionOrderDigest,
-  hashSettlementIntent,
   redirectsValue,
   settlementIntentDomain,
 } from '@conduit-protocol/domain';
 
-import type { DispositionOrder, SettlementIntent } from '@conduit-protocol/domain';
+import type {
+  DeploymentDomain,
+  DispositionOrder,
+  SettlementIntent,
+  SettlementIntentTerms,
+} from '@conduit-protocol/domain';
 import type { Hex, TypedDataDomain } from 'viem';
 
 /**
@@ -35,6 +41,9 @@ import type { Hex, TypedDataDomain } from 'viem';
  */
 
 export const PACKAGE_ID = '@conduit-protocol/sdk';
+
+/** PRD 11.x / phase 06, matching this workspace's README. */
+export const IMPLEMENTATION_PHASE = '06';
 
 export interface DeploymentRef {
   readonly deploymentId: Hex;
@@ -108,7 +117,7 @@ export function buildIntent(draft: IntentDraft): BuiltIntent {
     throw new Error('the commit deadline must fall before the release deadline');
   }
 
-  const intent: SettlementIntent = {
+  const terms: SettlementIntentTerms = {
     version: 1,
     cashChainId: BigInt(deployment.cashChainId),
     cashEscrow: deployment.cashEscrow,
@@ -133,12 +142,22 @@ export function buildIntent(draft: IntentDraft): BuiltIntent {
   // The domain binds `chainId` to the *cash* chain, where the coordinator
   // lives. The asset chain is a struct field, so one signature commits to both
   // legs without either party signing two domains.
-  const domain = settlementIntentDomain(deployment.cashChainId, deployment.coordinator);
-  const settlementId = hashSettlementIntent(intent, domain);
+  //
+  // `createSettlementIntent` derives the identifier from the terms and the
+  // domain together, which is why the terms are built first and the intent
+  // second — the ID *is* the digest, so it cannot exist before both do.
+  const deploymentDomain: DeploymentDomain = {
+    name: DOMAIN_NAME,
+    version: DOMAIN_VERSION,
+    chainId: BigInt(deployment.cashChainId),
+    verifyingContract: deployment.coordinator,
+  };
+  const intent = createSettlementIntent(terms, deploymentDomain);
+  const domain = settlementIntentDomain(BigInt(deployment.cashChainId), deployment.coordinator);
 
   return {
     intent,
-    settlementId,
+    settlementId: intent.settlementId,
     domain,
     typedData: {
       domain,

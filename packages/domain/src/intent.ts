@@ -102,6 +102,34 @@ export function domainOf(deployment: DeploymentDomain): TypedDataDomain {
 }
 
 /**
+ * The name and version the deployed contracts were constructed with.
+ *
+ * Not a convention and not a guess: the coordinator computes its
+ * `domainSeparator` from these at construction, and this pair reproduces the
+ * value the deployed generation-3 coordinator returns. A signature built with
+ * anything else is rejected on chain, so these are pinned here rather than
+ * passed in by each caller.
+ */
+export const DOMAIN_NAME = 'Conduit';
+export const DOMAIN_VERSION = '1';
+
+/**
+ * The intent domain for a deployment, from the two things that actually vary.
+ *
+ * `chainId` is the *cash* chain, because `SettlementCoordinator` lives there
+ * and is the verifying contract. Signing against the asset chain produces a
+ * digest the coordinator will not accept.
+ */
+export function settlementIntentDomain(chainId: bigint, coordinator: Hex): TypedDataDomain {
+  return domainOf({
+    name: DOMAIN_NAME,
+    version: DOMAIN_VERSION,
+    chainId,
+    verifyingContract: coordinator,
+  });
+}
+
+/**
  * Derives the settlement ID, which is also the digest both parties sign.
  *
  * One digest for both purposes is deliberate. If the ID and the signing digest

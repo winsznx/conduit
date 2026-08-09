@@ -27,7 +27,10 @@ export {
 
 export {
   createSettlementIntent,
+  DOMAIN_NAME,
+  DOMAIN_VERSION,
   domainOf,
+  settlementIntentDomain,
   hashSettlementIntent,
   INTENT_VERSION,
   IntentProblem,
@@ -87,6 +90,27 @@ export {
   type MessageTypeValue,
   type SettlementStateValue,
 } from './states.js';
+
+export {
+  AuthorityType,
+  caseIdFor,
+  conflictResolutionDigest,
+  CONFLICT_RESOLUTION_TYPE,
+  DESTINATION_RULE,
+  DISPOSITION_ORDER_TYPE,
+  dispositionOrderDigest,
+  DispositionType,
+  Leg,
+  redirectsValue,
+  type AuthorityTypeName,
+  type AuthorityTypeValue,
+  type ConflictResolution,
+  type DispositionOrder,
+  type DispositionTypeName,
+  type DispositionTypeValue,
+  type LegName,
+  type LegValue,
+} from './disposition.js';
 
 export {
   isAwaitingFinality,

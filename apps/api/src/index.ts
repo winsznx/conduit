@@ -24,6 +24,9 @@ import type { RouteContext } from './router.js';
 
 export const PACKAGE_ID = '@conduit-protocol/app-api';
 
+/** PRD 11.x / phase 06, matching this workspace's README. */
+export const IMPLEMENTATION_PHASE = '06';
+
 /** Everything a handler is allowed to reach. No signer, deliberately. */
 export interface ApiDependencies {
   readonly settlements: SettlementReader;
