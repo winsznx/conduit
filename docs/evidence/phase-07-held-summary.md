@@ -2,8 +2,14 @@
 
 **Live, on the deployed generation-1 stack, 2026-08-08.**
 Settlement `0x2b8ff0a739d575f9fb680b1df185d65c58ad74aa454de10c4c4f65c9a988e0bd`.
-Machine-readable: `phase-07-compliance-change.json`. Stream:
-`artifacts/compliance-change-2b8ff0a739.log`.
+Machine-readable: none surviving. This run wrote to the then-fixed path
+`phase-07-compliance-change.json` and the generation-2 run overwrote it a few
+hours later; the runner now scopes that file by deployment generation so it
+cannot happen again. Stream: `artifacts/compliance-change-2b8ff0a739.log`, which
+is the surviving primary record for this settlement — and which is **not**
+committed, because `docs/evidence/artifacts/` is gitignored pending the
+content-addressed publishing PRD 17.3 defers to Phase 08. See ASM-039. Until
+that pipeline exists, this run's evidence is one file on one machine.
 
 The happy path shows Conduit can settle. This shows the harder thing: a trade
 that was legitimately committable stopped being legitimately deliverable, and

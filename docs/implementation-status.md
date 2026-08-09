@@ -651,9 +651,12 @@ non-upgradeable, so a new version deploys separately.
    COMMIT, the live policy answered `TierTooLow`, delivery was refused, the bond
    reached HELD, the issuer restored the rule, and `resolveHeldAsset` delivered
    it — terminal SETTLED, and an independent verifier derives `SETTLED_FINAL`
-   from the settlement ID alone. See
-   [phase-07-disposition-summary.md](./evidence/phase-07-disposition-summary.md),
-   and [phase-07-held-summary.md](./evidence/phase-07-held-summary.md) for the
+   from the settlement ID alone. Proven twice: on generation 2
+   ([phase-07-disposition-summary.md](./evidence/phase-07-disposition-summary.md),
+   settlement `0x30aa1b73…`) and again on generation 3, the canonical deployment
+   ([phase-07-disposition-gen3-summary.md](./evidence/phase-07-disposition-gen3-summary.md),
+   settlement `0xc113ad33…`). See
+   [phase-07-held-summary.md](./evidence/phase-07-held-summary.md) for the
    generation-1 run that reached HELD before a disposition path existed. Only
    `REVERIFY_AND_RESUME` is reachable; the other five FR-012 order types need
    the authority registry.

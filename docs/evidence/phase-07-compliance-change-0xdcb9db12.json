@@ -1,0 +1,341 @@
+{
+  "startedAt": "2026-08-08T22:43:34.390Z",
+  "scenario": "post-COMMIT compliance change, Path B: issuer-controlled RuleV2 transition",
+  "resumedFrom": null,
+  "settlementId": "0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0",
+  "outcome": "HELD_THEN_DISPOSITIONED_TO_SETTLED",
+  "intent": {
+    "version": "1",
+    "cashChainId": "10143",
+    "cashEscrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "cashAsset": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+    "cashAmount": "25000000",
+    "cashPayer": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "cashReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "assetChainId": "84532",
+    "assetEscrow": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+    "assetToken": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+    "assetAmount": "500000",
+    "assetSeller": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "assetReceiver": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+    "cashPolicyHash": "0xf03ae622483beb58cec471b5013bba399164b26ffd13f91cb8b32098c7b3fc2e",
+    "assetPolicyHash": "0x2d19ad738cb6b4bd7b6097eb701fcbe3a1a15f52ddf9e9535291551c16d98c79",
+    "prepareDeadline": "1786232614",
+    "commitDeadline": "1786239814",
+    "releaseDeadline": "1786243414",
+    "nonce": "12"
+  },
+  "addresses": {
+    "coordinator": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "escrow": "0x8151D682836f5B7106181bc8e48DC899ab538930",
+    "cash": "0xFEfd2eA28dB25c720ec5298964F8d2F34e3f1F16",
+    "rwa": "0xDdB1AE5685F4033Ed10B3DfCe5e9dc13D3e4989B",
+    "adapter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61",
+    "wormholeMonad": "0xaBf89de706B583424328B54dD05a8fC986750Da8",
+    "wormholeBase": "0x79A1027a6A159502049F10906D333EC57E95F083",
+    "policyBase": "0x36489be45fa84f70a0c2bdb11d824be608cb12dd",
+    "policyMonad": "0x36489bE45fa84f70a0c2BDB11D824Be608CB12Dd"
+  },
+  "stages": [
+    {
+      "stage": "Base Sepolia: reserve and announce",
+      "at": "2026-08-08T22:43:56.734Z",
+      "detail": {
+        "reserve": "0xf0d73d3ec94b9d853eae14f81fab12673ff78fc6e614c72eb7a853dd472630b5",
+        "prepareAsset": "0x96c652a43b128eed45974efce7c4fa31e095be883923c2a44ef1d91e492a98fb",
+        "sequence": "3"
+      }
+    },
+    {
+      "stage": "Monad Testnet: the cash enters escrow",
+      "at": "2026-08-08T22:44:17.610Z",
+      "detail": {
+        "prepareCash": "0x6943cd3a3307c3205d61ce73769937295eab2a357409cd5169393d5ab5a91457"
+      }
+    },
+    {
+      "stage": "waiting for the finalized ASSET_PREPARED VAA",
+      "at": "2026-08-08T22:44:23.750Z",
+      "detail": {
+        "waitSeconds": "1189",
+        "recordAssetPrepared": "0x3ca10b15660f6abd0c17167db9a1ae2f16e8186239f8fef5e3ca2fbba212254d"
+      }
+    },
+    {
+      "stage": "fresh compliance, then COMMIT — the buyer is still eligible",
+      "at": "2026-08-08T23:04:17.060Z",
+      "detail": {
+        "issueCommit": "0x697aaa8e0b5f2425a8e05048afd988e14efdf9ead5ae7c0c5aee072c30829cf5",
+        "sequence": "1"
+      }
+    },
+    {
+      "stage": "the cash releases: the seller is paid and cannot be un-paid",
+      "at": "2026-08-08T23:04:25.329Z",
+      "detail": {
+        "releaseCash": "0xe2c430844875228d09d6782cebd0c2269b624b5c92e0692507fd0bf7bfca901a"
+      }
+    },
+    {
+      "stage": "RuleV2: restrict — minTier 21 against a tier-20 holder",
+      "at": "2026-08-08T23:04:33.224Z",
+      "detail": {
+        "hash": "0x4e0394879c5aa701d2326805851578269081a0def76e237b3c3a630dbefadad7",
+        "before": "[[0x0000,0x0000,0,0,false,0]]",
+        "after": "[[0x0000,0x0000,21,0,false,0]]"
+      }
+    },
+    {
+      "stage": "the asset leg is asked to deliver, and holds instead",
+      "at": "2026-08-08T23:04:49.163Z",
+      "detail": {
+        "commitVaaWaitSeconds": "1",
+        "releaseAsset": "0xb354949dee3f13dcb59ac0da682c8050647bc5a8362f36697e9d02c16ffedaf2"
+      }
+    },
+    {
+      "stage": "what cannot happen now",
+      "at": "2026-08-08T23:05:08.066Z",
+      "detail": {}
+    },
+    {
+      "stage": "the asset leg reports what the token did: ASSET_HELD",
+      "at": "2026-08-08T23:05:08.685Z",
+      "detail": {
+        "reportResolution": "0xfba2c7a1306ccba6a03495ec11269cecfee2abca703f5355ee221a49653e3e19",
+        "sequence": "4",
+        "reportWaitSeconds": "1483",
+        "recordLegResolved": "0x781867ae9b5cd290017fb8b1fdc02a6fe1110e5ab1726a3cf62d653b1446e98d"
+      }
+    },
+    {
+      "stage": "RuleV2: restore — minTier 0",
+      "at": "2026-08-08T23:30:05.674Z",
+      "detail": {
+        "hash": "0x2400916ef715a2e515eb079ef65a3bcc3500bd60bcb09c63a6333e1e1d1a8199",
+        "before": "[[0x0000,0x0000,21,0,false,0]]",
+        "after": "[[0x0000,0x0000,0,0,false,0]]"
+      }
+    },
+    {
+      "stage": "disposition",
+      "at": "2026-08-08T23:30:23.551Z",
+      "detail": {
+        "resolveHeldAssetPresentInBytecode": "true",
+        "resolveHeldAsset": "0xf76401dc39e32bbf28dc5c5eb215f09135b6d8b6548e60a4615d0836963696ec",
+        "reportResolution": "0xee6e40f3f9d2ed3c5583a636088309caac6c582831f34a9acfe06d34d332d223",
+        "dispositionReportWaitSeconds": "1482",
+        "recordLegResolved": "0xeee17497b5cd9d7bca2d8c32853b9f9b1c39e592ca8944bea10c2b3bd14d6cea"
+      }
+    }
+  ],
+  "compliance": [
+    {
+      "label": "before preparation",
+      "at": "2026-08-08T22:43:56.733Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "00f1ef9e-b10a-4ff5-ade8-638f079d0d3e",
+          "answer": "code 4",
+          "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "at commit time, before the rule change",
+      "at": "2026-08-08T23:04:20.162Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "81ec6bad-58be-490d-ae5a-70983f4dcefd",
+          "answer": "code 4",
+          "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "after the rule change",
+      "at": "2026-08-08T23:04:49.160Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": false,
+      "evidenceHash": "0x9c01470cd501a45d52a1b9c50d133bfc7939a3bf01317af49707917b8a02f712",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "0a5ba6ae-011a-4b83-aca6-4d976c9f3a32",
+          "answer": "refused by policy: TierTooLow",
+          "responseHash": "0x0058284b064a4d4c3f3f3298f9277a510e47e69964cc063e3affea66a5661190"
+        }
+      ],
+      "onChainCanTransfer": "revert The contract function \"canTransfer\" reverted with the following signature:",
+      "ruleV2": "[[0x0000,0x0000,21,0,false,0]]"
+    },
+    {
+      "label": "after the rule is restored",
+      "at": "2026-08-08T23:30:20.042Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "66f97a44-7440-48d5-b5ae-4f87e3309b3c",
+          "answer": "code 4",
+          "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    },
+    {
+      "label": "at disposition time",
+      "at": "2026-08-08T23:30:25.899Z",
+      "subject": "0x83C130ed9fb92830F09ea2b30E49009EF03065Bb",
+      "eligible": true,
+      "evidenceHash": "0x08875a2035463c41ab0a17255bc89d22a0cb3391b8131ed02e53f87a0293650d",
+      "sources": [
+        {
+          "endpoint": "/verify_apass",
+          "requestId": "cccff165-4f09-4d24-8ad1-b26c2585746f",
+          "answer": "code 4",
+          "responseHash": "0xcb51f5d46de1624e8df6b61cb9f4cc64569ecb828360e5aafe7d1a90c39beb26"
+        }
+      ],
+      "onChainCanTransfer": "true",
+      "ruleV2": "[[0x0000,0x0000,0,0,false,0]]"
+    }
+  ],
+  "ruleTransitions": [
+    {
+      "label": "restrict — minTier 21 against a tier-20 holder",
+      "hash": "0x4e0394879c5aa701d2326805851578269081a0def76e237b3c3a630dbefadad7",
+      "before": "[[0x0000,0x0000,0,0,false,0]]",
+      "after": "[[0x0000,0x0000,21,0,false,0]]"
+    },
+    {
+      "label": "restore — minTier 0",
+      "hash": "0x2400916ef715a2e515eb079ef65a3bcc3500bd60bcb09c63a6333e1e1d1a8199",
+      "before": "[[0x0000,0x0000,21,0,false,0]]",
+      "after": "[[0x0000,0x0000,0,0,false,0]]"
+    }
+  ],
+  "conservation": {
+    "before": {
+      "at": "2026-08-08T22:43:40.525Z",
+      "cash": {
+        "payer": "75000000",
+        "receiver": "75000000",
+        "escrow": "25000000",
+        "totalEscrowed": "25000000",
+        "totalSupply": "100000000"
+      },
+      "rwa": {
+        "sellerNominal": "4000000",
+        "sellerReserved": "500000",
+        "sellerAvailable": "3500000",
+        "receiver": "4000000",
+        "totalSupply": "4000000"
+      }
+    },
+    "at held": {
+      "at": "2026-08-08T23:05:04.713Z",
+      "cash": {
+        "payer": "75000000",
+        "receiver": "75000000",
+        "escrow": "25000000",
+        "totalEscrowed": "25000000",
+        "totalSupply": "100000000"
+      },
+      "rwa": {
+        "sellerNominal": "4000000",
+        "sellerReserved": "1000000",
+        "sellerAvailable": "3000000",
+        "receiver": "4000000",
+        "totalSupply": "4000000"
+      }
+    },
+    "after": {
+      "at": "2026-08-08T23:30:20.043Z",
+      "cash": {
+        "payer": "75000000",
+        "receiver": "75000000",
+        "escrow": "25000000",
+        "totalEscrowed": "25000000",
+        "totalSupply": "100000000"
+      },
+      "rwa": {
+        "sellerNominal": "4000000",
+        "sellerReserved": "1000000",
+        "sellerAvailable": "3000000",
+        "receiver": "4000000",
+        "totalSupply": "4000000"
+      }
+    },
+    "after disposition": {
+      "at": "2026-08-08T23:55:33.270Z",
+      "cash": {
+        "payer": "75000000",
+        "receiver": "75000000",
+        "escrow": "25000000",
+        "totalEscrowed": "25000000",
+        "totalSupply": "100000000"
+      },
+      "rwa": {
+        "sellerNominal": "4000000",
+        "sellerReserved": "500000",
+        "sellerAvailable": "3500000",
+        "receiver": "4000000",
+        "totalSupply": "4000000"
+      }
+    }
+  },
+  "adversarial": [
+    {
+      "attempt": "a refund to the payer after COMMIT",
+      "refusedWith": "LegNotInState"
+    },
+    {
+      "attempt": "the seller reclaiming the reserved bond",
+      "refusedWith": "ReservationAlreadyCommitted"
+    },
+    {
+      "attempt": "an ABORT after the COMMIT",
+      "refusedWith": "AbortAfterCommitForbidden"
+    }
+  ],
+  "assetPrepared": {
+    "hash": "0x96c652a43b128eed45974efce7c4fa31e095be883923c2a44ef1d91e492a98fb",
+    "sequence": "3",
+    "emitter": "0xb08bC7F285dd3fC1047798b661E93AB7427a7A61"
+  },
+  "commit": {
+    "hash": "0x697aaa8e0b5f2425a8e05048afd988e14efdf9ead5ae7c0c5aee072c30829cf5",
+    "sequence": "1"
+  },
+  "assetHeld": {
+    "hash": "0xb354949dee3f13dcb59ac0da682c8050647bc5a8362f36697e9d02c16ffedaf2"
+  },
+  "held": {
+    "hash": "0x781867ae9b5cd290017fb8b1fdc02a6fe1110e5ab1726a3cf62d653b1446e98d"
+  },
+  "disposition": {
+    "type": "REVERIFY_AND_RESUME",
+    "hash": "0xf76401dc39e32bbf28dc5c5eb215f09135b6d8b6548e60a4615d0836963696ec"
+  },
+  "settled": {
+    "hash": "0xeee17497b5cd9d7bca2d8c32853b9f9b1c39e592ca8944bea10c2b3bd14d6cea"
+  },
+  "finishedAt": "2026-08-08T23:55:36.324Z",
+  "artifact": "/Users/mac/conduit/docs/evidence/artifacts/compliance-change-c113ad335d.log"
+}

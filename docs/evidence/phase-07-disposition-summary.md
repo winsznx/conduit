@@ -2,8 +2,13 @@
 
 **Live, on deployment generation 2, 2026-08-08.**
 Settlement `0x30aa1b738cab5f534452b7ef4515119232505dba674ab768520e58be59ef4a17`.
-Machine-readable: `phase-07-compliance-change.json`. Independent verification:
+Machine-readable: `phase-07-compliance-change-0x893ca44e.json`. Independent verification:
 `verification-30aa1b738c.json`. Stream: `artifacts/compliance-change-30aa1b738c.log`.
+
+This path has since been reproduced on generation 3, the canonical deployment —
+see `phase-07-disposition-gen3-summary.md`. This report is kept as the
+generation-2 record rather than rewritten, because a settlement stays verifiable
+only against the generation that knows it.
 
 A trade was legitimately committable. Eligibility changed after the commit.
 Conduit refused to deliver, refused to refund, held the value, and delivered it

@@ -29,13 +29,18 @@
  * credential (ASM-035), which puts account-status transitions out of reach;
  * RuleV2 is the other real Cleanverse compliance surface and it is the issuer's.
  *
- * The disposition that would end this story — `resolveHeldAsset` — is not in the
- * deployed adapter. It is proven in `CrossChainSettlementSeam.t.sol` and needs a
- * new deployment generation, which is blocked on Monad gas
- * (`phase-07-generation-2-blocked.json`). The run says so at the end rather than
- * stopping short and leaving the reader to notice.
+ * The disposition that ends this story — `resolveHeldAsset` — is checked for in
+ * the deployed adapter's bytecode rather than assumed. Generation 1
+ * (`0x9303f240`) did not carry it and the run stopped at HELD, saying so instead
+ * of leaving the reader to notice. Generations 2 (`0x893ca44e`) and 3
+ * (`0xdcb9db12`) carry it and run through to a terminal settlement.
+ *
+ * Evidence is written to `phase-07-compliance-change-<generation>.json`. It used
+ * to be a single fixed path, which cost the generation-1 artifact: the
+ * generation-2 run overwrote it in place, and only
+ * `artifacts/compliance-change-2b8ff0a739.log` survives that run.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { parseAbi } from 'viem';
@@ -127,7 +132,36 @@ const evidence = {
   adversarial: [],
 };
 
-const evidencePath = join(ROOT, 'docs', 'evidence', 'phase-07-compliance-change.json');
+// Scoped to the deployment generation, matching the manifest convention in
+// `contracts/deployments/`. A fixed path made a rerun against a new generation
+// overwrite the previous generation's passing artifact, and because `persist()`
+// runs after every stage, a run that died early replaced a completed proof with
+// an INCOMPLETE one.
+const generation = config.deploymentId.slice(0, 10);
+const evidencePath = join(
+  ROOT,
+  'docs',
+  'evidence',
+  `phase-07-compliance-change-${generation}.json`,
+);
+
+// Same generation, second run: refuse to trample a completed artifact unless the
+// caller says so. Resuming is exempt — it is continuing that settlement, not
+// replacing it.
+if (
+  existsSync(evidencePath) &&
+  resumed === undefined &&
+  process.env['DVP_EVIDENCE_OVERWRITE'] !== '1'
+) {
+  const prior = JSON.parse(readFileSync(evidencePath, 'utf8'));
+  if (prior.outcome !== 'INCOMPLETE') {
+    throw new Error(
+      `${evidencePath} already holds a completed run (${prior.outcome}, settlement ` +
+        `${prior.settlementId}). Set DVP_EVIDENCE_OVERWRITE=1 to replace it, or DVP_RESUME to continue it.`,
+    );
+  }
+}
+
 function persist() {
   writeFileSync(
     evidencePath,
@@ -982,14 +1016,15 @@ async function main() {
 
   if (!canDisposition) {
     log.warn(
-      'resolveHeldAsset is not in this deployed adapter, so the held bond stays held. The path ' +
-        'is proven in CrossChainSettlementSeam.t.sol against producer-originated messages and ' +
-        'needs the deployment generation blocked in phase-07-generation-2-blocked.json.',
+      `resolveHeldAsset is not in the adapter deployed for generation ${generation}, so the held ` +
+        'bond stays held. The path is proven in CrossChainSettlementSeam.t.sol against ' +
+        'producer-originated messages, and generations 0x893ca44e and later carry it on chain.',
     );
     evidence.dispositionBlocked = {
       reason: 'resolveHeldAsset postdates this deployment generation',
+      generation,
       provenIn: 'contracts/test/CrossChainSettlementSeam.t.sol test_12',
-      blockedBy: 'docs/evidence/phase-07-generation-2-blocked.json',
+      firstGenerationCarryingIt: '0x893ca44e',
     };
     evidence.outcome = 'HELD_ON_REAL_COMPLIANCE_CHANGE';
     return;
