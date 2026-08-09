@@ -50,7 +50,7 @@ export function createDatabase(options: DatabaseOptions) {
     // arrives at the first reassigned backend rather than at connect time.
     prepare: !pooled,
     connection: { application_name: options.applicationName ?? 'conduit' },
-    onnotice: () => {},
+    onnotice: () => undefined,
   });
 
   return { sql, db: drizzle(sql, { schema }) };

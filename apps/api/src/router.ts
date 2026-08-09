@@ -85,8 +85,9 @@ function match(
   if (pattern.length !== segments.length) return undefined;
   const params: Record<string, string> = {};
   for (let i = 0; i < pattern.length; i += 1) {
-    const expected = pattern[i] as string;
-    const actual = segments[i] as string;
+    const expected = pattern[i];
+    const actual = segments[i];
+    if (expected === undefined || actual === undefined) return undefined;
     if (expected.startsWith(':')) {
       params[expected.slice(1)] = actual;
       continue;

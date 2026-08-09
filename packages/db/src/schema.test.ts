@@ -33,7 +33,9 @@ function tablesInSql(sql: string): Map<string, string> {
   const pattern = /CREATE TABLE (\w+) \(([\s\S]*?)\n\);/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(sql)) !== null) {
-    tables.set(match[1] as string, match[2] as string);
+    const [, name, body] = match;
+    if (name === undefined || body === undefined) continue;
+    tables.set(name, body);
   }
   return tables;
 }
@@ -48,8 +50,8 @@ function columnsIn(body: string): Set<string> {
     // reading it as a column name is how this parser first "found" a column
     // called REFERENCES.
     if (/^(PRIMARY KEY|CONSTRAINT|FOREIGN KEY|REFERENCES|UNIQUE|CHECK)\b/i.test(line)) continue;
-    const name = /^(\w+)\s/.exec(line);
-    if (name !== null) columns.add(name[1] as string);
+    const column = /^(\w+)\s/.exec(line)?.[1];
+    if (column !== undefined) columns.add(column);
   }
   return columns;
 }
@@ -96,8 +98,9 @@ describe('identity is a pair, in the schema itself', () => {
       const config = getTableConfig(table);
       for (const constraint of config.uniqueConstraints) {
         const names = constraint.columns.map((column) => column.name);
-        if (names.length === 1 && /address|emitter|^to$|^from$/.test(names[0] as string)) {
-          offenders.push(`${config.name}.${String(names[0])}`);
+        const only = names.length === 1 ? names[0] : undefined;
+        if (only !== undefined && /address|emitter|^to$|^from$/.test(only)) {
+          offenders.push(`${config.name}.${only}`);
         }
       }
       for (const column of config.columns) {
@@ -106,8 +109,9 @@ describe('identity is a pair, in the schema itself', () => {
         }
       }
       const primary = config.primaryKeys.flatMap((key) => key.columns.map((c) => c.name));
-      if (primary.length === 1 && /address|emitter/.test(primary[0] as string)) {
-        offenders.push(`${config.name}.${String(primary[0])} (primary key)`);
+      const onlyKey = primary.length === 1 ? primary[0] : undefined;
+      if (onlyKey !== undefined && /address|emitter/.test(onlyKey)) {
+        offenders.push(`${config.name}.${onlyKey} (primary key)`);
       }
     }
     expect(offenders).toEqual([]);

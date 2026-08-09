@@ -25,10 +25,10 @@ function log(blockNumber: bigint, logIndex: number): RawLog {
   return {
     address: ADDRESS,
     blockNumber,
-    blockHash: `0x${blockNumber.toString(16).padStart(64, '0')}` as Hex,
-    transactionHash: `0x${'ab'.repeat(32)}` as Hex,
+    blockHash: `0x${blockNumber.toString(16).padStart(64, '0')}`,
+    transactionHash: `0x${'ab'.repeat(32)}`,
     logIndex,
-    topics: [`0x${'cd'.repeat(32)}` as Hex],
+    topics: [`0x${'cd'.repeat(32)}`],
     data: '0x',
   };
 }
@@ -37,14 +37,18 @@ function log(blockNumber: bigint, logIndex: number): RawLog {
 function cappedReader(cap: bigint, events: readonly RawLog[] = []): LogReader & { calls: number } {
   const reader = {
     calls: 0,
-    getLogs: async (filter: { fromBlock: bigint; toBlock: bigint }) => {
+    getLogs: (filter: { fromBlock: bigint; toBlock: bigint }): Promise<readonly RawLog[]> => {
       reader.calls += 1;
       const width = filter.toBlock - filter.fromBlock + 1n;
       if (width > cap) {
-        throw new Error(`eth_getLogs: block range too large (${String(width)} > ${String(cap)})`);
+        return Promise.reject(
+          new Error(`eth_getLogs: block range too large (${String(width)} > ${String(cap)})`),
+        );
       }
-      return events.filter(
-        (event) => event.blockNumber >= filter.fromBlock && event.blockNumber <= filter.toBlock,
+      return Promise.resolve(
+        events.filter(
+          (event) => event.blockNumber >= filter.fromBlock && event.blockNumber <= filter.toBlock,
+        ),
       );
     },
   };
@@ -95,9 +99,7 @@ describe('scanRange', () => {
    */
   it('reports an unreadable range as a gap rather than as no events', async () => {
     const reader: LogReader = {
-      getLogs: async () => {
-        throw new Error('HTTP 503 from the endpoint');
-      },
+      getLogs: () => Promise.reject(new Error('HTTP 503 from the endpoint')),
     };
 
     const result = await scanRange(reader, {
@@ -120,12 +122,14 @@ describe('scanRange', () => {
     // #given an endpoint that refuses one specific window and answers elsewhere
     const events = [log(10n, 0), log(500n, 1)];
     const reader: LogReader = {
-      getLogs: async (filter) => {
+      getLogs: (filter) => {
         if (filter.fromBlock <= 260n && filter.toBlock >= 250n) {
-          throw new Error('transient upstream failure');
+          return Promise.reject(new Error('transient upstream failure'));
         }
-        return events.filter(
-          (event) => event.blockNumber >= filter.fromBlock && event.blockNumber <= filter.toBlock,
+        return Promise.resolve(
+          events.filter(
+            (event) => event.blockNumber >= filter.fromBlock && event.blockNumber <= filter.toBlock,
+          ),
         );
       },
     };
@@ -168,16 +172,16 @@ describe('confirmations', () => {
 });
 
 describe('findReorgDepth', () => {
-  const known = [
-    { blockNumber: 100n, blockHash: `0x${'11'.repeat(32)}` as Hex },
-    { blockNumber: 101n, blockHash: `0x${'22'.repeat(32)}` as Hex },
-    { blockNumber: 102n, blockHash: `0x${'33'.repeat(32)}` as Hex },
+  const known: readonly { blockNumber: bigint; blockHash: Hex }[] = [
+    { blockNumber: 100n, blockHash: `0x${'11'.repeat(32)}` },
+    { blockNumber: 101n, blockHash: `0x${'22'.repeat(32)}` },
+    { blockNumber: 102n, blockHash: `0x${'33'.repeat(32)}` },
   ];
 
   it('returns the head when the chain still agrees', async () => {
     const reader = {
-      getBlockHash: async (_chainId: number, blockNumber: bigint) =>
-        known.find((entry) => entry.blockNumber === blockNumber)?.blockHash,
+      getBlockHash: (_chainId: number, blockNumber: bigint): Promise<Hex | undefined> =>
+        Promise.resolve(known.find((entry) => entry.blockNumber === blockNumber)?.blockHash),
     };
     expect(await findReorgDepth(reader, 84_532, known)).toBe(102n);
   });
@@ -185,17 +189,19 @@ describe('findReorgDepth', () => {
   it('finds the last block that still matches after a shallow reorg', async () => {
     // #given 102 was replaced but 101 survived
     const reader = {
-      getBlockHash: async (_chainId: number, blockNumber: bigint) =>
-        blockNumber === 102n
-          ? (`0x${'ff'.repeat(32)}` as Hex)
-          : known.find((entry) => entry.blockNumber === blockNumber)?.blockHash,
+      getBlockHash: (_chainId: number, blockNumber: bigint): Promise<Hex | undefined> =>
+        Promise.resolve<Hex | undefined>(
+          blockNumber === 102n
+            ? `0x${'ff'.repeat(32)}`
+            : known.find((entry) => entry.blockNumber === blockNumber)?.blockHash,
+        ),
     };
     expect(await findReorgDepth(reader, 84_532, known)).toBe(101n);
   });
 
   it('reports that nothing matches rather than guessing a depth', async () => {
     const reader = {
-      getBlockHash: async () => `0x${'ee'.repeat(32)}` as Hex,
+      getBlockHash: (): Promise<Hex> => Promise.resolve<Hex>(`0x${'ee'.repeat(32)}`),
     };
     // `undefined` sends the caller further back rather than letting it resume
     // on a fork the chain has forgotten.

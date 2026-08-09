@@ -70,7 +70,7 @@ log.step(`${String(files.length)} migration file(s)`);
 const sql = postgres(connectionString, {
   max: 1,
   prepare: false,
-  onnotice: () => {},
+  onnotice: () => undefined,
   connection: { application_name: 'conduit-migrate' },
 });
 

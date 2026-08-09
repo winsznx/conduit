@@ -108,7 +108,8 @@ export function parseArgv(argv: readonly string[]): ParsedCommand | undefined {
   const flags: Record<string, string | true> = {};
 
   for (let i = 0; i < rest.length; i += 1) {
-    const token = rest[i] as string;
+    const token = rest[i];
+    if (token === undefined) continue;
     if (!token.startsWith('--')) {
       positional.push(token);
       continue;

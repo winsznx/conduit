@@ -70,7 +70,12 @@ export default tseslint.config(
   // Repository scripts are plain ESM run by node before install completes, so
   // they are linted without type information and may write to stdout.
   {
-    files: ['scripts/**/*.mjs', 'packages/*/scripts/**/*.mjs', 'eslint.config.mjs'],
+    files: [
+      'scripts/**/*.mjs',
+      'packages/*/scripts/**/*.mjs',
+      'apps/*/build.mjs',
+      'eslint.config.mjs',
+    ],
     extends: [tseslint.configs.disableTypeChecked],
     rules: {
       'no-console': 'off',
