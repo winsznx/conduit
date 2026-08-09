@@ -180,6 +180,35 @@ AGGREGATE_STATE          !=  SETTLEMENT_STATE
 
 ---
 
+## The console
+
+<https://conduit.timjosh507.workers.dev>
+
+A participant does the whole settlement from a browser. Connect a wallet, be
+checked against Cleanverse live, compose terms, sign the EIP-712 intent, send
+the counterparty a link, reserve the asset, escrow the cash, wait out economic
+finality, be asked again, commit, release both legs — and if delivery is refused
+after the commitment, file and execute a disposition. No CLI is required at any
+point and no step is simulated: every button is a call on a deployed contract.
+
+What decides each step is `apps/web/src/actions.ts`, a pure function from
+canonical protocol state — the coordinator's record, the escrow leg, the token's
+reservation, the adapter's binding, the observed messages — to one next action
+and whether the connected account may take it. The projection supplies the terms
+and the two intent signatures, both of which the coordinator re-verifies on
+chain, and nothing else, because application database state never authorizes
+value movement.
+
+The Worker holds no settlement key. It holds one compliance key, because every
+value-moving call demands a quorum of attestations signed by an address the
+contract's registered signer set contains, and a participant who could mint one
+would be authorising their own settlement. That key cannot move a token, sign an
+intent, decide a settlement, or release a leg without a canonical COMMIT already
+on chain. [ADR-0021](docs/adr/0021-the-web-surface-holds-a-compliance-key-and-nothing-else.md)
+says so precisely.
+
+---
+
 ## Running it
 
 ```bash
@@ -187,6 +216,7 @@ pnpm install
 pnpm verify              # the full local gate: format, lint, types, tests, slither, secrets
 pnpm conduit doctor      # environment, both chains, every Cleanverse capability
 pnpm conduit verify <settlementId>
+pnpm evidence:check      # the served evidence still matches docs/evidence
 ```
 
 Contracts are Foundry, exact-pinned to Solc 0.8.36. Everything else is TypeScript strict.
@@ -206,6 +236,20 @@ These are stated here rather than buried, because a submission that hides them i
 **Public testnet guardian configuration.** Wormhole's testnet guardian set is 1-of-1. That is a property of the network, not of this design, and it is not mainnet-grade quorum.
 
 **No CCP validator pool on the asset chain.** `validator/grant` on Base was refused for this credential, so commit-time eligibility on the asset leg rests on `verify_apass` plus the on-chain CCP policy rather than on both sources.
+
+**The compliance authority runs in the console's Worker.** It has its own key and
+its own endpoint, and it signs one sentence — that Cleanverse answered this way
+about this address for this settlement at this time. A production topology gives
+it its own deployment and its own key custody; nothing here depends on the
+co-location, and the endpoint is already the boundary. Recorded in ADR-0021,
+including what that key provably cannot do.
+
+**Evidence is served from this repository, not from object storage.** The
+evidence page names the repository path of every package rather than claiming a
+content-addressed publication, and `pnpm evidence:check` byte-compares what it
+serves against `docs/evidence`. The content addresses that _are_ on the page —
+transaction, VAA, Cleanverse response, code and policy hashes — verify against
+two chains with no help from this server. ASM-039 stays open.
 
 **`CONTESTED` is a verifier classification, not an on-chain settlement state.** Driving the coordinator's enum from a remote leg's contested case would require a cross-chain message PRD 7.3 does not define, and ADR-0015 forbids inventing one.
 
