@@ -14,6 +14,11 @@ contracts/test/fixtures/
 # Same reason: `pnpm evidence:check` byte-compares this against docs/evidence.
 apps/web/src/evidence-index.ts
 
+# Run artifacts are records, written by the scripts that produced the runs. A
+# formatter has no business rewriting the bytes of a thing whose whole purpose
+# is to be the record of what happened.
+docs/evidence/*.json
+
 # generated / vendored
 pnpm-lock.yaml
 foundry.lock

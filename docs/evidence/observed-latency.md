@@ -23,12 +23,32 @@ rests on has to be too.
 | 7      | ASSET_RELEASED | 1483    | disposition (gen 2), `phase-07-disposition-summary.md`            |
 | 8      | ASSET_PREPARED | 1189    | disposition (gen 3), `phase-07-compliance-change-0xdcb9db12.json` |
 | 9      | ASSET_HELD     | 1483    | disposition (gen 3), `phase-07-compliance-change-0xdcb9db12.json` |
+| 10     | ASSET_PREPARED | 1384±45 | live browser run, `live-browser-run.log` — see the note below     |
 
-Nine samples: 999, 1093, 1189, 1223, 1275, 1350, 1483, 1483, 1485 seconds. All
-are roughly twenty minutes and none of them is "the" number. The spread is 486
-seconds across nine observations, which is the honest thing to say about a
+Ten samples: 999, 1093, 1189, 1223, 1275, 1350, 1384, 1483, 1483, 1485 seconds.
+All are roughly twenty minutes and none of them is "the" number. The spread is
+486 seconds across ten observations, which is the honest thing to say about a
 testnet's finality and the reason these are listed rather than reduced to one
 figure.
+
+Sample 10 carries a tolerance because it was measured by polling the guardian
+API every forty-five seconds: the poll before it missed, the poll at 1384
+seconds hit, so the true value is somewhere in `(1339, 1384]`. Published with
+the tolerance rather than as a point, because a number whose measurement
+granularity is hidden is a number that will be quoted as though it were exact.
+
+The deployment's own record for the same message says **1423** seconds, and the
+difference is the point rather than a discrepancy. The Worker writes down when
+_it_ first saw a signature, and it looked thirty-nine seconds after the poller
+did. Every number the web surface shows is that quantity — an upper bound on
+finality, labelled as one — and the tighter figure above came from a measurement
+built to be tight. Neither is wrong; they answer different questions, and the
+product is careful to say which one it is answering.
+
+Base's own `finalized` tag is what the guardians follow, and it was 316 blocks —
+roughly 630 seconds — behind the publishing block when the wait began. The wait
+is not the guardian set being slow. It is the L1-derived finality the guardian
+set is correctly refusing to run ahead of.
 
 Two waits are deliberately absent, both for the same reason. Attempt 4's
 ASSET_PREPARED poll ran 2747 seconds without reaching the guardian API at all
@@ -57,11 +77,21 @@ authorize anything.
 | ------ | ------- | ------- | ------------------- |
 | 1      | COMMIT  | 0       | attempt 4           |
 | 2      | COMMIT  | 1       | disposition (gen 3) |
+| 3      | COMMIT  | 9       | live browser run    |
 
 Zero and one second are honest and slightly misleading on their own: Monad's
 finality is roughly a block, so the finalized VAA was already available when it
 was first requested. The wait was not skipped. It had already elapsed during the
 transaction before it.
+
+The live browser run's `CASH_PREPARED` is deliberately **not** a third row. Its
+recorded interval, 676 seconds, is the time from publication to the moment this
+deployment first _looked_ — the message was recorded eleven minutes late while a
+defect in the recording path was being fixed, and the VAA may have existed for
+almost all of it. That is an upper bound on finality and not a measurement of
+it, which is the same reason attempt 4's 2747-second poll is excluded above. The
+web surface now says "observed N seconds after publication" for exactly this
+reason.
 
 ## Why both are kept
 
@@ -73,5 +103,5 @@ with both, and less credible with either one alone.
 
 The rule for anything derived from this page: quote a sample and say which run
 it came from. Do not average across message classes, do not average across
-chains, and do not present a range as a guarantee — nine samples of a testnet's
-finality are nine samples.
+chains, and do not present a range as a guarantee — ten samples of a testnet's
+finality are ten samples.
