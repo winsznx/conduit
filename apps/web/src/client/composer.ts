@@ -173,13 +173,20 @@ export function mountComposer(): void {
     // Deadlines are generous on purpose. Observed Base finality on this
     // deployment has run 999–1485 seconds, so a commit window shorter than that
     // produces a settlement that cannot legally commit.
+    // Who is paid is a decision most trades never make: the seller takes the cash
+    // and the payer takes the asset. The receiver fields are an override, so an
+    // empty one means the default and a filled one is validated like any other.
+    const cashPayer = address('cashPayer');
+    const assetSeller = address('assetSeller');
+    const receiver = (name: string, fallback: Address): Address =>
+      field(name).value.trim() === '' ? fallback : address(name);
     return {
       cashAmount: toBaseUnits(field('cashAmount').value),
-      cashPayer: address('cashPayer'),
-      cashReceiver: address('cashReceiver'),
+      cashPayer,
+      cashReceiver: receiver('cashReceiver', assetSeller),
       assetAmount: toBaseUnits(field('assetAmount').value),
-      assetSeller: address('assetSeller'),
-      assetReceiver: address('assetReceiver'),
+      assetSeller,
+      assetReceiver: receiver('assetReceiver', cashPayer),
       prepareDeadline: now + 3600n,
       commitDeadline: now + 10_800n,
       releaseDeadline: now + 14_400n,
@@ -297,6 +304,17 @@ export function mountComposer(): void {
   function paintSummary(): void {
     if (intent === undefined) return;
     summary.replaceChildren();
+    const short = (value: string): string => `${value.slice(0, 6)}…${value.slice(-4)}`;
+    summary.append(
+      node(
+        'p',
+        undefined,
+        `${short(intent.cashPayer)} pays ${fromBaseUnits(intent.cashAmount)} cSETTLE on Monad Testnet to ` +
+          `${short(intent.cashReceiver)}. ${short(intent.assetSeller)} delivers ` +
+          `${fromBaseUnits(intent.assetAmount)} cBOND on Base Sepolia to ${short(intent.assetReceiver)}. ` +
+          'Both legs are locked first, and the trade commits only after Cleanverse confirms everyone again.',
+      ),
+    );
     const rows: readonly [string, string][] = [
       ['You pay', `${fromBaseUnits(intent.cashAmount)} cSETTLE on Monad Testnet`],
       ['You receive', `${fromBaseUnits(intent.assetAmount)} cBOND on Base Sepolia`],

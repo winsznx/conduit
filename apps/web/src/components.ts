@@ -8,6 +8,7 @@
  * and connectors instead of illustration.
  */
 
+import { LOCKUP_INLINE } from './brand-manifest.js';
 import {
   CLASS_MEANING,
   LIFECYCLE,
@@ -70,17 +71,20 @@ function navList(items: readonly NavItem[], current: string): string {
 /**
  * The wordmark, which is also the way home.
  *
- * `linked` is false only where it would point at the page you are already on —
+ * `linked` is false only where it would point at the page you are already on,
  * the landing's own header and footer. Everywhere else the mark is what a
  * reader reaches for to get out of the console, and it was inert.
+ *
+ * The lockup is drawn inline, so it arrives with the document: no extra
+ * request, nothing that can fail to load, and no intrinsic size, which leaves
+ * each surface to set its own height in CSS. The accessible name sits on the
+ * wrapper and the SVG is `aria-hidden`, so a screen reader announces "Conduit"
+ * once, as a link or an image, and never reads the artwork as well.
  */
 export function wordmark(linked = false): string {
-  // The one Ember mark in the chrome: a supporting graphic detail, which is the
-  // role `design.md` gives it. It is not a status and not a brand fill.
-  const inner = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="15" height="15" rx="4.5" stroke="var(--color-ink)"/><circle cx="8" cy="8" r="2" fill="var(--color-ember)"/></svg><span style="font-weight:var(--font-weight-semibold)">Conduit</span>`;
   return linked
-    ? `<a class="identity" href="/" aria-label="Conduit — back to the home page">${inner}</a>`
-    : `<span class="identity">${inner}</span>`;
+    ? `<a class="identity" href="/" aria-label="Conduit, back to the home page">${LOCKUP_INLINE}</a>`
+    : `<span class="identity" role="img" aria-label="Conduit">${LOCKUP_INLINE}</span>`;
 }
 
 export function sidebar(current: string): string {
@@ -175,7 +179,7 @@ export function settlementTimeline(view: SettlementView): string {
  */
 export function finalityProgress(seconds: number | undefined, worstObserved = 1485): string {
   if (seconds === undefined) {
-    return `<div class="t-caption muted">not observed</div>`;
+    return `<div class="t-caption muted">no signature timing stored</div>`;
   }
   const pct = Math.max(4, Math.min(100, Math.round((seconds / worstObserved) * 100)));
   return `<div><div class="row-between"><span class="mono t-caption">${esc(seconds)}s</span><span class="t-caption muted">of ${esc(worstObserved)}s slowest observed</span></div><div class="meter"><span style="width:${String(pct)}%"></span></div></div>`;
@@ -281,10 +285,10 @@ export function messageRoute(messages: readonly MessageView[]): string {
 <td><span class="row">${evmChain === undefined ? '' : chainIdentity(evmChain, { compact: true })}${emitter}</span></td>
 <td>${stateBadge(message.finality)}</td>
 <td style="min-width:140px">${finalityProgress(message.finalitySeconds)}</td>
-<td>${message.consumed ? badge('consumed', 'outline') : '<span class="muted t-caption">no consumer</span>'}</td>
+<td>${message.consumed ? badge('consumed once', 'outline') : '<span class="muted t-caption">not yet verified</span>'}</td>
 <td class="mono">${
         message.publishedTxHash === ''
-          ? '<span class="muted t-caption">not recorded</span>'
+          ? '<span class="muted t-caption">not captured by the loader</span>'
           : txHash(message.publishedTxHash, message.publishedChainId)
       }</td>
 </tr>`;
@@ -292,7 +296,7 @@ export function messageRoute(messages: readonly MessageView[]): string {
     .join('');
 
   return `<div class="table-scroll"><table class="table table-hover">
-<thead><tr><th>Type</th><th>Seq</th><th>Emitter</th><th>Finality</th><th>Observed</th><th>Destination</th><th>Published in</th></tr></thead>
+<thead><tr><th>Type</th><th>Seq</th><th>Emitter</th><th>Finality</th><th>Guardians signed after</th><th>Consumption</th><th>Published in</th></tr></thead>
 <tbody>${rows}</tbody></table></div>
 <div class="note">Finality is classified, never compared as a number. Wormhole encodes 200 as instant and 201 as safe; everything else is finalized. Ranking the raw byte would place instant above finalized, which is the substitution a settlement layer cannot afford.</div>`;
 }
@@ -301,7 +305,7 @@ export function messageRoute(messages: readonly MessageView[]): string {
 
 export function complianceTimeline(entries: readonly ComplianceView[]): string {
   if (entries.length === 0) {
-    return `<div class="empty"><p>No compliance answers recorded.</p></div>`;
+    return `<div class="empty"><p>The projection stores no Cleanverse answers for this settlement. That does not mean none were asked: the coordinator refuses a COMMIT without a valid compliance attestation, and the verifier checks the outcome from chain state.</p></div>`;
   }
   return `<div class="timeline">${entries
     .map(
@@ -323,7 +327,7 @@ export function complianceTimeline(entries: readonly ComplianceView[]): string {
 
 export function conservationBreakdown(rows: readonly [string, string][]): string {
   if (rows.length === 0) {
-    return `<div class="empty"><p>No conservation snapshot recorded.</p></div>`;
+    return `<div class="empty"><p>The projection stores no conservation snapshot for this settlement. The verifier recomputes it from chain state: the escrow must account for exactly what it holds, and no reservation may stay open.</p></div>`;
   }
   return `<table class="kv">${rows
     .map(([key, value]) => `<tr><td>${esc(key)}</td><td class="mono">${esc(value)}</td></tr>`)

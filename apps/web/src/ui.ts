@@ -7,6 +7,7 @@
  * button.
  */
 
+import { chainName } from './domain.js';
 import { addressUrl, explorerName, txUrl, vaaUrl } from './explorers.js';
 import { mark, markForAsset, markForChain } from './marks.js';
 
@@ -205,14 +206,7 @@ ${options.note === undefined ? '' : `<div class="stat-note">${esc(options.note)}
 
 // ── Identity ────────────────────────────────────────────────────────────────
 
-const CHAINS: Readonly<Record<number, { name: string }>> = Object.freeze({
-  10143: { name: 'Monad Testnet' },
-  84532: { name: 'Base Sepolia' },
-});
-
-export function chainName(chainId: number): string {
-  return CHAINS[chainId]?.name ?? `chain ${String(chainId)}`;
-}
+export { chainName };
 
 /**
  * A chain's real mark and its name.
@@ -323,15 +317,32 @@ export function vaaLink(
 
 // ── Empty, error, loading ───────────────────────────────────────────────────
 
-export function emptyState(title: string, detail: string, action = ''): string {
-  return `<div class="empty"><div class="empty-title">${esc(title)}</div><p style="max-width:52ch">${esc(detail)}</p>${action}</div>`;
+export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
+/**
+ * A panel's title is a div by default, because most empty panels sit under a page
+ * heading already. A page that is nothing but the panel, such as the 404, asks for
+ * a heading so it has one.
+ */
+function emptyTitle(title: string, headingLevel: HeadingLevel | undefined): string {
+  const tag = headingLevel === undefined ? 'div' : `h${String(headingLevel)}`;
+  return `<${tag} class="empty-title">${esc(title)}</${tag}>`;
+}
+
+export function emptyState(
+  title: string,
+  detail: string,
+  action = '',
+  headingLevel?: HeadingLevel,
+): string {
+  return `<div class="empty">${emptyTitle(title, headingLevel)}<p style="max-width:52ch">${esc(detail)}</p>${action}</div>`;
 }
 
 /**
  * The one place Ember is allowed to carry meaning: something is actually wrong.
  */
-export function errorState(title: string, detail: string): string {
-  return `<div class="empty"><div style="color:var(--color-ember)">${icon('alert', 20)}</div><div class="empty-title">${esc(title)}</div><p style="max-width:56ch">${esc(detail)}</p></div>`;
+export function errorState(title: string, detail: string, headingLevel?: HeadingLevel): string {
+  return `<div class="empty"><div style="color:var(--color-ember)">${icon('alert', 20)}</div>${emptyTitle(title, headingLevel)}<p style="max-width:56ch">${esc(detail)}</p></div>`;
 }
 
 export function skeleton(rows = 3): string {

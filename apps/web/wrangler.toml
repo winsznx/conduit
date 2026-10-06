@@ -14,8 +14,24 @@ compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
+# The product's own domain. Cloudflare creates the DNS record and the
+# certificate; the zone must be on this account.
+routes = [
+  { pattern = "tryconduit.xyz", custom_domain = true },
+  { pattern = "www.tryconduit.xyz", custom_domain = true },
+]
+
 [observability]
 enabled = true
+
+# A page reads the database over many round trips, and opening a connection takes several of
+# them. The database is Supabase in AWS eu-west-1 (the pooler host and SUPABASE_REGION say so).
+# Over a long distance each round trip costs on the order of 100 ms, which is the waiting this
+# setting is meant to cut: placement runs the Worker in the Cloudflare data centre closest to
+# that region, so the round trips are short and the visitor crosses the distance once. It is
+# an expectation until a deploy is measured. `wrangler dev` ignores it.
+[placement]
+region = "aws:eu-west-1"
 
 [vars]
 # Public. These are the same endpoints the verifier tells a stranger to use.
@@ -23,6 +39,10 @@ MONAD_RPC_URL = "https://testnet-rpc.monad.xyz"
 BASE_RPC_URL = "https://sepolia.base.org"
 DEPLOYMENT_ID = "0xdcb9db121ca873817fca7ee6a8e2cd8ef0249b7c83f4e656553338da00eccaa6"
 COMMIT_SHA = "generation-3"
+
+# The address the product is known by. Canonical links and link previews are built from it,
+# so a copy served from the workers.dev address still points search engines at the real one.
+SITE_URL = "https://tryconduit.xyz"
 
 # The disposition kernel wired to this generation. Public: two contract
 # addresses, a policy identifier that is already in every filed order, and the

@@ -1310,7 +1310,7 @@ function paintAction(
 
   panel.append(body);
   host.append(panel);
-  host.append(paintHistory(history(snapshot)));
+  host.append(paintHistory(history(snapshot), action.kind !== 'SETTLEMENT_COMPLETE'));
 }
 
 /**
@@ -1379,10 +1379,26 @@ function recoverMessage(settlementId: Hex, chainId: number): HTMLElement {
   return wrapper;
 }
 
-function paintHistory(facts: readonly Fact[]): HTMLElement {
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.style.marginTop = 'var(--spacing-16)';
+/**
+ * The ladder of what has happened, behind a disclosure once nothing is left to do.
+ *
+ * While a settlement is in flight the ladder is the answer to "where are we", so
+ * it is open. Once the settlement is complete it is evidence, and the outcome
+ * above it has already said everything a reader came for.
+ */
+function paintHistory(facts: readonly Fact[], open: boolean): HTMLElement {
+  const disclosure = document.createElement('details');
+  disclosure.className = 'card disclosure';
+  disclosure.open = open;
+  disclosure.style.marginTop = 'var(--spacing-16)';
+  const done = facts.filter((fact) => fact.done).length;
+  disclosure.append(
+    node(
+      'summary',
+      'disclosure-summary',
+      `How it got here · ${String(done)} of ${String(facts.length)} steps confirmed`,
+    ),
+  );
   const timeline = document.createElement('div');
   timeline.className = 'timeline';
   for (const fact of facts) {
@@ -1399,8 +1415,8 @@ function paintHistory(facts: readonly Fact[]): HTMLElement {
     item.append(rail, body);
     timeline.append(item);
   }
-  card.append(timeline);
-  return card;
+  disclosure.append(timeline);
+  return disclosure;
 }
 
 /**
@@ -1416,54 +1432,52 @@ function paintFinality(host: HTMLElement, messages: readonly MessageRow[]): void
   host.replaceChildren();
   if (messages.length === 0) return;
 
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.style.marginTop = 'var(--spacing-16)';
-  card.append(node('div', 't-caption-upper', 'Cross-chain finality'));
+  const waiting = messages.filter((message) => !message.finalized);
+  const disclosure = document.createElement('details');
+  disclosure.className = 'card disclosure';
+  disclosure.open = waiting.length > 0;
+  disclosure.style.marginTop = 'var(--spacing-16)';
+  disclosure.append(
+    node(
+      'summary',
+      'disclosure-summary',
+      waiting.length === 0
+        ? `Cross-chain finality · ${String(messages.length)} messages, all finalized`
+        : `Cross-chain finality · ${String(waiting.length)} of ${String(messages.length)} still waiting`,
+    ),
+  );
 
   for (const message of messages) {
-    const block = document.createElement('div');
-    block.style.marginTop = 'var(--spacing-16)';
+    const origin = message.emitterChainId === 10_004 ? 'from Base Sepolia' : 'from Monad Testnet';
     const head = document.createElement('div');
     head.className = 'row-between';
+    head.style.marginTop = 'var(--spacing-12)';
     head.append(node('span', 'mono', `${message.messageType} · sequence ${message.sequence}`));
-    head.append(
-      node(
-        'span',
-        'badge badge-outline',
-        message.emitterChainId === 10_004 ? 'from Base' : 'from Monad',
-      ),
-    );
-    block.append(head);
+    head.append(node('span', 'badge badge-outline', origin));
+    disclosure.append(head);
+
+    if (message.finalized) {
+      disclosure.append(
+        node(
+          'div',
+          't-caption muted',
+          message.finalitySeconds === undefined
+            ? 'Guardian set signed. This deployment stored no timing for it.'
+            : `Guardian set signed ${String(message.finalitySeconds)} seconds after publication.`,
+        ),
+      );
+      continue;
+    }
 
     const stages: readonly [string, string, boolean][] = [
       ['Transaction included', message.includedAt ?? message.txHash, true],
       ['Message observed', `sequence ${message.sequence} published`, true],
       [
         'Waiting for economic finality',
-        message.finalized
-          ? 'passed'
-          : 'the destination refuses this message below FINALIZED, and that threshold is an immutable in the deployed bytecode',
-        message.finalized,
-      ],
-      [
-        'FINALIZED',
-        message.finalized
-          ? `guardian set signed${
-              message.finalitySeconds === undefined
-                ? ''
-                : `, observed ${String(message.finalitySeconds)} seconds after publication`
-            }`
-          : 'not yet',
-        message.finalized,
-      ],
-      [
-        'Consumed remotely',
-        message.finalized
-          ? 'the destination burns the VAA when it consumes it, so it can never be replayed'
-          : 'not yet',
+        'the destination refuses this message below FINALIZED, and that threshold is an immutable in the deployed bytecode',
         false,
       ],
+      ['FINALIZED', 'not yet', false],
     ];
 
     const flow = document.createElement('div');
@@ -1482,21 +1496,20 @@ function paintFinality(host: HTMLElement, messages: readonly MessageRow[]): void
       stage.append(rail, body);
       flow.append(stage);
     }
-    block.append(flow);
-    card.append(block);
+    disclosure.append(flow);
   }
 
-  card.append(
+  disclosure.append(
     node(
       'div',
       'note',
       'Conduit can observe settlement state earlier, but irreversible COMMIT waits for the ' +
         'configured economic finality. The seconds above are the interval from publication to the ' +
-        'first time this deployment saw a signature — an upper bound on finality, not a benchmark, ' +
+        'first time this deployment saw a signature, an upper bound on finality, not a benchmark, ' +
         'and never averaged with any other observation.',
     ),
   );
-  host.append(card);
+  host.append(disclosure);
 }
 
 /**

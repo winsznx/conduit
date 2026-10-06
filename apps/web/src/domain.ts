@@ -6,6 +6,15 @@
  * sentences are carried over unedited.
  */
 
+const CHAINS: Readonly<Record<number, { name: string }>> = Object.freeze({
+  10143: { name: 'Monad Testnet' },
+  84532: { name: 'Base Sepolia' },
+});
+
+export function chainName(chainId: number): string {
+  return CHAINS[chainId]?.name ?? `chain ${String(chainId)}`;
+}
+
 export interface SettlementView {
   readonly settlementId: string;
   readonly deploymentId: string;
@@ -138,3 +147,51 @@ export const LIFECYCLE: readonly { key: string; title: string; detail: string }[
   { key: 'COMMIT', title: 'Commit', detail: 'Irreversible. No refund exists after this point' },
   { key: 'DELIVERY', title: 'Delivery', detail: 'Both legs execute, or the value is held' },
 ]);
+
+const OUTCOME_HEADLINE: Readonly<Record<string, string>> = Object.freeze({
+  NONE: 'Not started.',
+  CASH_PREPARED: 'Cash is locked.',
+  ASSET_PREPARED: 'The asset is reserved.',
+  READY: 'Both legs are prepared.',
+  COMMIT_ISSUED: 'Committed.',
+  ABORT_ISSUED: 'Aborted.',
+  SETTLED: 'Settled.',
+  ABORTED: 'Aborted. Nothing moved.',
+  HELD: 'Committed, and the value is held.',
+  CONTESTED: 'Contested.',
+});
+
+/**
+ * What happened to this trade, as a sentence a reader can act on.
+ *
+ * Every other panel on the settlement page is evidence for this one. It names
+ * only what the indexed state and the verifier's classification already say, and
+ * it names no party: the leg view does not say which side of a leg a
+ * counterparty is, and a sentence that guessed would be a claim nobody checked.
+ */
+export function describeOutcome(view: SettlementView): {
+  readonly headline: string;
+  readonly detail: string;
+} {
+  const headline =
+    OUTCOME_HEADLINE[view.canonicalState] ?? `The coordinator reports ${view.canonicalState}.`;
+  const meaning = STATE_MEANING[view.canonicalState]?.says ?? '';
+  const trade = view.termsKnown
+    ? `${view.cash.amount} ${view.cash.assetSymbol} on ${chainName(view.cash.chainId)} against ${view.asset.amount} ${view.asset.assetSymbol} on ${chainName(view.asset.chainId)}.`
+    : 'The terms of this trade were not recovered, so amounts are not stated.';
+
+  if (view.canonicalState === 'SETTLED') {
+    const verified =
+      view.verifierClass === 'SETTLED_FINAL'
+        ? 'An independent verifier read both chains and confirmed both legs were delivered.'
+        : 'Independent verification has not confirmed this yet.';
+    return { headline, detail: `${trade} ${verified}` };
+  }
+
+  if (view.canonicalState === 'HELD' || view.canonicalState === 'CONTESTED') {
+    const legs = `The cash leg is ${view.cash.outcome.toLowerCase()} and the asset leg is ${view.asset.outcome.toLowerCase()}.`;
+    return { headline, detail: `${trade} ${legs} ${meaning}` };
+  }
+
+  return { headline, detail: `${trade} ${meaning}`.trim() };
+}

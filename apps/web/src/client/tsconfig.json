@@ -7,7 +7,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": []
   },
-  // `actions.ts` and `onchain.ts` live one level up because the Worker uses them
-  // too. One resolver and one set of ABIs, shared, rather than two that drift.
-  "include": ["**/*.ts", "../actions.ts", "../onchain.ts"]
+  // `actions.ts`, `onchain.ts` and `welcome.ts` live one level up because the Worker uses them
+  // too. One resolver, one set of ABIs and one cookie format, shared, rather than two that drift.
+  "include": ["**/*.ts", "../actions.ts", "../onchain.ts", "../welcome.ts"]
 }

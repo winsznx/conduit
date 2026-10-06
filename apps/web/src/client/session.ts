@@ -97,9 +97,9 @@ export interface SessionState {
   readonly hydration: 'booting' | 'restoring' | 'ready';
   readonly connection: 'disconnected' | 'connecting' | 'connected';
   readonly account?: Address;
-  readonly walletName?: string;
+  readonly walletName?: string | undefined;
   /** Where the wallet currently points. Not an app-wide mode. */
-  readonly chainId?: number;
+  readonly chainId?: number | undefined;
   readonly wallets: readonly DiscoveredWallet[];
   readonly identity: {
     readonly monad?: EligibilityView;
@@ -502,7 +502,7 @@ export class ConduitSession {
     }
   }
 
-  private broadcast(message: { kind: string; settlementId?: string }): void {
+  private broadcast(message: { kind: string; settlementId?: string | undefined }): void {
     try {
       this.channel?.postMessage(message);
     } catch {

@@ -646,14 +646,25 @@ export function history(snapshot: Snapshot): readonly Fact[] {
   const asset = snapshot.messages.assetPrepared;
   const commit = snapshot.messages.commit;
 
+  // The coordinator verifies both intent signatures when it accepts a COMMIT, so
+  // a COMMIT on chain proves them whether or not this deployment's intent store
+  // kept a copy. Absence from the store is a gap in the store, not a missing
+  // signature.
+  const committed = settlement?.decision === 'COMMIT';
+  const signaturesStored = snapshot.signatures.payer && snapshot.signatures.seller;
+  const signedDetail = signaturesStored
+    ? 'The payer and the seller each signed the same digest, and that digest is the settlement id.'
+    : committed
+      ? 'The coordinator verified both signatures when it accepted COMMIT. This deployment’s store kept no copy.'
+      : snapshot.signatures.payer || snapshot.signatures.seller
+        ? `payer ${snapshot.signatures.payer ? 'signed' : 'not signed'}, seller ${snapshot.signatures.seller ? 'signed' : 'not signed'}`
+        : 'neither signature is stored for this settlement yet';
+
   const facts: Fact[] = [
     {
       label: 'Both parties signed',
-      detail:
-        snapshot.signatures.payer && snapshot.signatures.seller
-          ? 'The payer and the seller each signed the same digest, and that digest is the settlement id.'
-          : `payer ${snapshot.signatures.payer ? 'signed' : 'not signed'}, seller ${snapshot.signatures.seller ? 'signed' : 'not signed'}`,
-      done: snapshot.signatures.payer && snapshot.signatures.seller,
+      detail: signedDetail,
+      done: signaturesStored || committed,
     },
     {
       label: 'Asset reserved and announced',
@@ -683,7 +694,9 @@ export function history(snapshot: Snapshot): readonly Fact[] {
       label: 'Fresh compliance at commit time',
       detail:
         snapshot.fresh === undefined
-          ? 'not asked yet'
+          ? committed
+            ? 'The coordinator accepted a compliance attestation with COMMIT. It was not asked again in this visit.'
+            : 'not asked in this visit'
           : snapshot.fresh.unavailable
             ? 'Cleanverse did not answer — that is not a refusal'
             : snapshot.fresh.eligible

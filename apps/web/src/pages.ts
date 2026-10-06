@@ -26,6 +26,8 @@ import {
 import {
   CLASS_MEANING,
   STATE_MEANING,
+  chainName,
+  describeOutcome,
   type DeploymentView,
   type SettlementView,
 } from './domain.js';
@@ -62,15 +64,44 @@ import {
   type ProofPackage,
 } from './evidence.js';
 import { CLIENT_PATH } from './client-manifest.js';
-import { STYLESHEET } from './theme.js';
+import { headTags, type PageMeta } from './head.js';
+import { RESERVE_RELEASE, STYLESHEET } from './theme.js';
+import { RESERVE_CLASS } from './welcome.js';
+
+interface DocumentOptions {
+  readonly head?: string;
+}
 
 /** The document. One stylesheet, inline, because the CSP forbids external origins. */
-function document_(title: string, body: string, head = ''): string {
+function document_(page: PageMeta, body: string, options: DocumentOptions = {}): string {
+  const script = `<script type="module" src="${esc(CLIENT_PATH)}" defer></script>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>${esc(title)} — Conduit</title>${head}<style>${STYLESHEET}</style></head>
-<body${CONDUIT === undefined ? '' : ` data-conduit="${esc(JSON.stringify(CONDUIT))}"`}>${body}<script type="module" src="${esc(CLIENT_PATH)}" defer></script></body></html>`;
+${headTags(page)}${options.head ?? ''}<style>${STYLESHEET}</style></head>
+<body${CONDUIT === undefined ? '' : ` data-conduit="${esc(JSON.stringify(CONDUIT))}"`}><a class="skip-link" href="#content">Skip to content</a>${body}${script}</body></html>`;
+}
+
+const DESCRIPTION_LIMIT = 200;
+
+/**
+ * A description built from data, cut on a word boundary to at most 200 characters.
+ *
+ * The tag is shown out of context, in search results and link cards, so a cut that
+ * lands mid-word or mid-number reads as a mistake. The limit includes the
+ * ellipsis, which makes 200 the longest the tag can be. A dash between clauses
+ * becomes a comma, because the sentences it is built from were written for a page
+ * and a link card carries them with no page around them.
+ */
+function clipDescription(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').replace(/ ?— ?/g, ', ').trim();
+  if (flat.length <= DESCRIPTION_LIMIT) return flat;
+
+  const fits = flat.slice(0, DESCRIPTION_LIMIT - 1);
+  const endsOnWord = flat[DESCRIPTION_LIMIT - 1] === ' ';
+  const lastSpace = fits.lastIndexOf(' ');
+  const end = endsOnWord || lastSpace === -1 ? fits.length : lastSpace;
+  return `${fits.slice(0, end)}…`;
 }
 
 /**
@@ -86,18 +117,30 @@ export function setDeployment(deployment: Record<string, string> | undefined): v
   CONDUIT = deployment;
 }
 
-/** The application shell: sidebar, top bar, content column. */
+/**
+ * The application shell: sidebar, top bar, content column.
+ *
+ * The sidebar footer and the top bar's participant slot hold space for what the browser
+ * script adds, on every page, so the release for a visitor without scripting ships here too.
+ */
 function shell(options: {
   readonly title: string;
+  readonly description?: string;
+  readonly path?: string;
   readonly current: string;
   readonly generation: string;
   readonly body: string;
   readonly topRight?: string;
 }): string {
   return document_(
-    options.title,
+    {
+      title: options.title,
+      ...(options.description === undefined ? {} : { description: options.description }),
+      ...(options.path === undefined ? {} : { path: options.path }),
+    },
     `<div class="shell">${sidebar(options.current)}
-<div class="main">${topBar(options.topRight ?? '')}<div class="content">${options.body}</div></div></div>`,
+<div class="main">${topBar(options.topRight ?? '')}<main class="content" id="content" tabindex="-1">${options.body}</main></div></div>`,
+    { head: `<noscript><style>${RESERVE_RELEASE}</style></noscript>` },
   );
 }
 
@@ -108,29 +151,43 @@ function shell(options: {
  * scale there, so there is no 64–96px headline and no decorative artwork — the
  * product composition underneath is the visual content.
  */
-export function renderLanding(totals: Totals, recent: readonly SettlementView[]): string {
+export function renderLanding(
+  totals: Totals | undefined,
+  recent: readonly SettlementView[],
+): string {
   const sample = recent[0];
   const proofs = PROOF_PACKAGES.filter((proof) => proof.generation === 3);
+  const watchHref =
+    sample === undefined ? '/app/settlements' : `/app/settlements/${sample.settlementId}`;
+  const verifyHref = sample === undefined ? '/app/verifier' : `/verify/${sample.settlementId}`;
 
   return document_(
-    'Cross-chain delivery-versus-payment',
+    {
+      title: 'Conduit',
+      documentTitle: 'Conduit: cross-chain delivery versus payment',
+      description:
+        'Settle a restricted asset on one chain against verified cash on another under one signed intent. Nothing is bridged, and anyone can verify it from the chains.',
+      path: '/',
+    },
     `<div class="landing">
 ${landingNav()}
 
-<header class="hero" id="top">
+<main id="content" tabindex="-1"><header class="hero" id="top">
   <div class="hero-copy">
-    <h1 class="t-display">Delivery versus payment, across two chains, without bridging either asset.</h1>
-    <p>A restricted RWA on Base and a Cleanverse settlement unit on Monad settle under one signed intent. Neither asset leaves the chain that issued it. What crosses is authenticated settlement state — and the commitment becomes irreversible only after economic finality and a fresh compliance answer.</p>
-    <div class="actions">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}${button({ label: 'Verify independently', href: '/app/verifier', variant: 'outline' })}</div>
+    <h1 class="t-display">Trade a restricted asset on one chain against cash on another.</h1>
+    <p>Conduit settles both legs under one signed intent. Nothing is bridged or wrapped, and the trade only becomes irreversible after both chains agree and Cleanverse confirms both parties are still eligible.</p>
+    <p class="audience">For brokers, issuers and treasuries that settle verified cash against transfer-restricted assets.</p>
+    <div class="actions">${button({ label: 'Watch a real settlement', href: watchHref, iconName: 'arrowRight' })}${button({ label: 'Verify it yourself', href: verifyHref, variant: 'outline' })}</div>
   </div>
   <div class="hero-mech">
     ${heroArtwork()}
     <div class="hero-mech-labels">
-      <div><div class="rail-label">Monad Testnet</div><div class="mono t-caption">Settlement CVA</div></div>
+      <div><div class="rail-label">Monad Testnet</div><div class="mono t-caption">Verified cash</div></div>
       <div class="hero-mech-centre"><span class="mech-state">COMMIT</span></div>
-      <div style="text-align:right"><div class="rail-label">Base Sepolia</div><div class="mono t-caption">Restricted RWA</div></div>
+      <div style="text-align:right"><div class="rail-label">Base Sepolia</div><div class="mono t-caption">Restricted asset</div></div>
     </div>
     <p class="t-caption muted" style="margin-top:var(--spacing-12)">Assets stay put. Settlement state crosses.</p>
+    ${heroProof(sample)}
   </div>
 </header>
 
@@ -148,11 +205,11 @@ ${wormholeSection()}
 
 ${useCaseSection()}
 
-${closingSection()}
+${closingSection()}</main>
 
 ${landingFooter()}
 </div>`,
-    heroPreload(),
+    { head: heroPreload() },
   );
 }
 
@@ -168,8 +225,31 @@ function landingNav(): string {
 
   return `<nav class="landing-nav">${wordmark()}
 <div class="navlinks">${links}</div>
-<div class="row">${button({ label: 'Verify a settlement', href: '/app/verifier', variant: 'outline', small: true })}${button({ label: 'Launch Conduit', href: '/app', small: true })}</div>
+<div class="row">${button({ label: 'Open the console', href: '/app', small: true })}</div>
 </nav>`;
+}
+
+/**
+ * A real settlement, stated as a fact under the artwork.
+ *
+ * The numbers come from the indexed settlement and its verifier run, never from
+ * copy. With no settlement indexed there is nothing true to say, so it says
+ * nothing rather than an example.
+ */
+function heroProof(sample: SettlementView | undefined): string {
+  if (sample?.termsKnown !== true) return '';
+  const run = PROOF_PACKAGES.find((proof) => proof.settlementId === sample.settlementId);
+  const checks =
+    run?.verification === undefined
+      ? ''
+      : `, ${String(run.verification.passed)} of ${String(run.verification.total)} independent checks passed`;
+  return `<a class="hero-proof" href="/app/settlements/${esc(sample.settlementId)}">
+  <div>
+    <div class="hero-proof-trade">${esc(sample.cash.amount)} ${esc(sample.cash.assetSymbol)} on ${esc(chainName(sample.cash.chainId))} for ${esc(sample.asset.amount)} ${esc(sample.asset.assetSymbol)} on ${esc(chainName(sample.asset.chainId))}</div>
+    <div class="hero-proof-meta">A real settlement on the deployed contracts: ${esc(sample.verifierClass ?? sample.canonicalState)}${esc(checks)}.</div>
+  </div>
+  ${stateBadge(sample.canonicalState)}
+</a>`;
 }
 
 /**
@@ -421,18 +501,30 @@ function hardCaseSection(): string {
 </section>`;
 }
 
-/** Proof, early, and shaped like a record rather than a card of adjectives. */
-function proofSection(totals: Totals, proofs: readonly ProofPackage[]): string {
-  return `<section class="landing-section section-lg reveal" id="proof">
-  <div class="eyebrow">Proven live</div>
-  <h2 class="t-heading-lg statement">This is not an architecture diagram.</h2>
-
-  <div class="grid-4" style="margin-top:var(--spacing-48)">
+/**
+ * Proof, early, and shaped like a record rather than a card of adjectives.
+ *
+ * The counts are the only part that comes from the database. The records below them are
+ * the run artifacts compiled into this build, so they render the same with no counts.
+ * When the counts could not be read the section says so in one sentence and shows no
+ * figure: a zero is a number, and a reader will believe it.
+ */
+function proofSection(totals: Totals | undefined, proofs: readonly ProofPackage[]): string {
+  const counts =
+    totals === undefined
+      ? '<p class="t-caption muted" style="margin-top:var(--spacing-48)">Live counts are unavailable right now, and the recorded proof below does not depend on them.</p>'
+      : `<div class="grid-4" style="margin-top:var(--spacing-48)">
     ${statBlock({ label: 'Settlements', value: String(totals.settlements), note: 'indexed and verified', small: true })}
     ${statBlock({ label: 'Messages', value: String(totals.messages), note: 'authenticated, consumed once', small: true })}
     ${statBlock({ label: 'Verifications', value: String(totals.verifications), note: 'derived from chains alone', small: true })}
     ${statBlock({ label: 'Generations', value: String(totals.generations), note: 'deployed, each verifiable', small: true })}
-  </div>
+  </div>`;
+
+  return `<section class="landing-section section-lg reveal" id="proof">
+  <div class="eyebrow">Proven live</div>
+  <h2 class="t-heading-lg statement">This is not an architecture diagram.</h2>
+
+  ${counts}
 
   <div class="records">
     ${proofs
@@ -618,7 +710,7 @@ function closingSection(): string {
     <div>
       <h3>Participate</h3>
       <p>Connect your wallet and create or join a settlement. Conduit never sees your key.</p>
-      <div class="row" style="flex-wrap:wrap">${button({ label: 'Launch Conduit', href: '/app', iconName: 'arrowRight' })}</div>
+      <div class="row" style="flex-wrap:wrap">${button({ label: 'Open the console', href: '/app', iconName: 'arrowRight' })}</div>
     </div>
     <div>
       <h3>Verify</h3>
@@ -639,13 +731,17 @@ function landingFooter(): string {
       .join('')}</ul></div>`;
 
   const glossary: readonly [string, string][] = [
+    ['CVA', 'A compliant token. It checks its own transfer rule every time it moves.'],
+    ['CVI', 'Cleanverse identity: the pass a wallet needs to take part.'],
+    ['RuleV2', 'The transfer rule an issuer sets on chain. It can change after a trade commits.'],
     ['SETTLED', STATE_MEANING['SETTLED']?.says ?? ''],
+    ['SETTLED_FINAL', CLASS_MEANING['SETTLED_FINAL'] ?? ''],
     ['HELD', STATE_MEANING['HELD']?.says ?? ''],
     ['CONTESTED', STATE_MEANING['CONTESTED']?.says ?? ''],
   ];
 
   return `<section class="landing-section section-tight rule-top">
-  <div class="t-caption-upper">Terminal and near-terminal states</div>
+  <div class="t-caption-upper">Terms used on this page</div>
   <dl class="glossary">
     ${glossary
       .map(([term, says]) => `<div><dt>${esc(term)}</dt><dd>${esc(says)}</dd></div>`)
@@ -677,13 +773,31 @@ function landingFooter(): string {
 
 // ── Overview ────────────────────────────────────────────────────────────────
 
+/**
+ * Two hosts here are filled by the browser script, so each holds space for what it will
+ * receive and the page does not jump when the script arrives.
+ *
+ * The first host's space is for a welcome card a returning visitor will never see, and it
+ * would be painted blank and then taken away. The script cannot prevent that: it runs after
+ * the first paint, even when it is cached. Holding the paint until it has run would fix it for
+ * returning visitors and make a first visit wait for the whole bundle before anything shows, and a
+ * script request that hangs would leave the page blank. The server can decide before the first
+ * byte, from the cookie the browser sets once a visitor has been welcomed (see `welcome.ts`),
+ * because it cannot read the `localStorage` flag that records the same fact. `welcomed` omits
+ * the reserve class from that host. The second host always keeps its reserve, since whether a
+ * wallet will connect is unknowable before the script discovers one.
+ */
 export function renderOverview(
   generation: string,
   totals: Totals,
   recent: readonly SettlementView[],
+  welcomed = false,
 ): string {
   return shell({
     title: 'Overview',
+    description:
+      'Settlements across Monad Testnet and Base Sepolia, read from the two chains and the guardian set. Nothing on this page moves value.',
+    path: '/app',
     current: '/app',
     generation,
     topRight: button({
@@ -695,10 +809,10 @@ export function renderOverview(
     body: `${pageHeader({
       title: 'Overview',
       caption:
-        'Everything on this page is a projection of what two chains and the guardian set say. No value moves from here.',
+        'Settlements across Monad Testnet and Base Sepolia, read from the two chains and the guardian set. Nothing on this page moves value.',
     })}
-<div data-onboarding></div>
-<div data-overview></div>
+<div${welcomed ? '' : ` class="${RESERVE_CLASS}"`} data-onboarding${recent[0] === undefined ? '' : ` data-featured="${esc(recent[0].settlementId)}"`}></div>
+<div class="${RESERVE_CLASS}" data-overview></div>
 
 <section class="section">
   ${sectionHeader('Across this deployment')}
@@ -719,6 +833,21 @@ export function renderOverview(
 
 // ── Settlements ─────────────────────────────────────────────────────────────
 
+/**
+ * A settlement by name where the evidence index names it, by id where it does not.
+ *
+ * Six rows of `0x…` that all read SETTLED, SETTLED_FINAL, gen 3 give a reader no
+ * way to choose between them. The landing page already knows which one is the
+ * compliance-change case, and this is the same fact.
+ */
+function settlementName(settlementId: string): string {
+  const proof = PROOF_PACKAGES.find((entry) => entry.settlementId === settlementId);
+  const id = `<a class="mono" href="/app/settlements/${esc(settlementId)}">${esc(truncate(settlementId))}</a>`;
+  return proof === undefined
+    ? id
+    : `<div style="font-weight:var(--font-weight-medium)">${esc(proof.title)}</div><div class="t-caption">${id}</div>`;
+}
+
 function settlementTable(rows: readonly SettlementView[]): string {
   if (rows.length === 0) {
     return card(
@@ -736,11 +865,11 @@ function settlementTable(rows: readonly SettlementView[]): string {
   }
   return card(
     `<div class="table-scroll"><table class="table table-hover">
-<thead><tr><th>Settlement</th><th>Canonical state</th><th>Verifier</th><th>Generation</th><th></th></tr></thead>
+<thead><tr><th>Settlement</th><th>Canonical state</th><th>Verifier</th><th>Generation</th><th><span class="visually-hidden">Open</span></th></tr></thead>
 <tbody>${rows
       .map(
         (row) => `<tr>
-<td class="mono"><a href="/app/settlements/${esc(row.settlementId)}">${esc(truncate(row.settlementId))}</a></td>
+<td>${settlementName(row.settlementId)}</td>
 <td>${stateBadge(row.canonicalState)}</td>
 <td>${row.verifierClass === undefined ? '<span class="muted t-caption">not verified</span>' : stateBadge(row.verifierClass)}</td>
 <td class="muted mono">gen ${esc(row.generation)}</td>
@@ -755,6 +884,9 @@ function settlementTable(rows: readonly SettlementView[]): string {
 export function renderSettlements(generation: string, rows: readonly SettlementView[]): string {
   return shell({
     title: 'Settlements',
+    description:
+      "Every settlement the console has seen, with the coordinator's state and the verifier's classification kept separate.",
+    path: '/app/settlements',
     current: '/app/settlements',
     generation,
     topRight: button({
@@ -795,9 +927,16 @@ export function renderComposer(
       }
     | undefined,
 ): string {
+  const page = {
+    title: 'New settlement',
+    description:
+      'Compose a settlement, check every participant against Cleanverse, and sign it with your own wallet. Conduit never holds your key.',
+    path: '/app/settlements/new',
+  } as const;
+
   if (deployment === undefined) {
     return shell({
-      title: 'New settlement',
+      ...page,
       current: '/app/settlements/new',
       generation,
       body: `${pageHeader({ title: 'New settlement' })}${card(
@@ -818,7 +957,7 @@ export function renderComposer(
   const STEPS = ['Terms', 'Compliance', 'Signatures', 'Then: the settlement workspace'];
 
   return shell({
-    title: 'New settlement',
+    ...page,
     current: '/app/settlements/new',
     generation,
     body: `${pageHeader({
@@ -859,15 +998,21 @@ export function renderComposer(
         <div class="t-caption-upper">Cash leg — Monad Testnet</div>
         ${input({ name: 'cashAmount', label: 'Amount (cSETTLE)', placeholder: '25.000000', mono: true })}
         ${input({ name: 'cashPayer', label: 'Payer', placeholder: '0x…', mono: true })}
-        ${input({ name: 'cashReceiver', label: 'Cash receiver', placeholder: '0x…', mono: true })}
       </div>
       <div class="stack-16">
         <div class="t-caption-upper">Asset leg — Base Sepolia</div>
         ${input({ name: 'assetAmount', label: 'Amount (cBOND)', placeholder: '0.500000', mono: true })}
         ${input({ name: 'assetSeller', label: 'Seller', placeholder: '0x…', mono: true })}
-        ${input({ name: 'assetReceiver', label: 'Asset receiver', placeholder: '0x…', mono: true })}
       </div>
     </div>
+    <details class="disclosure" style="margin-top:var(--spacing-16)">
+      <summary class="disclosure-summary">Pay out to a different address</summary>
+      <p class="muted t-caption" style="margin-bottom:var(--spacing-12)">By default the seller receives the cash and the payer receives the asset. Fill these in only when either should go to another wallet.</p>
+      <div class="grid-2">
+        ${input({ name: 'cashReceiver', label: 'Cash receiver', placeholder: 'Defaults to the seller', mono: true })}
+        ${input({ name: 'assetReceiver', label: 'Asset receiver', placeholder: 'Defaults to the payer', mono: true })}
+      </div>
+    </details>
     <div class="note">Deadlines are set from the observed finality of this deployment: one hour to prepare, three to commit, four to release. A commit window shorter than Base finality would produce a settlement that cannot legally commit.</div>
     <div class="t-caption" style="color:var(--color-ember)" data-terms-error></div>
     <div class="row" style="margin-top:var(--spacing-16)">
@@ -965,6 +1110,39 @@ function workspaceMount(payload: WorkspacePayload): string {
 </div>`;
 }
 
+/** What happened to this trade, in one sentence, before any of the evidence. */
+function outcomeCard(view: SettlementView): string {
+  const outcome = describeOutcome(view);
+  return `<section class="section">${card(
+    `<div class="outcome"><div class="t-caption-upper">Outcome</div><div class="outcome-headline">${esc(outcome.headline)}</div><p class="outcome-detail">${esc(outcome.detail)}</p></div>`,
+  )}</section>`;
+}
+
+/**
+ * Lifecycle, compliance, conservation and messages: the proof behind the outcome.
+ *
+ * A settlement that is finished and independently verified has already said what
+ * it has to say, so this arrives closed and the verifier is one click away. Any
+ * other state leaves it open, because an unfinished settlement is exactly when a
+ * reader needs to see which message or answer is missing.
+ */
+function proofDetail(view: SettlementView): string {
+  const finished = view.canonicalState === 'SETTLED' && view.verifierClass === 'SETTLED_FINAL';
+  return `<section class="section">
+  <details class="card disclosure"${finished ? '' : ' open'}>
+    <summary class="disclosure-summary">Proof behind this outcome</summary>
+    <div class="stack-16">
+      <div>${sectionHeader('Lifecycle')}${settlementTimeline(view)}</div>
+      <div class="grid-2" style="align-items:start">
+        <div>${sectionHeader('Compliance')}${complianceTimeline(view.compliance)}</div>
+        <div>${sectionHeader('Conservation')}${conservationBreakdown(view.conservation)}</div>
+      </div>
+      <div>${sectionHeader('Cross-chain messages')}${messageRoute(view.messages)}</div>
+    </div>
+  </details>
+</section>`;
+}
+
 /**
  * The settlement workspace.
  *
@@ -983,8 +1161,15 @@ export function renderSettlement(
   view: SettlementView,
   workspace?: WorkspacePayload,
 ): string {
+  const outcome = describeOutcome(view);
+  // The detail's meaning sentence often opens with the headline ("Cash is locked."), which
+  // reads twice in a link card where the two are run together.
+  const detail = outcome.detail.replace(outcome.headline, '');
+
   return shell({
     title: `Settlement ${truncate(view.settlementId)}`,
+    description: clipDescription(`${outcome.headline} ${detail}`),
+    path: `/app/settlements/${view.settlementId}`,
     current: '/app/settlements',
     generation,
     topRight: button({
@@ -1005,12 +1190,9 @@ export function renderSettlement(
       actions: `${button({ label: 'Evidence', href: `/evidence/${view.settlementId}`, variant: 'outline', small: true })}${button({ label: 'Verify', href: `/verify/${view.settlementId}`, small: true })}`,
     })}
 
-${workspace === undefined ? '' : workspaceMount(workspace)}
+${outcomeCard(view)}
 
-<section class="section">
-  ${sectionHeader('What the state means')}
-  ${stateExplainer(view.canonicalState, view.verifierClass)}
-</section>
+${workspace === undefined ? '' : `<div class="section">${workspaceMount(workspace)}</div>`}
 
 ${
   view.termsKnown
@@ -1031,19 +1213,11 @@ ${
 </section>
 
 <section class="section">
-  ${sectionHeader('Lifecycle')}
-  ${card(settlementTimeline(view))}
+  ${sectionHeader('What the state means')}
+  ${stateExplainer(view.canonicalState, view.verifierClass)}
 </section>
 
-<div class="section grid-2" style="align-items:start">
-  ${cardWithHeader('Compliance', complianceTimeline(view.compliance))}
-  ${cardWithHeader('Conservation', conservationBreakdown(view.conservation))}
-</div>
-
-<section class="section">
-  ${sectionHeader('Cross-chain messages')}
-  ${card(messageRoute(view.messages), { flush: false })}
-</section>
+${proofDetail(view)}
 
 ${
   view.disposition === undefined
@@ -1092,6 +1266,8 @@ export function renderSignRequest(
 
   return shell({
     title: `Sign ${truncate(settlementId)}`,
+    description: 'Review the terms of a settlement request, then sign it with the wallet it names.',
+    path: `/app/settlements/${settlementId}/sign`,
     current: '/app/settlements',
     generation,
     body: `${pageHeader({
@@ -1170,6 +1346,9 @@ ${card(`<div class="xchain">
 export function renderDispositions(generation: string, rows: readonly DispositionRow[]): string {
   return shell({
     title: 'Dispositions',
+    description:
+      'Cases where committed value could not be delivered, and the authorised orders that resolve them.',
+    path: '/app/dispositions',
     current: '/app/dispositions',
     generation,
     body: `${pageHeader({
@@ -1305,6 +1484,9 @@ const DISPOSITION_TYPES: readonly {
 export function renderVerifierHome(generation: string): string {
   return shell({
     title: 'Verifier',
+    description:
+      "Verify a settlement from two chain RPCs and the Wormhole guardian set, without trusting this application's database.",
+    path: '/app/verifier',
     current: '/app/verifier',
     generation,
     body: `${pageHeader({
@@ -1322,6 +1504,28 @@ ${input({ name: 'id', label: 'Settlement id', placeholder: '0x…', mono: true, 
   });
 }
 
+/**
+ * What a verification says about itself, for somebody who has not opened it.
+ *
+ * A run that could not read part of the history reaches no verdict, and the page
+ * withholds the classification for that reason. The description withholds it too,
+ * because a link card reading "Independently verified" over an incomplete run
+ * would say what the page itself refuses to.
+ */
+function verificationDescription(result: VerificationResult, passed: number): string {
+  if (result.hadScanGap) {
+    return 'Incomplete: part of the history could not be read. An RPC scan gap is not a verdict.';
+  }
+
+  const meaning = CLASS_MEANING[result.classification];
+  const verdict =
+    meaning === undefined ? result.classification : `${result.classification}: ${meaning}`;
+  const total = result.findings.length;
+  return clipDescription(
+    total === 0 ? verdict : `${verdict} ${String(passed)} of ${String(total)} checks passed.`,
+  );
+}
+
 export function renderVerification(
   generation: string,
   settlementId: string,
@@ -1332,6 +1536,8 @@ export function renderVerification(
 
   return shell({
     title: `Verification ${truncate(settlementId)}`,
+    description: verificationDescription(result, passed),
+    path: `/verify/${settlementId}`,
     current: '/app/verifier',
     generation,
     body: `${pageHeader({
@@ -1430,6 +1636,9 @@ ${proof.note === undefined ? '' : `<div class="note">${esc(proof.note)}</div>`}
 export function renderEvidenceHome(generation: string): string {
   return shell({
     title: 'Evidence',
+    description:
+      "Proof packages for the settlements that ran on the deployed contracts: transactions, messages, attestations and the verifier's run.",
+    path: '/app/evidence',
     current: '/app/evidence',
     generation,
     body: `${pageHeader({
@@ -1492,8 +1701,21 @@ export function renderEvidence(
     groups.set(artifact.kind, bucket);
   }
 
+  // Any 64 hex digits reach this route and it answers 200 with an empty state, so a page with
+  // nothing to show leaves out its path. That makes it noindex with no canonical, where
+  // otherwise anyone could mint indexable addresses on this domain whose preview claims
+  // records exist.
+  const recorded = proof !== undefined || items.length > 0;
+
   return shell({
     title: `Evidence ${truncate(settlementId)}`,
+    description: clipDescription(
+      proof?.summary ??
+        (recorded
+          ? 'Transactions, messages and verifier runs recorded for this settlement.'
+          : 'Nothing is recorded for this settlement in this build. That is not a statement about the chains.'),
+    ),
+    ...(recorded ? { path: `/evidence/${settlementId}` } : {}),
     current: '/app/evidence',
     generation,
     body: `${pageHeader({
@@ -1554,6 +1776,9 @@ ${[...groups.entries()]
 export function renderDeployments(generation: string, rows: readonly DeploymentView[]): string {
   return shell({
     title: 'Deployments',
+    description:
+      'Every deployed generation of the Conduit contracts, with addresses, code hashes and manifests.',
+    path: '/app/deployments',
     current: '/app/deployments',
     generation,
     body: `${pageHeader({
@@ -1562,16 +1787,15 @@ export function renderDeployments(generation: string, rows: readonly DeploymentV
       caption:
         'Core contracts are non-upgradeable, so a new version is a new generation. Each one stays verifiable for the settlements it knows.',
     })}
-${card(
-  `<div class="t-caption-upper">Checking these yourself</div>
+<div class="stack-16">${card(
+      `<div class="stack-12"><div class="t-caption-upper">Checking these yourself</div>
 <p class="muted">Every address below links to its chain’s explorer. Source verification, code hashes and the full generation history are re-checked against Sourcify on every gate run and recorded in the repository, alongside a resolved index of every transaction these deployments have processed.</p>
 <div class="row" style="flex-wrap:wrap">
 ${external('https://github.com/winsznx/conduit/blob/main/docs/deployments.md', 'Deployment generations', 'docs/deployments.md — addresses, code hashes and verified source')}
 ${external('https://github.com/winsznx/conduit/blob/main/docs/onchain.md', 'On-chain transaction index', 'docs/onchain.md — every transaction, resolved against the chain that mined it')}
 ${external('https://github.com/winsznx/conduit/blob/main/docs/evidence/onchain-verification.json', 'Verification evidence', 'docs/evidence/onchain-verification.json — the machine-checked record')}
-</div>`,
-)}
-<div class="stack-16">${rows
+</div></div>`,
+    )}${rows
       .map((row) =>
         cardWithHeader(
           `Generation ${String(row.generation)}`,
@@ -1606,6 +1830,9 @@ export function renderSystem(
 ): string {
   return shell({
     title: 'System',
+    description:
+      'What this console can and cannot do: one key, no custody, and a projection that authorises nothing.',
+    path: '/app/system',
     current: '/app/system',
     generation,
     body: `${pageHeader({
@@ -1639,17 +1866,17 @@ ${cardWithHeader(
 
 export function renderNotFound(what: string, detail: string): string {
   return document_(
-    'Not found',
-    `<div class="landing"><nav class="landing-nav">${wordmark()}${button({ label: 'Console', href: '/app', variant: 'outline', small: true })}</nav>
-<div style="padding:80px 0">${card(emptyState(what, detail, button({ label: 'Back to settlements', href: '/app/settlements', variant: 'outline', small: true })))}</div></div>`,
+    { title: 'Not found' },
+    `<div class="landing"><nav class="landing-nav">${wordmark(true)}${button({ label: 'Console', href: '/app', variant: 'outline', small: true })}</nav>
+<main id="content" tabindex="-1"><div style="padding:80px 0">${card(emptyState(what, detail, button({ label: 'Back to settlements', href: '/app/settlements', variant: 'outline', small: true }), 1))}</div></main></div>`,
   );
 }
 
 export function renderError(detail: string): string {
   return document_(
-    'Error',
-    `<div class="landing"><nav class="landing-nav">${wordmark()}</nav>
-<div style="padding:80px 0">${card(errorState('Something failed on this request', detail))}</div></div>`,
+    { title: 'Error' },
+    `<div class="landing"><nav class="landing-nav">${wordmark(true)}</nav>
+<main id="content" tabindex="-1"><div style="padding:80px 0">${card(errorState('Something failed on this request', detail, 1))}</div></main></div>`,
   );
 }
 

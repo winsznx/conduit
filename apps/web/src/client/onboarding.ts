@@ -16,6 +16,7 @@
  * wallet setup, so the first one offers that route explicitly.
  */
 
+import { RESERVE_CLASS, hasWelcomeCookie, welcomeCookieDeclaration } from '../welcome.js';
 import { session, type EligibilityView, type SessionState } from './session.js';
 
 const SEEN_WELCOME = 'conduit.welcomed';
@@ -50,12 +51,63 @@ function dismissible(host: HTMLElement, onDismiss: () => void): HTMLButtonElemen
   return close;
 }
 
+/**
+ * Whether the cookie the server reads says this visitor was welcomed.
+ *
+ * A document that may not use cookies throws on access, and the answer then is that nothing
+ * was recorded.
+ */
+function cookieSaysWelcomed(): boolean {
+  try {
+    return hasWelcomeCookie(document.cookie);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Records, for the server's next response, that no welcome card will be needed.
+ *
+ * The server cannot read `localStorage`, and this script runs after the first paint, so the
+ * blank space held for the card is already on screen by the time the script could remove it.
+ * A cookie reaches the server with the request, which lets it leave that space out of the
+ * HTML. Blocking the first paint until this script had run would give the same result but
+ * delay every visitor by the whole bundle and leave the page blank if that request hung.
+ *
+ * Callers only reach this on the visitor's say-so or on what storage already holds, so a
+ * visitor who has never been welcomed never carries the cookie.
+ */
+function setWelcomeCookie(): void {
+  try {
+    document.cookie = welcomeCookieDeclaration(location.protocol === 'https:');
+  } catch {
+    // A document that may not use cookies keeps its reserve. Smaller failure than an error on a click.
+  }
+}
+
+/** Whether the welcome card is finished with: dismissed, remembered, or storage is unusable. */
 function seenWelcome(): boolean {
   try {
-    return localStorage.getItem(SEEN_WELCOME) === '1';
+    return localStorage.getItem(SEEN_WELCOME) === '1' || cookieSaysWelcomed();
   } catch {
     return true;
   }
+}
+
+/**
+ * Copies an earlier dismissal into the cookie, once per page load, before anything renders.
+ *
+ * Everyone who dismissed the welcome before the cookie existed has only the `localStorage`
+ * flag. Running synchronously at start-up gives them the cookie on this visit, so the next
+ * one arrives with no blank space in its first frame.
+ */
+export function mirrorWelcomedToCookie(): void {
+  try {
+    if (localStorage.getItem(SEEN_WELCOME) !== '1') return;
+  } catch {
+    return;
+  }
+  setWelcomeCookie();
 }
 
 function markWelcomed(): void {
@@ -64,28 +116,42 @@ function markWelcomed(): void {
   } catch {
     // A browser refusing storage sees it again. Smaller failure than hiding it.
   }
+  setWelcomeCookie();
 }
 
-/** The first visit: what this is, and three honest ways in. */
+/**
+ * The first visit: what this is, and the way in that needs nothing.
+ *
+ * Reading a settlement that already happened is the quickest route to
+ * understanding the product and needs no wallet or Cleanverse pass, so it leads.
+ * Starting one is the same action it always was, a step behind.
+ */
 function welcome(host: HTMLElement): void {
+  const featured = host.dataset['featured'];
   const card = el('div', 'card onboarding');
-  card.append(el('div', 't-caption-upper', 'Welcome to Conduit'));
   card.append(
-    el('div', 'onboarding-title', 'Cross-chain delivery versus payment for verified assets.'),
+    el('div', 'onboarding-title', 'Trade a restricted asset on one chain against cash on another.'),
   );
   card.append(
     el(
       'p',
       'muted',
-      'Two assets stay on the chains that issued them. Conduit coordinates one settlement ' +
-        'decision between them, and makes that decision irreversible only after economic finality ' +
-        'and a fresh compliance answer.',
+      'Conduit settles both legs under one signed intent and makes the trade irreversible only ' +
+        'after both chains agree and Cleanverse confirms both parties again. Neither asset moves ' +
+        'chains.',
     ),
   );
 
   const actions = el('div', 'row');
   actions.style.flexWrap = 'wrap';
-  actions.append(link('/app/settlements/new', 'Start a settlement', true));
+  actions.append(
+    link(
+      featured === undefined ? '/app/settlements' : `/app/settlements/${featured}`,
+      'Watch a real settlement',
+      true,
+    ),
+  );
+  actions.append(link('/app/settlements/new', 'Start a settlement'));
 
   const connect = el('button', 'btn btn-outline btn-sm');
   connect.type = 'button';
@@ -94,21 +160,17 @@ function welcome(host: HTMLElement): void {
     document.querySelector<HTMLElement>('[data-participant] [data-connect]')?.click();
   });
   actions.append(connect);
-  actions.append(link('/app/settlements', 'Explore a proven settlement'));
+  actions.append(dismissible(host, markWelcomed));
   card.append(actions);
 
   card.append(
     el(
       'p',
       't-caption muted',
-      'Only the first of those needs a wallet. A settlement that already happened can be read, ' +
-        'and independently verified, by anybody.',
+      'Watching needs no wallet. Any settlement that already happened can be read, and ' +
+        'independently verified, by anybody.',
     ),
   );
-
-  const foot = el('div', 'row');
-  foot.append(dismissible(host, markWelcomed));
-  card.append(foot);
 
   host.replaceChildren(card);
 }
@@ -225,8 +287,14 @@ export function mountOnboarding(): void {
   session.subscribe((state) => {
     if (state.hydration !== 'ready') return;
 
+    // Whatever happens next either fills the host or leaves it empty for good, and the
+    // card's own height takes over from the reserve in the same frame.
+    host.classList.remove(RESERVE_CLASS);
+
     if (state.connection === 'connected') {
       if (state.oriented) {
+        // This account has been oriented, so neither card will ever show for this visitor.
+        setWelcomeCookie();
         if (shown) host.replaceChildren();
         return;
       }

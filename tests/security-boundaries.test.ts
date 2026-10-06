@@ -117,12 +117,20 @@ describe('the database credential cannot reach a browser', () => {
     // the credential, and naming it keeps the check sharp for the next file that
     // does so by accident.
     //
+    // `worker.test.ts` is allowed one thing and no more. It builds the Worker's `Env`
+    // to drive its routes, and `Env` has a required field for the connection
+    // string, so the file has to spell the field's name. Every other pattern still
+    // applies to it, and the next test requires that any connection string it holds
+    // points at a host that cannot resolve. Nothing imports a test file and no
+    // bundle contains one, so it cannot reach a browser.
+    //
     // The client bundle this comment used to say did not exist now does, under
     // `apps/web/src/client`. That is exactly the case this check was written
     // for, so it is asserted separately and harder below: server-only files are
     // named one at a time, and *nothing* under `client/` may mention the
     // credential at all.
     const serverOnly = new Set(['apps/web/src/worker.ts', 'apps/web/src/data.ts']);
+    const mayNameTheConnectionField = new Set(['apps/web/src/worker.test.ts']);
     const offenders: string[] = [];
     for (const app of ['apps/web/src', 'packages/ui/src']) {
       const dir = join(ROOT, app);
@@ -131,12 +139,29 @@ describe('the database credential cannot reach a browser', () => {
         const body = readFileSync(file, 'utf8');
         const relative = file.slice(ROOT.length + 1);
         if (serverOnly.has(relative)) continue;
-        if (/@conduit-protocol\/db|createDatabase|DATABASE_URL|SERVICE_ROLE/.test(body)) {
+        const forbidden = mayNameTheConnectionField.has(relative)
+          ? /@conduit-protocol\/db|createDatabase|SERVICE_ROLE/
+          : /@conduit-protocol\/db|createDatabase|DATABASE_URL|SERVICE_ROLE/;
+        if (forbidden.test(body)) {
           offenders.push(relative);
         }
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('holds only an unresolvable placeholder where a test names the connection string', () => {
+    // The exemption above lets `worker.test.ts` spell `DATABASE_URL`. This is what stops
+    // it holding a real one: the secrets scan does not recognise a bare connection URI.
+    const body = readFileSync(join(ROOT, 'apps/web/src/worker.test.ts'), 'utf8');
+    const hosts = (body.match(/postgres(?:ql)?:\/\/[^\s'"`]+/g) ?? []).map(
+      (literal) => new URL(literal).hostname,
+    );
+
+    expect(
+      hosts.length > 0 && hosts.every((host) => host.endsWith('.invalid')),
+      `connection strings in worker.test.ts must name a .invalid host, found: ${hosts.join(', ')}`,
+    ).toBe(true);
   });
 
   /**
