@@ -17,7 +17,7 @@
     "format": "prettier --write . && forge fmt",
     "format:check": "prettier --check . && forge fmt --check",
     "lint": "eslint .",
-    "typecheck": "tsc --build --force",
+    "typecheck": "tsc --build --force && tsc -p apps/web/src/client/tsconfig.json --noEmit && tsc -p apps/web/qa/tsconfig.json --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "contracts:build": "forge build",
@@ -40,7 +40,10 @@
     "onchain:index": "node scripts/build-onchain-index.mjs",
     "onchain:index:check": "node scripts/build-onchain-index.mjs --check",
     "hero:build": "node scripts/build-hero-image.mjs",
-    "hero:check": "node scripts/build-hero-image.mjs --check"
+    "hero:check": "node scripts/build-hero-image.mjs --check",
+    "brand:build": "node scripts/build-brand.mjs",
+    "brand:check": "node scripts/build-brand.mjs --check",
+    "test-data:purge": "node scripts/purge-test-intents.mjs"
   },
   "devDependencies": {
     "@conduit-protocol/app-api": "workspace:*",

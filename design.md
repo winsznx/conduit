@@ -3,20 +3,22 @@
 
 **Theme:** light
 
-shadcn/ui is a monochromatic design-system workshop: pure white canvas, soft warm-gray surfaces, and large-radius cards floating on hairline borders. The interface is almost entirely achromatic — black text, white surfaces, gray secondary tones — with a single destructive red reserved for error states and nothing else. Typography leans on Geist's geometric neutrality with tight letter-spacing on display sizes, creating a quiet, code-adjacent feel that reads as developer infrastructure rather than consumer product.
+> **Amendment, 2026-10-05.** The shipped theme (`apps/web/src/theme.ts`) supersedes three values wherever they appear below: Mid Gray is `#525252` (was `#737373`), Hairline is `#d4d4d4` (was `#e5e5e5`), and the page and sidebar surfaces are `#ffffff` (were `#f5f5f5` and `#fafafa`). Canvas `#f5f5f5` stays the fill for inputs, secondary buttons and nested panels. The statements about how Ember may be used disagreed. ADR-0023 reconciled them, and the opening sentence, the Ember token row, the Do list line and the Destructive Action note below were reworded. `brand/design.md` holds the brand identity rules. This one remains the product UI reference.
+
+shadcn/ui is a monochromatic design-system workshop: pure white canvas, soft warm-gray surfaces, and large-radius cards floating on hairline borders. The interface is almost entirely achromatic, with black text, white surfaces and gray secondary tones, and a single red used for errors and for the one point in the Conduit mark. Typography leans on Geist's geometric neutrality with tight letter-spacing on display sizes, creating a quiet, code-adjacent feel that reads as developer infrastructure rather than consumer product.
 
 ## Tokens — Colors
 
 | Name | Value | Token | Role |
 |------|-------|-------|------|
-| Canvas | `#f5f5f5` | `--color-canvas` | Page background, muted surface fills, secondary buttons |
+| Canvas | `#f5f5f5` | `--color-canvas` | Muted surface fills and secondary buttons. The page itself is white (`--surface-canvas`) |
 | Paper | `#ffffff` | `--color-paper` | Card surfaces, popover backgrounds, primary button fills |
 | Surface Alt | `#fafafa` | `--color-surface-alt` | Sidebar background, subtle card variant, input resting state |
 | Ink | `#0a0a0a` | `--color-ink` | Primary text, headings, button labels, icon strokes |
 | Ink Soft | `#171717` | `--color-ink-soft` | Filled button backgrounds, secondary text on light surfaces |
-| Mid Gray | `#737373` | `--color-mid-gray` | Muted body text, placeholder text, helper labels, icon fills at rest |
-| Hairline | `#e5e5e5` | `--color-hairline` | Borders, input outlines, card edges, badge outlines |
-| Ember | `#e7000b` | `--color-ember` | Red decorative accent for icons, marks, and small graphic details. Use as a supporting accent, not as a status color |
+| Mid Gray | `#525252` | `--color-mid-gray` | Muted body text, placeholder text, helper labels, icon fills at rest |
+| Hairline | `#d4d4d4` | `--color-hairline` | Borders, input outlines, card edges, badge outlines |
+| Ember | `#e7000b` | `--color-ember` | Red accent for error and destructive text and icons, and for the single point in the Conduit mark. Not a status color and not a surface fill |
 
 ## Tokens — Typography
 
@@ -155,7 +157,7 @@ Background #f5f5f5, text #737373, radius 18px, padding 8px 10px, with a keyboard
 ### Destructive Action
 **Role:** Delete, remove, revoke — error-adjacent interactions
 
-Text or icon in #e7000b against the monochromatic palette. The red is the only chromatic hue in the system and appears exclusively in destructive or error contexts — it never decorates.
+Text or icon in #e7000b against the monochromatic palette. The red is the only chromatic hue in the system and appears exclusively in destructive or error contexts, except for the single point in the Conduit mark (see brand/design.md). Anywhere else it never decorates.
 
 ## Do's and Don'ts
 
@@ -163,7 +165,7 @@ Text or icon in #e7000b against the monochromatic palette. The red is the only c
 - Use #0a0a0a on #ffffff for filled buttons — the dark inversion is the only primary action treatment.
 - Maintain 18px radius on all buttons, inputs, and badges for perfect pill geometry; use 24px radius only on cards.
 - Set display headlines at 48px/600 with -0.0500em tracking — Geist's geometric weight at this size with aggressive tightening produces the engineered headline voice.
-- Reserve #e7000b exclusively for destructive states; never use it for decoration, branding, or non-error emphasis.
+- Use #e7000b for destructive and error text and icons, and for the single point in the Conduit mark (see brand/design.md). Never use it as a surface fill or as decoration.
 - Stack card shadows as 1px hairline + 1px + 2px offset — the combined effect is a barely-perceptible elevation that reads as 'card' without drama.
 - Use #f5f5f5 for secondary surfaces and inputs; use #fafafa for sidebar and subtle card variants — the three-tone surface stack (canvas → soft → paper) creates layering without borders.
 

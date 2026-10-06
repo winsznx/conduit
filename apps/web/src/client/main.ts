@@ -20,9 +20,10 @@
 import { mountActivity } from './activity.js';
 import { mountComposer, mountSignRequest } from './composer.js';
 import { mountLanding } from './landing.js';
-import { mountOnboarding } from './onboarding.js';
+import { mirrorWelcomedToCookie, mountOnboarding } from './onboarding.js';
 import { mountOverview } from './overview.js';
 import { session } from './session.js';
+import { mountSidebar } from './sidebar.js';
 import { mountParticipantControl } from './wallet-ui.js';
 import { mountWorkspace } from './workspace.js';
 import type { Deployment } from './protocol.js';
@@ -39,7 +40,9 @@ function deployment(): Deployment | undefined {
 }
 
 function start(): void {
+  mirrorWelcomedToCookie();
   mountParticipantControl();
+  mountSidebar();
   mountLanding();
   mountActivity();
   mountOnboarding();

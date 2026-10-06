@@ -1,7 +1,7 @@
 /**
  * One real settlement, driven entirely from the deployed browser surface.
  *
- *   CONDUIT_LIVE=1 WEB_BASE_URL=https://conduit.timjosh507.workers.dev \
+ *   CONDUIT_LIVE=1 WEB_BASE_URL=https://tryconduit.xyz \
  *   LIVE_PRIVATE_KEY=0x… pnpm exec playwright test apps/web/qa/live.spec.ts
  *
  * Opt-in, and skipped by default, because it moves real value on two testnets

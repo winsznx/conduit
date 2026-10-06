@@ -191,9 +191,10 @@ test.describe('journey D — one session, across the whole console', () => {
 
     // #given a first visit with no wallet connected
     await page.goto('/app');
-    await expect(page.locator('[data-overview]')).toContainText('Your position', {
-      timeout: 30_000,
-    });
+    await expect(page.locator('[data-overview]')).toContainText(
+      'Connect a wallet and this page leads with your own settlements',
+      { timeout: 30_000 },
+    );
 
     // #when the participant connects
     await page

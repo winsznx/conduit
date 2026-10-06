@@ -96,10 +96,11 @@ const STEPS = [
   },
   {
     id: 'web-bundle',
-    // Before typecheck, because it writes two of the modules typecheck reads.
-    // `apps/web/build.mjs` emits `client-manifest.ts` and `image-manifest.ts`
-    // into `src` — they carry content hashes, so they are generated rather than
-    // committed — and on a clean checkout they do not exist yet. This is the
+    // Before typecheck, because it writes three of the modules typecheck reads.
+    // `apps/web/build.mjs` emits `client-manifest.ts`, `image-manifest.ts` and
+    // `brand-manifest.ts` into `src`. They carry content hashes or the kit's
+    // bytes, so they are generated rather than committed, and on a clean
+    // checkout they do not exist yet. This is the
     // second half of what CI was failing on: a working tree that had built once
     // had them on disk, and a fresh clone did not.
     title: 'the Worker and browser bundles build',
@@ -127,8 +128,26 @@ const STEPS = [
     // lint reports several hundred no-unsafe-* violations that say nothing about
     // the code. This is what CI has been failing on: locally the artefacts were
     // already on disk from a previous build, so lint saw real types and passed.
-    title: 'tsc --build (strict, all workspaces)',
-    exec: () => run('pnpm', ['exec', 'tsc', '--build', '--force'], { allowFailure: true }),
+    title: 'tsc --build (strict, all workspaces), then the browser script and the browser specs',
+    exec: () => {
+      const build = run('pnpm', ['exec', 'tsc', '--build', '--force'], { allowFailure: true });
+      if (!build.ok) return build;
+
+      // Two projects sit outside the build graph because they need the DOM lib, which the
+      // Worker half must not have: the script that runs in the browser, and the Playwright
+      // specs. esbuild strips types without checking them and ESLint does not report compile
+      // errors, so until these ran here the browser script carried three type errors that
+      // no gate could see.
+      const browserScript = run(
+        'pnpm',
+        ['exec', 'tsc', '-p', 'apps/web/src/client/tsconfig.json', '--noEmit'],
+        { allowFailure: true },
+      );
+      if (!browserScript.ok) return browserScript;
+      return run('pnpm', ['exec', 'tsc', '-p', 'apps/web/qa/tsconfig.json', '--noEmit'], {
+        allowFailure: true,
+      });
+    },
   },
   {
     id: 'lint',
@@ -264,6 +283,15 @@ const STEPS = [
     exec: () => run('node', ['scripts/build-hero-image.mjs', '--check'], { allowFailure: true }),
   },
   {
+    id: 'brand-kit',
+    // The brand kit is generated from brand/brand.json. An edited SVG, a swapped
+    // PNG or a colour changed in one place leaves a repository describing one
+    // identity and shipping another. Needs no browser: it regenerates the SVG and
+    // holds everything else to the manifest.
+    title: 'brand kit matches the lock record it was generated from',
+    exec: () => run('node', ['scripts/build-brand.mjs', '--check'], { allowFailure: true }),
+  },
+  {
     id: 'onchain-index',
     // Every transaction this project claims to have sent, resolved against the
     // chain that mined it. A link that no longer resolves is a claim that has
@@ -294,7 +322,15 @@ const STEPS = [
         .then((response) => response.ok)
         .catch(() => false);
 
-      if (reachable) return run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true });
+      if (reachable) {
+        if (process.env['CONDUIT_ALLOW_DB_WRITES'] !== '1') {
+          console.log(
+            'the specs that sign and store an intent are skipped, because they write to the console’s',
+          );
+          console.log('database. Set CONDUIT_ALLOW_DB_WRITES=1 to include them.');
+        }
+        return run('pnpm', ['exec', 'playwright', 'test'], { allowFailure: true });
+      }
 
       console.log(`no console answering at ${base} — running the harness project only.`);
       console.log('the browser suite needs a running surface; see playwright.config.ts.');

@@ -28,11 +28,15 @@
  *
  * ## Colour discipline
  *
- * Eight colours exist. Seven are achromatic. `--color-ember` is the only hue and
- * it is reserved for destructive and error-adjacent states — never for status,
- * never for decoration. HELD, CONTESTED and WAITING FOR FINALITY are not errors
- * and must never be rendered in it.
+ * Eight colours exist. Seven are achromatic. `--color-ember` is the only hue. In
+ * the interface it marks errors and destructive actions: text, icon strokes, and
+ * the small dot that shows a failed transaction. It is never a surface fill and
+ * never the colour of anything else. It has exactly one other use, which is the
+ * point inside the Conduit mark (`brand/design.md`, ADR-0023). HELD, CONTESTED and
+ * WAITING FOR FINALITY are not errors and must never be rendered in it.
  */
+
+import { RESERVE_CLASS } from './welcome.js';
 
 /** Colours, type, spacing, radii and shadows, verbatim from `design.md`. */
 const TOKENS = `
@@ -42,8 +46,8 @@ const TOKENS = `
   --color-surface-alt:#fafafa;
   --color-ink:#0a0a0a;
   --color-ink-soft:#171717;
-  --color-mid-gray:#737373;
-  --color-hairline:#e5e5e5;
+  --color-mid-gray:#525252;
+  --color-hairline:#d4d4d4;
   --color-ember:#e7000b;
 
   --font-geist:'Geist',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -78,8 +82,8 @@ const TOKENS = `
 
   --shadow-subtle:0 0 0 1px rgba(23,23,23,0.05),0 1px 3px rgba(0,0,0,0.1),0 1px 2px -1px rgba(0,0,0,0.1);
 
-  --surface-canvas:#f5f5f5;
-  --surface-sidebar:#fafafa;
+  --surface-canvas:#ffffff;
+  --surface-sidebar:#ffffff;
   --surface-card:#ffffff;
   --surface-input-fill:#f5f5f5;
 
@@ -114,11 +118,24 @@ ul,ol{padding:0;list-style:none}
 button,input,select,textarea{font:inherit;color:inherit}
 svg{display:block}
 
-/* Focus stays inside the hairline language: a ring, never a glow. */
-:focus-visible{outline:none;box-shadow:0 0 0 1px var(--color-paper),0 0 0 3px var(--color-ink);border-radius:var(--radius-small)}
+/* Focus stays inside the hairline language: a ring, never a glow. The outline is
+   transparent rather than none because forced-colors mode drops box-shadow and
+   repaints a transparent outline in a system colour, so the ring survives there. */
+:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 1px var(--color-paper),0 0 0 3px var(--color-ink);border-radius:var(--radius-small)}
 
 .mono{font-family:var(--font-mono);font-variant-ligatures:none}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* The first Tab stop on every page. Clipped like .visually-hidden, never display:none,
+   so it stays focusable, and fixed when shown so it moves nothing. The z-index sits
+   above the sticky headers, the activity tray and the modal root. */
+.skip-link{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip-link:focus{
+  position:fixed;top:var(--spacing-8);left:var(--spacing-8);z-index:100;width:auto;height:auto;
+  overflow:visible;clip:auto;padding:var(--spacing-8) var(--spacing-12);
+  background:var(--color-ink);color:var(--color-paper);border-radius:var(--radius-small);
+}
+/* The skip link moves focus here with tabindex -1. A ring around the whole page is noise. */
+main:focus{outline:none;box-shadow:none}
 `;
 
 /**
@@ -176,7 +193,8 @@ const PRIMITIVES = `
   padding:8px var(--spacing-12);font-size:var(--text-body);
 }
 .field::placeholder{color:var(--color-mid-gray)}
-.field:focus{outline:none;border-color:var(--color-hairline);background:var(--color-paper)}
+/* Transparent outline for the same reason as :focus-visible: it is what forced-colors mode paints. */
+.field:focus{outline:2px solid transparent;border-color:var(--color-hairline);background:var(--color-paper)}
 .field-mono{font-family:var(--font-mono);font-size:13px}
 .label{display:block;margin-bottom:var(--spacing-8)}
 
@@ -195,6 +213,19 @@ const PRIMITIVES = `
   border-bottom:1px solid var(--color-hairline);
 }
 .card-body{padding:var(--spacing-20)}
+/* Evidence a reader may want and rarely needs: closed once nothing is left to do. */
+.disclosure-summary{
+  cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;
+  gap:var(--spacing-12);font-weight:var(--font-weight-medium);
+}
+.disclosure-summary::-webkit-details-marker{display:none}
+.disclosure-summary::after{content:'+';font-family:var(--font-mono);color:var(--color-mid-gray)}
+.disclosure[open]>.disclosure-summary{margin-bottom:var(--spacing-12)}
+.disclosure[open]>.disclosure-summary::after{content:'−'}
+.disclosure-summary:focus-visible{outline:2px solid var(--color-ink);outline-offset:4px;border-radius:var(--radius-small);box-shadow:none}
+.outcome{display:flex;flex-direction:column;gap:var(--spacing-8)}
+.outcome-headline{font-size:var(--text-heading-sm);line-height:var(--leading-heading-sm);letter-spacing:var(--tracking-heading-sm);font-weight:var(--font-weight-semibold)}
+.outcome-detail{color:var(--color-mid-gray);max-width:68ch}
 .nested{background:var(--color-canvas);border-radius:var(--radius-nested);padding:var(--spacing-12)}
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
@@ -213,8 +244,11 @@ const PRIMITIVES = `
 /* ── Separators, tables, stat blocks ─────────────────────────────────────── */
 .rule{height:1px;background:var(--color-hairline);border:0;margin:var(--spacing-24) 0}
 .table{width:100%;border-collapse:collapse}
+/* position:relative makes the header the containing block for the visually hidden label in the
+   action column. Without it the label is placed against the viewport, at the column's offset in
+   a table wider than the screen, and widens the page. */
 .table th{
-  text-align:left;font-size:var(--text-caption);line-height:var(--leading-caption);
+  position:relative;text-align:left;font-size:var(--text-caption);line-height:var(--leading-caption);
   letter-spacing:var(--tracking-caption);text-transform:uppercase;
   color:var(--color-mid-gray);font-weight:var(--font-weight-medium);
   padding:var(--spacing-8) var(--spacing-12);border-bottom:1px solid var(--color-hairline);
@@ -254,6 +288,14 @@ const PRIMITIVES = `
 /* Touch pointers get no hover, so the arrow is always visible there. */
 @media (hover:none){.ext .ext-mark{opacity:1}}
 .identity{display:inline-flex;align-items:center;gap:var(--spacing-8)}
+/* The lockup carries no width or height, so each surface states a height and the
+   viewBox ratio supplies the width. flex:none keeps a crowded row from squeezing
+   it out of proportion. */
+.identity .lockup{display:block;height:20px;width:auto;flex:none}
+/* A forced-colours palette cannot remap a fill painted by value, only a system colour, so
+   without this the ink letters and modules sit invisible on the black ground of a dark
+   high-contrast theme and only the point shows. */
+@media (forced-colors:active){.lockup path{fill:CanvasText}.lockup circle{fill:Highlight}}
 /* Real brand marks, monochrome. No container: the marks carry their own
    silhouette, and boxing Base's rounded square inside another rounded box
    produced a square-in-a-square. They inherit colour, so a mark inside muted
@@ -308,6 +350,9 @@ const LAYOUT = `
 }
 .nav a:hover{background:var(--color-canvas);text-decoration:none}
 .nav a[aria-current="page"]{background:var(--color-paper);color:var(--color-ink);font-weight:var(--font-weight-medium);box-shadow:0 0 0 1px var(--color-hairline)}
+/* The rule above out-ranks the page-wide ring, so without this the current link takes
+   focus and nothing changes on screen. */
+.nav a[aria-current="page"]:focus-visible{box-shadow:0 0 0 1px var(--color-paper),0 0 0 3px var(--color-ink)}
 .sidebar-foot{margin-top:auto;padding:var(--spacing-8);border-top:1px solid var(--color-hairline)}
 
 .main{min-width:0;display:flex;flex-direction:column}
@@ -391,6 +436,10 @@ const LAYOUT = `
   background:var(--surface-canvas);
   border-bottom:1px solid var(--color-hairline);
 }
+.landing-nav .identity .lockup{height:26px}
+/* Under 360px the 26px lockup leaves less than 40px before the console button and touches
+   it at 320px, so it steps down. */
+@media (max-width:359px){.landing-nav .identity .lockup{height:22px}}
 
 /* Anchors land below the sticky header rather than under it. Sized to the
    header: 20 + 28 + 20 + 1 = 69px, plus room to breathe. */
@@ -410,7 +459,7 @@ const LAYOUT = `
 }
 .hero-copy{max-width:52ch;min-width:0}
 .hero p{margin-top:var(--spacing-16);font-size:var(--text-body-lg);line-height:var(--leading-body-lg);color:var(--color-mid-gray)}
-.hero .actions{display:flex;gap:var(--spacing-8);margin-top:var(--spacing-24)}
+.hero .actions{display:flex;flex-wrap:wrap;gap:var(--spacing-8);margin-top:var(--spacing-24)}
 
 /* The artwork sits on the canvas. No card, no frame, no backing, no shadow:
    its own alpha is the edge, and anything painted behind it would replace a
@@ -429,7 +478,22 @@ const LAYOUT = `
 /* One 80px gap between sections, not two stacked. Landing may breathe; it may
    not leave 160px of nothing. */
 .landing-section{padding:0 0 80px}
+.hero .audience{font-size:var(--text-body);line-height:var(--leading-body);margin-top:var(--spacing-12);color:var(--color-ink)}
+/* The live settlement under the hero artwork: the one element on the first screen
+   that is a fact rather than a picture. It is a link, because the fact is only
+   worth stating if the reader can open it. */
+.hero-proof{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--spacing-16);align-items:center;
+  margin-top:var(--spacing-16);padding:var(--spacing-16) var(--spacing-20);
+  background:var(--surface-card);border:1px solid var(--color-hairline);
+  border-radius:var(--radius-cards);color:inherit;text-decoration:none;
+}
+.hero-proof:hover{border-color:var(--color-ink)}
+.hero-proof:focus-visible{outline:2px solid var(--color-ink);outline-offset:3px;box-shadow:none}
+.hero-proof-trade{font-weight:var(--font-weight-medium)}
+.hero-proof-meta{margin-top:var(--spacing-4);font-size:var(--text-caption);line-height:var(--leading-caption);color:var(--color-mid-gray)}
 .landing-foot{border-top:1px solid var(--color-hairline);padding:var(--spacing-24) 0 var(--spacing-48);color:var(--color-mid-gray)}
+.landing-foot .identity .lockup{height:24px}
 
 /* ── Stepper ─────────────────────────────────────────────────────────────── */
 .stepper{
@@ -654,7 +718,9 @@ const LAYOUT = `
 .mech-steps{display:flex;flex-direction:column}
 .mech-step{
   padding:var(--spacing-24) 0;border-top:1px solid var(--color-hairline);
-  opacity:.32;transition:opacity .28s ease;
+  /* .8 keeps the dimmed steps clearly behind the current one and puts the grey text
+     at about 4.6:1 on white. At .72 it measured 3.82:1, under the 4.5:1 minimum. */
+  opacity:.8;transition:opacity .28s ease;
 }
 .mech-step:first-child{border-top:0}
 .mech-step[data-current]{opacity:1}
@@ -667,7 +733,7 @@ const LAYOUT = `
 .staterail-row{
   display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:var(--spacing-48);
   padding:var(--spacing-24) 0;border-bottom:1px solid var(--color-hairline);
-  opacity:.4;transition:opacity .3s ease;
+  opacity:.72;transition:opacity .3s ease;
 }
 .staterail-row[data-shown]{opacity:1}
 .staterail-state{display:flex;align-items:center;gap:var(--spacing-12)}
@@ -776,7 +842,9 @@ const LAYOUT = `
 
 /* ── Nav links ───────────────────────────────────────────────────────────── */
 a.identity:hover{text-decoration:none}
-a.identity:hover span{text-decoration:underline;text-underline-offset:2px}
+/* The same outline as the disclosure summary. The page-wide ring is a box-shadow
+   and would sit inside it as a second ring, right against the letterforms. */
+a.identity:focus-visible{outline:2px solid var(--color-ink);outline-offset:4px;border-radius:var(--radius-small);box-shadow:none}
 .idlink{border-bottom:1px solid var(--color-hairline)}
 .idlink:hover{text-decoration:none;border-bottom-color:var(--color-ink)}
 .navlinks{display:flex;align-items:center;gap:var(--spacing-20)}
@@ -802,6 +870,9 @@ a.identity:hover span{text-decoration:underline;text-underline-offset:2px}
   .sidebar{
     position:static;height:auto;flex-direction:row;align-items:center;
     gap:var(--spacing-12);overflow-x:auto;border-right:0;
+    /* Focus scrolls a link in by the same inset the strip is padded by, so the 3px ring
+       is not clipped at the edge. */
+    scroll-padding-inline:var(--spacing-12);
     border-bottom:1px solid var(--color-hairline);padding:var(--spacing-12) var(--spacing-16);
   }
   .sidebar .brand{flex:none}
@@ -847,9 +918,6 @@ a.identity:hover span{text-decoration:underline;text-underline-offset:2px}
   }
   .hero-art{justify-self:center;max-width:min(100%,420px)}
   .landing-nav{padding:var(--spacing-12) 0}
-  /* Two buttons plus the wordmark do not fit 390px. The verifier is one tap
-     away inside the console, so the header keeps the primary action. */
-  .landing-nav .row .btn-outline{display:none}
   .landing-section,.hero{scroll-margin-top:64px}
   .landing-section{padding:var(--spacing-48) 0}
   /* Deliberate reduction inside the scale, not a shrink. */
@@ -858,10 +926,136 @@ a.identity:hover span{text-decoration:underline;text-underline-offset:2px}
   .t-heading{font-size:var(--text-heading-sm);line-height:var(--leading-heading-sm);letter-spacing:var(--tracking-heading-sm)}
   .stat .stat-value{font-size:var(--text-heading);line-height:var(--leading-heading);letter-spacing:var(--tracking-heading)}
 }
+
+/* The closing section pairs two paths side by side down to tablet width. On a small
+   phone each column is narrower than the button inside it, so they stack. */
+@media (max-width:480px){
+  .paths{grid-template-columns:minmax(0,1fr)}
+}
 `;
 
+/**
+ * The width at which a reserve changes, and the height it should hold from there up.
+ *
+ * Both console hosts on `/app` are empty in the HTML and filled by the browser script once
+ * wallet discovery has answered. Without space held for them the whole page jumps a few
+ * hundred milliseconds after it first paints. The heights are the rendered heights of the
+ * first-visit card and of the one-line position paragraph, so a width appears here wherever
+ * their text wraps onto another line. They come from the system font stack, which is the
+ * only font this page can load, so another platform wraps a little differently and
+ * the reserve there is a few pixels off.
+ *
+ * Only the welcome reserve is conditional. The server leaves the class off the onboarding host
+ * for a visitor whose `conduit-welcomed` cookie says no card will come (see `welcome.ts`), so
+ * their first frame has no blank band. A rule here cannot do that, because the stylesheet is
+ * the same bytes for everyone and the preference lives in the request.
+ */
+export const WELCOME_RESERVE: readonly (readonly [minWidth: number, height: number])[] = [
+  [0, 538],
+  [284, 502],
+  [315, 470],
+  [330, 450],
+  [335, 434],
+  [373, 398],
+  [387, 378],
+  [389, 346],
+  [470, 330],
+  [491, 310],
+  [570, 274],
+  [669, 254],
+  [705, 222],
+  [829, 206],
+  [1025, 222],
+  [1061, 206],
+  [1509, 186],
+];
+
+/** Lines of caption text the personal overview occupies before it holds anything else. */
+export const OVERVIEW_RESERVE: readonly (readonly [minWidth: number, lines: number])[] = [
+  [0, 3],
+  [323, 2],
+  [599, 1],
+];
+
+/**
+ * The gap above the position paragraph, which `client/overview.ts` sets inline on the paragraph.
+ *
+ * A top margin on the first child of a block with no padding or border leaves the block and
+ * pushes it down, so the host's own height never includes it and the section after it lands
+ * this far lower once the paragraph arrives. The empty host takes the same margin, and the
+ * paragraph's own margin then collapses into it, which leaves everything below where it was.
+ * This value must stay equal to the one in `overview.ts`.
+ */
+export const OVERVIEW_LEAD_GAP = 'var(--spacing-12)';
+
+/**
+ * The two shell hosts the same script fills after the first paint, on every console page.
+ *
+ * The participant slot in the top bar receives the Connect button, and the sidebar footer
+ * receives the one-line status. Both arrive empty, so their neighbours moved when the script
+ * ran: the top-right group slid left by the button's width and the footer grew upward from the
+ * bottom of the sidebar. Each selector stops matching the moment the script puts content in,
+ * so no class has to be removed and the space cannot outlive what it was held for. The sizes
+ * are the rendered ones in the system font stack. The footer is a column only above 1024px;
+ * below that the sidebar is a strip and the footer sits off screen.
+ */
+const SHELL_HOSTS = '[data-participant]:empty,[data-identity-strip]:has(>noscript)';
+const PARTICIPANT_SLOT_WIDTH = 110;
+const SIDEBAR_FOOT_HEIGHT = 77;
+
+/** How long a reserve waits for the script before CSS gives the space back. */
+const RESERVE_RELEASE_DELAY = '4s';
+
+function reserveRules(host: string, steps: readonly (readonly [number, string])[]): string {
+  return steps
+    .map(([minWidth, height]) =>
+      minWidth === 0
+        ? `${host}.${RESERVE_CLASS}{min-height:${height}}`
+        : `@media (min-width:${String(minWidth)}px){${host}.${RESERVE_CLASS}{min-height:${height}}}`,
+    )
+    .join('\n');
+}
+
+/**
+ * Space held for content the browser script adds after first paint.
+ *
+ * The script drops the class from the welcome host once it has placed its content or knows
+ * none is coming. For a visitor whose `conduit-welcomed` cookie is set, the server leaves the
+ * class off that host in the first place (see `welcome.ts`), because the script runs after the
+ * first paint and `localStorage` is invisible to the server. The overview host keeps the class.
+ * The animation gives the space back after four seconds whether or not the script ran, which
+ * changes nothing visible once the content fills it, and it is the fallback for a visitor whose
+ * script never runs. `<noscript>` does the same at once for a visitor with no JavaScript (see
+ * `RESERVE_RELEASE`).
+ */
+const RESERVE = `
+@keyframes reserve-release{to{min-height:0;min-width:0;margin-top:0}}
+.${RESERVE_CLASS}{animation:reserve-release 1ms linear ${RESERVE_RELEASE_DELAY} forwards}
+${SHELL_HOSTS}{animation:reserve-release 1ms linear ${RESERVE_RELEASE_DELAY} forwards}
+[data-participant]:empty{min-width:${String(PARTICIPANT_SLOT_WIDTH)}px}
+@media (min-width:1025px){[data-identity-strip]:has(>noscript){min-height:${String(SIDEBAR_FOOT_HEIGHT)}px}}
+${reserveRules(
+  '[data-onboarding]',
+  WELCOME_RESERVE.map(([minWidth, height]) => [minWidth, `${String(height)}px`] as const),
+)}
+${reserveRules(
+  '[data-overview]',
+  OVERVIEW_RESERVE.map(
+    ([minWidth, lines]) =>
+      [minWidth, `calc(var(--text-caption) * var(--leading-caption) * ${String(lines)})`] as const,
+  ),
+)}
+[data-overview].${RESERVE_CLASS}:empty{margin-top:${OVERVIEW_LEAD_GAP}}
+`;
+
+/**
+ * For a visitor with no JavaScript, in a `<noscript>` so it applies only then. It sits
+ * ahead of the stylesheet, so `!important` is what lets it win over a rule of equal weight.
+ */
+export const RESERVE_RELEASE = `.${RESERVE_CLASS},${SHELL_HOSTS}{min-height:0!important;min-width:0!important;margin-top:0!important;animation:none!important}`;
+
 /** The whole stylesheet, in specificity order. */
-export const STYLESHEET = `${TOKENS}${BASE}${TYPE}${PRIMITIVES}${LAYOUT}`
+export const STYLESHEET = `${TOKENS}${BASE}${TYPE}${PRIMITIVES}${LAYOUT}${RESERVE}`
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\n\s*/g, '')
   .trim();

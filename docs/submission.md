@@ -164,11 +164,11 @@ here is `(chainId, address)` everywhere, never an address alone.
 
 ## Live product
 
-<https://conduit.timjosh507.workers.dev>
+<https://tryconduit.xyz>
 
 ## Verifier
 
-<https://conduit.timjosh507.workers.dev/app/verifier>
+<https://tryconduit.xyz/app/verifier>
 
 Or from a clone, with only a settlement id:
 
@@ -187,9 +187,9 @@ economic finality, asked again, committed, both legs released, outcome reported 
 entirely from a browser, with no intervention of any kind. 42 minutes, of which
 22 were the wait that cannot be shortened.
 
-- Settlement: <https://conduit.timjosh507.workers.dev/app/settlements/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77>
-- Verification: <https://conduit.timjosh507.workers.dev/verify/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77>
-- Evidence: <https://conduit.timjosh507.workers.dev/evidence/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77>
+- Settlement: <https://tryconduit.xyz/app/settlements/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77>
+- Verification: <https://tryconduit.xyz/verify/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77>
+- Evidence: <https://tryconduit.xyz/evidence/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77>
 
 `SETTLED` canonical, `SETTLED_FINAL` derived, 18 of 18 checks, no scan gaps.
 
@@ -213,26 +213,27 @@ REVERIFY_AND_RESUME     an authorised order, executed
 SETTLED_FINAL           independently verified
 ```
 
-- Settlement: <https://conduit.timjosh507.workers.dev/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0>
+- Settlement: <https://tryconduit.xyz/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0>
 - The same path on generation 2: `0x30aa1b73…`
 
 ## Test counts
 
 ```text
-Vitest       754 assertions across 32 files
+Vitest      1282 tests across 44 files
 Foundry      281 tests across 19 suites
                9 fuzz properties at 256 runs each
               26 disposition invariants
               10 exploit regressions
-Playwright    78 browser tests against the deployed surface
+Playwright   395 browser tests against a running console
                1 opt-in live run against both testnets
-Release gate  17 of 17 steps
+Release gate  22 steps
 ```
 
-The gate is: toolchain pins, format, lint, typecheck, unit, contract build with
-warnings as errors, trace corpus regeneration, contract tests, gas snapshot,
+The gate is: toolchain pins, format, web bundle, typecheck, lint, unit, contract build
+with warnings as errors, trace corpus regeneration, contract tests, gas snapshot,
 storage layout, Slither, gitleaks over worktree and full history, dependency
-audit, Trivy config scan, Checkov, deployment manifest schema, end-to-end.
+audit, Trivy config scan, Checkov, deployment manifest schema, on-chain
+verification, hero image, brand kit, on-chain transaction index, end-to-end.
 
 ## Known limitations
 
@@ -334,7 +335,7 @@ browser flow        every protocol write from a wallet in a page: reserve,
 verifier            two RPCs, the manifests, the guardian set, no database
 disposition kernel  six order types, contest window, conflict adjudication
 exploit regressions 10 tests pinning defects found during development
-tests               762 Vitest · 281 Foundry · 78 Playwright · 19/19 gate
+tests               1282 Vitest · 281 Foundry · 395 Playwright · 22-step gate
 ```
 
 ## UX / demo — 15

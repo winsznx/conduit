@@ -1,0 +1,127 @@
+{
+  "$comment": "Machine-readable companion to brand/design.md. scripts/build-brand.mjs generates every source SVG from colour, contrast, geometry.grid, geometry.symbol, geometry.lockup, the two symbol ratios under geometry.appIcon, concept.descriptor and the brand version and status, so a change to one of those is a change everywhere. Every other key (clear space, minimum sizes, favicon proportions, typography roles, render, forbidden, concept.tagline) is reference the generator does not read, and editing it changes no asset. The lettering on the social cards comes from scripts/brand/type.json. Edit values, run `pnpm brand:build`, review the diff.",
+  "brand": {
+    "name": "Conduit",
+    "product": "Cross-chain delivery versus payment for verified assets",
+    "version": "1.0.0",
+    "status": "approved",
+    "statusNote": "Approved by the owner on 2026-10-05, when they asked for the identity to be wired into the product. The constants below are now the lock record, and every asset is marked approved in manifest.json.",
+    "owner": "Conduit Labs",
+    "updated": "2026-10-05"
+  },
+  "source": {
+    "designSpec": "brand/design.md",
+    "guidelines": "brand/guidelines.md",
+    "masterLogo": "brand/source/conduit-symbol.svg",
+    "typeOutlines": "scripts/brand/type.json",
+    "uiTokens": "design.md",
+    "approvedRender": "apps/web/assets/hero-source.png"
+  },
+  "concept": {
+    "loadBearingIdea": "Two assets stay where they are. One decision crosses, and it cannot be taken back.",
+    "territory": "Emotional outcome: two independent forms resolved at a single point",
+    "mechanism": "Two equal modules touch at one corner. A circular socket is cut from that corner and holds the point, which touches neither module. The mark is unchanged by a 180 degree turn about the point.",
+    "meaning": {
+      "modules": "the two parties and the two assets, equal and separate",
+      "point": "the commit decision, the only chromatic value in the system",
+      "socket": "the decision belongs to neither party, and Conduit holds no key that can move value"
+    },
+    "tagline": "Two chains. One commitment.",
+    "descriptor": "Cross-chain delivery versus payment for verified assets."
+  },
+  "colour": {
+    "ink": { "value": "#0a0a0a", "role": "modules, wordmark, text on paper" },
+    "paper": { "value": "#ffffff", "role": "page surface, and modules and text on ink" },
+    "ember": {
+      "value": "#e7000b",
+      "role": "the point. The only chromatic value in brand graphics. At most one red point in the content of a page, and lockups in page chrome (header, sidebar, footer) do not count. In the interface it also marks errors and destructive actions, as text, icon strokes and a 6 px dot. Never a surface fill"
+    },
+    "inkSoft": { "value": "#171717", "role": "filled UI surfaces" },
+    "midGray": { "value": "#525252", "role": "secondary text on paper" },
+    "hairline": { "value": "#d4d4d4", "role": "borders and dividers, never text" },
+    "canvas": { "value": "#f5f5f5", "role": "muted fills and secondary buttons" },
+    "surfaceAlt": { "value": "#fafafa", "role": "subtle surfaces" }
+  },
+  "contrast": [
+    { "foreground": "ink", "background": "paper", "min": 15, "use": "text and modules" },
+    { "foreground": "paper", "background": "ink", "min": 15, "use": "text and modules, reversed" },
+    { "foreground": "midGray", "background": "paper", "min": 7, "use": "secondary text" },
+    { "foreground": "ember", "background": "paper", "min": 4.5, "use": "the point on paper" },
+    { "foreground": "ember", "background": "ink", "min": 3, "use": "the point on ink, non-text" }
+  ],
+  "typography": {
+    "family": "Geist",
+    "licence": "SIL Open Font License 1.1",
+    "source": "https://github.com/vercel/geist-font",
+    "display": { "weight": 600, "tracking": "-0.045em", "note": "headlines in brand graphics" },
+    "text": { "weight": 400, "tracking": "-0.005em" },
+    "mono": "ui-monospace stack, as in the product",
+    "fallback": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif",
+    "wordmark": {
+      "text": "Conduit",
+      "weight": 600,
+      "tracking": -0.025,
+      "treatment": "the tittle of the i is a rounded square, a miniature of a module",
+      "tittle": { "sideToStem": 1, "topEm": 0.724, "radiusToSide": 0.2857 }
+    }
+  },
+  "geometry": {
+    "grid": {
+      "unit": 4,
+      "canvas": 64,
+      "note": "16u by 16u. Every symbol coordinate is a whole number of units."
+    },
+    "symbol": {
+      "inset": 4,
+      "module": 28,
+      "cornerRadius": 8,
+      "pointRadius": 8,
+      "socketRadius": 12,
+      "contact": [32, 32],
+      "symmetry": "180 degrees about the contact point"
+    },
+    "lockup": {
+      "horizontal": {
+        "symbolScale": 1.5,
+        "gapPointDiameters": 1.5,
+        "alignment": "symbol centre on the cap-height midline"
+      },
+      "stacked": { "symbolScale": 3, "gapModules": 0.6, "alignment": "centred on the wordmark" }
+    },
+    "clearSpace": { "standard": "one module (7u)", "uiChrome": "half a module (3.5u)" },
+    "appIcon": {
+      "background": "ink",
+      "symbolCanvasRatio": 0.7,
+      "anyPurposeRatio": 0.8,
+      "maskableSafeRadiusRatio": 0.4
+    },
+    "favicon": { "tileRadiusRatio": 0.1875, "symbolCanvasRatio": 0.875 }
+  },
+  "minimumSize": {
+    "symbolPx": 16,
+    "symbolMm": 4,
+    "lockupHorizontalWidthPx": 96,
+    "wordmarkWidthPx": 72,
+    "note": "The symbol holds its geometry down to 16 px because every coordinate is a whole pixel at 16, 32, 48 and 64. No separate micro mark is needed."
+  },
+  "render": {
+    "background": ["#ffffff", "#0a0a0a"],
+    "approvedObject": "two modules joined by a black cable and a black connector with one red status light: a clear acrylic top on a white base, and a brushed steel top on a white base",
+    "finish": "satin; no gloss, no glow",
+    "light": "soft studio, high and slightly left",
+    "shadow": "soft contact shadow only",
+    "provenance": "apps/web/assets/hero-source.png is reused as is. How it was produced is not recorded in the repository."
+  },
+  "forbidden": [
+    "bridges, arches, tunnels, portals, vortices or any form that implies an asset travelling between chains",
+    "swap arrows, double arrows, chain links, hexagons, cubes, node networks, coins",
+    "shields, padlocks, handshakes, checkmark-in-shield",
+    "atoms, orbits or the word atomic: the protocol does not claim simultaneous execution",
+    "gradients, glow, glass, blur, aurora, neon, dark-tech styling",
+    "warm cream or amber backgrounds, and any chromatic value other than ember",
+    "more than one ember point in the content of a page, ember as a surface fill, or ember on a state that is not an error",
+    "recolouring the modules, rotating the mark, separating the point from the modules, adding outlines or shadows",
+    "all-caps or widely tracked lettering to signal authority",
+    "text generated inside raster images"
+  ]
+}

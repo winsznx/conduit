@@ -129,7 +129,7 @@ for (const viewport of VIEWPORTS) {
       expect(measured.navPosition).toBe('sticky');
       expect(measured.navTop).toBe('0px');
       expect(measured.navZIndex).toBeGreaterThanOrEqual(20);
-      expect(measured.navBackground).toBe('rgb(245, 245, 245)');
+      expect(measured.navBackground).toBe('rgb(255, 255, 255)');
 
       // #when the reader scrolls to the bottom of the landing page
       await page.evaluate(() => {
@@ -161,6 +161,8 @@ test('the sticky header keeps its links reachable from the keyboard', async ({ p
   await page.evaluate(() => {
     window.scrollTo(0, 1200);
   });
+  // The skip link is the first stop and is drawn fixed on screen, so the header is the second.
+  await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
 
   const focused = await page.evaluate(() => {

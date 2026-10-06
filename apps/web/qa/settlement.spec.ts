@@ -36,6 +36,7 @@ import {
   REGISTRY_ABI,
   RWA_ABI,
 } from '../src/onchain.js';
+import { skipUnlessDatabaseWritesAllowed } from './database-writes.js';
 
 // A throwaway key, checked in on purpose so the flow is deterministic. It holds
 // nothing on any chain.
@@ -610,6 +611,7 @@ async function connect(page: Page): Promise<void> {
  * the composer still reaches the workspace.
  */
 async function composeSignedSettlement(page: Page): Promise<string> {
+  skipUnlessDatabaseWritesAllowed();
   await page.goto('/app/settlements/new');
   await connect(page);
   await page.locator('#f-role').selectOption('both');
@@ -925,7 +927,7 @@ test.describe('settlement workspace', () => {
 
     // #given a settlement that already exists in the projection
     await page.goto('/app/settlements');
-    const first = page.locator('tbody tr td.mono a').first();
+    const first = page.locator('tbody tr td a.mono').first();
     await first.click();
 
     // #then the page renders and the action panel refuses for the right reason

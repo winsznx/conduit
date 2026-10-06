@@ -38,6 +38,12 @@ export interface Env {
   readonly DEPLOYMENT_ID: string;
   readonly COMMIT_SHA: string;
   /**
+   * The canonical origin, for canonical links and Open Graph URLs. Public: it is the
+   * address the product already answers on. Absent, those tags are left out rather
+   * than written relative, because a crawler ignores a relative image URL.
+   */
+  readonly SITE_URL?: string;
+  /**
    * Cleanverse credentials. Secrets, never `[vars]`, and never sent to the
    * browser — the eligibility endpoint exists so the browser never needs them.
    */
@@ -81,18 +87,31 @@ function connect(env: Env): Sql {
   return postgres(env.DATABASE_URL, {
     max: 1,
     prepare: false,
+    // The driver waits 30 seconds for a host that accepts nothing. A page that has to give up on
+    // the database, the landing most of all, cannot make a crawler wait that long.
+    connect_timeout: 5,
     onnotice: () => undefined,
     connection: { application_name: 'conduit-web' },
   });
 }
 
-/** Runs a read and always closes the socket, including on failure. */
+/**
+ * Runs a read and always closes the socket, including on failure.
+ *
+ * After a success there is nothing in flight, so the drain returns at once. After a failure the
+ * socket is dropped without waiting: `end` with a timeout would hold a refused connection open for
+ * the whole timeout, and the landing, which answers 200 without its figures, would be five
+ * seconds late.
+ */
 export async function withDb<T>(env: Env, read: (sql: Sql) => Promise<T>): Promise<T> {
   const sql = connect(env);
+  let finished = false;
   try {
-    return await read(sql);
+    const result = await read(sql);
+    finished = true;
+    return result;
   } finally {
-    await sql.end({ timeout: 5 });
+    await sql.end({ timeout: finished ? 5 : 0 });
   }
 }
 
@@ -335,83 +354,110 @@ export async function settlementView(
   env: Env,
   settlementId: string,
 ): Promise<SettlementView | undefined> {
-  return withDb(env, async (sql) => {
-    const [head] = (await sql`
+  return withDb(env, (sql) => settlementViewOn(sql, settlementId));
+}
+
+/**
+ * One settlement, read down a connection the caller opened and will close.
+ *
+ * The reads are sequential on purpose. With `prepare` off, postgres.js sends a statement that
+ * takes parameters only after the one before it has finished, so issuing them together was
+ * measured to save nothing, and it would leave reads queued behind a failure on a connection
+ * that has already been ended. The cost of this page is the distance to the database, which
+ * the Worker's placement setting addresses.
+ */
+async function settlementViewOn(
+  sql: Sql,
+  settlementId: string,
+): Promise<SettlementView | undefined> {
+  const [head] = (await sql`
       SELECT s.settlement_id, s.deployment_id, s.intent_hash, s.canonical_state,
              s.decision, s.verifier_class, d.generation
         FROM conduit.settlements s
         JOIN conduit.deployments d USING (deployment_id)
        WHERE s.settlement_id = ${settlementId}
     `) as unknown as readonly SettlementRow[];
-    if (head === undefined) return undefined;
+  if (head === undefined) return undefined;
 
-    const [terms] = (await sql`
+  const [terms] = (await sql`
       SELECT cash_chain_id, cash_asset, cash_amount, cash_payer, cash_receiver,
              asset_chain_id, asset_token, asset_amount, asset_seller, asset_receiver,
              terms_source
         FROM conduit.intents WHERE intent_hash = ${head.intent_hash}
     `) as unknown as readonly Record<string, unknown>[];
 
-    const legs = (await sql`
+  const legs = (await sql`
       SELECT leg, chain_id, outcome FROM conduit.settlement_legs
        WHERE settlement_id = ${settlementId}
     `) as unknown as readonly { leg: string; chain_id: number; outcome: string }[];
 
-    const messageRows = (await sql`
-      SELECT message_type, sequence, finality, emitter, wormhole_chain_id,
-             destination_chain_id, source_chain_id, published_tx_hash
-        FROM conduit.messages WHERE settlement_id = ${settlementId}
-       ORDER BY wormhole_chain_id, sequence
+  const messageRows = (await sql`
+      SELECT m.message_type, m.sequence, m.finality, m.emitter, m.wormhole_chain_id,
+             m.source_chain_id, m.published_tx_hash,
+             v.finality_seconds
+        FROM conduit.messages m
+        LEFT JOIN conduit.vaas v
+               ON v.wormhole_chain_id = m.wormhole_chain_id
+              AND v.emitter = m.emitter
+              AND v.sequence = m.sequence
+       WHERE m.settlement_id = ${settlementId}
+       ORDER BY m.wormhole_chain_id, m.sequence
     `) as unknown as readonly Record<string, unknown>[];
 
-    const termsKnown = terms !== undefined && terms['terms_source'] !== 'unknown';
-    const outcomeOf = (leg: string): string =>
-      legs.find((row) => row.leg === leg)?.outcome ?? 'UNKNOWN';
+  const termsKnown = terms !== undefined && terms['terms_source'] !== 'unknown';
+  const outcomeOf = (leg: string): string =>
+    legs.find((row) => row.leg === leg)?.outcome ?? 'UNKNOWN';
 
-    const leg = (side: 'cash' | 'asset'): LegView => {
-      const chainId = num(terms?.[`${side}_chain_id`]) || (side === 'cash' ? 10143 : 84532);
-      const asset = text(terms?.[side === 'cash' ? 'cash_asset' : 'asset_token']);
-      const amount = text(terms?.[`${side}_amount`]) || '0';
-      const counterparty = text(terms?.[side === 'cash' ? 'cash_payer' : 'asset_receiver']);
-      return {
-        chain: '',
-        chainId,
-        asset,
-        assetSymbol: asset === '' ? '—' : symbolFor(asset),
-        amount: termsKnown ? formatAmount(amount) : 'not recovered',
-        outcome: outcomeOf(side === 'cash' ? 'CASH' : 'ASSET'),
-        counterparty,
-      };
-    };
-
-    const messages: readonly MessageView[] = messageRows.map((row) => ({
-      messageType: text(row['message_type']),
-      sequence: text(row['sequence']),
-      finality: text(row['finality']),
-      emitter: text(row['emitter']),
-      wormholeChainId: num(row['wormhole_chain_id']),
-      consumed: text(row['destination_chain_id']) !== '',
-      finalitySeconds: undefined,
-      publishedTxHash: text(row['published_tx_hash']),
-      publishedChainId: num(row['source_chain_id']),
-    }));
-
+  const leg = (side: 'cash' | 'asset'): LegView => {
+    const chainId = num(terms?.[`${side}_chain_id`]) || (side === 'cash' ? 10143 : 84532);
+    const asset = text(terms?.[side === 'cash' ? 'cash_asset' : 'asset_token']);
+    const amount = text(terms?.[`${side}_amount`]) || '0';
+    const counterparty = text(terms?.[side === 'cash' ? 'cash_payer' : 'asset_receiver']);
     return {
-      settlementId: head.settlement_id,
-      deploymentId: head.deployment_id,
-      generation: head.generation,
-      canonicalState: head.canonical_state,
-      decision: head.decision,
-      verifierClass: head.verifier_class ?? undefined,
-      cash: leg('cash'),
-      asset: leg('asset'),
-      messages,
-      compliance: await complianceFor(sql, settlementId),
-      disposition: await dispositionFor(sql, settlementId),
-      conservation: [],
-      termsKnown,
+      chain: '',
+      chainId,
+      asset,
+      assetSymbol: asset === '' ? '—' : symbolFor(asset),
+      amount: termsKnown ? formatAmount(amount) : 'not recovered',
+      outcome: outcomeOf(side === 'cash' ? 'CASH' : 'ASSET'),
+      counterparty,
     };
-  });
+  };
+
+  const messages: readonly MessageView[] = messageRows.map((row) => ({
+    messageType: text(row['message_type']),
+    sequence: text(row['sequence']),
+    finality: text(row['finality']),
+    emitter: text(row['emitter']),
+    wormholeChainId: num(row['wormhole_chain_id']),
+    // Nothing in the projection records the destination burning a VAA, so
+    // consumption is claimed only where the independent verifier has proved it:
+    // SETTLED_FINAL requires its "every message found is authentic, final, and
+    // consumed once" check to have passed.
+    consumed: head.verifier_class === 'SETTLED_FINAL',
+    finalitySeconds:
+      row['finality_seconds'] === null || row['finality_seconds'] === undefined
+        ? undefined
+        : num(row['finality_seconds']),
+    publishedTxHash: text(row['published_tx_hash']),
+    publishedChainId: num(row['source_chain_id']),
+  }));
+
+  return {
+    settlementId: head.settlement_id,
+    deploymentId: head.deployment_id,
+    generation: head.generation,
+    canonicalState: head.canonical_state,
+    decision: head.decision,
+    verifierClass: head.verifier_class ?? undefined,
+    cash: leg('cash'),
+    asset: leg('asset'),
+    messages,
+    compliance: await complianceFor(sql, settlementId),
+    disposition: await dispositionFor(sql, settlementId),
+    conservation: [],
+    termsKnown,
+  };
 }
 
 async function complianceFor(sql: Sql, settlementId: string) {
@@ -614,6 +660,30 @@ export async function consoleOverview(
   return withDb(env, async (sql) => {
     const [counts, recent] = await Promise.all([readTotals(sql), readRecent(sql, limit)]);
     return { totals: counts, recent };
+  });
+}
+
+export interface LandingFacts {
+  readonly totals: Totals;
+  /** The newest settlement in full, or nothing when none is indexed. */
+  readonly featured: SettlementView | undefined;
+}
+
+/**
+ * Everything the landing reads, on one connection.
+ *
+ * The landing used to call `consoleOverview` and then `settlementView`, which opened a second
+ * socket to the pooler to read the newest settlement in full. Opening a connection costs several
+ * times what a query does, so that second socket added several round trips on top of the queries.
+ * The totals and the newest settlement are asked for together, then that settlement's view.
+ */
+export async function landingFacts(env: Env): Promise<LandingFacts> {
+  return withDb(env, async (sql) => {
+    const [counts, recent] = await Promise.all([readTotals(sql), readRecent(sql, 1)]);
+    const newest = recent[0];
+    const featured =
+      newest === undefined ? undefined : await settlementViewOn(sql, newest.settlementId);
+    return { totals: counts, featured };
   });
 }
 

@@ -14,6 +14,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { privateKeyToAccount } from 'viem/accounts';
 
+import { skipUnlessDatabaseWritesAllowed } from './database-writes.js';
+
 // A throwaway key. It holds nothing, on any chain, and is checked in on purpose
 // so this test is deterministic.
 const KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
@@ -176,7 +178,40 @@ test.describe('participant flow', () => {
     await expect(page.locator('[data-matrix]')).toContainText('Asset receiver');
   });
 
+  test('defaults each receiver to the counterparty and says so in a sentence', async ({ page }) => {
+    await installSigningWallet(page);
+    await stubEligible(page);
+    await page.goto('/app/settlements/new');
+    await connect(page);
+
+    // #given a payer and a seller who are different wallets, and no receivers
+    const payer = account.address;
+    const seller = '0x2222222222222222222222222222222222222222';
+    await page.locator('#f-cashAmount').fill('25');
+    await page.locator('#f-assetAmount').fill('0.5');
+    await page.locator('#f-cashPayer').fill(payer);
+    await page.locator('#f-assetSeller').fill(seller);
+    await expect(page.locator('#f-cashReceiver')).toHaveValue('');
+    await expect(page.locator('#f-assetReceiver')).toHaveValue('');
+
+    // #when the terms are checked and reviewed
+    await page.getByRole('button', { name: 'Check compliance' }).click();
+    const review = page.getByRole('button', { name: 'Review and sign' });
+    await expect(review).toBeEnabled({ timeout: 45_000 });
+    await review.click();
+
+    // #then the seller is the cash receiver and the payer the asset receiver,
+    // and the recap states the trade as a sentence before the table
+    const summary = page.locator('[data-summary]');
+    await expect(summary).toContainText(
+      `${seller.slice(0, 6)}…${seller.slice(-4)} delivers 0.5 cBOND on Base Sepolia to ${payer.slice(0, 6)}…${payer.slice(-4)}`,
+    );
+    await expect(summary.locator('tr', { hasText: 'Cash receiver' })).toContainText(seller);
+    await expect(summary.locator('tr', { hasText: 'Asset receiver' })).toContainText(payer);
+  });
+
   test('signs the intent in the browser and stores it for the counterparty', async ({ page }) => {
+    skipUnlessDatabaseWritesAllowed();
     await installSigningWallet(page);
     await stubEligible(page);
     await page.goto('/app/settlements/new');
@@ -208,6 +243,7 @@ test.describe('participant flow', () => {
   });
 
   test('the counterparty link opens a signable request', async ({ page }) => {
+    skipUnlessDatabaseWritesAllowed();
     await installSigningWallet(page);
     await stubEligible(page);
     await page.goto('/app/settlements/new');

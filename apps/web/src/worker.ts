@@ -44,6 +44,8 @@
 
 import CLIENT_BUNDLE from './client.bundle.js.txt';
 import { CLIENT_PATH } from './client-manifest.js';
+import { BRAND_ROOT_FILES } from './brand-manifest.js';
+import { setSite } from './head.js';
 import { IMAGES } from './image-manifest.js';
 import { checkTargets, deploymentConfig, dispositionConfig, targetForChain } from './deployment.js';
 import { checkEligibility, isAddress } from './eligibility.js';
@@ -51,12 +53,15 @@ import { signRequest, storeSignedIntent, workspaceIntent } from './intents.js';
 import { isAttestationFailure, mintAttestations } from './attestations.js';
 import { isMessageFailure, messagesFor, recordMessage } from './messages.js';
 import { proofPackage } from './evidence.js';
-import type { Env } from './data.js';
+import { withoutTrailingSlashes } from './request-path.js';
+import { hasWelcomeCookie } from './welcome.js';
+import type { Env, LandingFacts } from './data.js';
 import {
   consoleOverview,
   deployments,
   dispositionCases,
   evidenceFor,
+  landingFacts,
   latestVerification,
   recentSettlements,
   settlementView,
@@ -114,6 +119,7 @@ const JSON_HEADERS = {
 const SECURITY_HEADERS = {
   'content-security-policy':
     "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; " +
+    "manifest-src 'self'; " +
     "connect-src 'self' https://testnet-rpc.monad.xyz https://sepolia.base.org; " +
     "form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   'x-content-type-options': 'nosniff',
@@ -172,6 +178,38 @@ function imageAt(path: string): { bytes: Uint8Array; type: string } | undefined 
   return { bytes, type: asset.type };
 }
 
+/**
+ * The files browsers ask for by name: the favicon set and the web manifest.
+ *
+ * Decoded once per isolate, like the hero. They are not immutable, because the name
+ * stays when the bytes change, so a day is what a stale icon is allowed to live.
+ */
+const ROOT_FILE_BYTES = new Map<string, Uint8Array>();
+
+function rootFileAt(path: string): { bytes: Uint8Array; type: string } | undefined {
+  const file = BRAND_ROOT_FILES[path];
+  if (file === undefined) return undefined;
+
+  let bytes = ROOT_FILE_BYTES.get(path);
+  if (bytes === undefined) {
+    const binary = atob(file.base64);
+    bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    ROOT_FILE_BYTES.set(path, bytes);
+  }
+  return { bytes, type: file.type };
+}
+
+function rootFile(bytes: Uint8Array, type: string): Response {
+  return new Response(bytes, {
+    headers: {
+      'content-type': type,
+      'cache-control': 'public, max-age=86400',
+      ...SECURITY_HEADERS,
+    },
+  });
+}
+
 function image(bytes: Uint8Array, type: string): Response {
   return new Response(bytes, {
     headers: {
@@ -180,6 +218,27 @@ function image(bytes: Uint8Array, type: string): Response {
       ...SECURITY_HEADERS,
     },
   });
+}
+
+/**
+ * Where the www host sends a visitor: the same path on the canonical origin.
+ *
+ * Both hosts are attached to this Worker, and without this each page would be served
+ * twice, once at each address. The canonical link already tells search engines which
+ * is real; the redirect tells a person, and a link-preview crawler, the same thing.
+ * The workers.dev address is left alone, since the canonical link covers it.
+ *
+ * It looks at the host and never at the scheme. With routes in `wrangler.toml`, the local
+ * dev server hands the Worker `http://tryconduit.xyz/...` for every request to localhost,
+ * so an upgrade of cleartext requests on the canonical host would redirect each local
+ * visitor to the production site, or loop. Upgrading cleartext belongs to the zone's
+ * Always Use HTTPS setting.
+ */
+function wwwRedirect(url: URL, siteUrl: string | undefined): string | undefined {
+  if (siteUrl === undefined || siteUrl.trim() === '') return undefined;
+  const site = new URL(siteUrl);
+  if (url.hostname !== `www.${site.hostname}`) return undefined;
+  return `${site.origin}${url.pathname}${url.search}`;
 }
 
 function redirect(location: string): Response {
@@ -191,7 +250,14 @@ const SETTLEMENT_ID = /^0x[0-9a-fA-F]{64}$/;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const path = url.pathname.replace(/\/+$/, '') || '/';
+    const path = withoutTrailingSlashes(url.pathname);
+
+    // The canonical origin, for the tags that need an absolute URL. Module state like the
+    // deployment below, and safe for the same reason: it is derived from `env`.
+    setSite(env.SITE_URL);
+
+    const canonical = wwwRedirect(url, env.SITE_URL);
+    if (canonical !== undefined) return redirect(canonical);
 
     // Every page carries the deployment so the session can read balances on
     // routes that have no composer. This is module state in a shared isolate,
@@ -240,7 +306,7 @@ export default {
     }
 
     try {
-      return await route(path, url, env);
+      return await route(path, url, env, request);
     } catch (error) {
       // The message is deliberately not echoed. A stack trace from a Worker
       // holding a database credential is a place credentials surface.
@@ -314,12 +380,15 @@ function generationLabel(env: Env): string {
   return `${env.DEPLOYMENT_ID.slice(0, 10)}…`;
 }
 
-async function route(path: string, url: URL, env: Env): Promise<Response> {
+async function route(path: string, url: URL, env: Env, request: Request): Promise<Response> {
   // ── Static ────────────────────────────────────────────────────────────────
 
   if (path === CLIENT_PATH) return script(CLIENT_BUNDLE);
 
-  if (path.startsWith('/assets/hero-')) {
+  const brandFile = rootFileAt(path);
+  if (brandFile !== undefined) return rootFile(brandFile.bytes, brandFile.type);
+
+  if (path.startsWith('/assets/hero-') || path.startsWith('/assets/conduit-')) {
     const asset = imageAt(path);
     if (asset !== undefined) return image(asset.bytes, asset.type);
   }
@@ -417,20 +486,34 @@ async function route(path: string, url: URL, env: Env): Promise<Response> {
   // ── Landing ───────────────────────────────────────────────────────────────
 
   if (path === '/') {
-    const { totals: counts, recent } = await consoleOverview(env, 1);
-    // The landing diagram shows a real trade, so it needs the full view. The
-    // list query deliberately skips terms, and passing that shallow row
-    // straight through rendered a settlement with no chain and no amounts.
-    const head = recent[0];
-    const featured = head === undefined ? undefined : await settlementView(env, head.settlementId);
-    return html(renderLanding(counts, featured === undefined ? [] : [featured]));
+    // The landing is the front door and the page link-preview crawlers fetch, and its head
+    // needs no data. A database outage therefore costs it the live figures and nothing else,
+    // so it still answers 200. The routes that exist to show data keep their error page,
+    // because they have nothing true to show. The figures are left out and never zeroed: a
+    // zero is a number, and a reader will believe it.
+    //
+    // Only the read is inside the try, so a fault in rendering still reaches the handler
+    // above instead of being reported as an unreachable database.
+    let facts: LandingFacts | undefined;
+    try {
+      // The landing diagram shows a real trade, so it needs the full view. The list query
+      // deliberately skips terms, and passing that shallow row straight through rendered a
+      // settlement with no chain and no amounts. `landingFacts` reads both on one connection.
+      facts = await landingFacts(env);
+    } catch (error) {
+      console.error('landing facts unavailable', error);
+    }
+    const featured = facts?.featured;
+    return html(renderLanding(facts?.totals, featured === undefined ? [] : [featured]));
   }
 
   // ── Console ───────────────────────────────────────────────────────────────
 
   if (path === '/app') {
     const { totals: counts, recent } = await consoleOverview(env, 8);
-    return html(renderOverview(generationLabel(env), counts, recent));
+    // Read here and nowhere else: only this page holds space that the cookie lets it give up.
+    const welcomed = hasWelcomeCookie(request.headers.get('cookie'));
+    return html(renderOverview(generationLabel(env), counts, recent, welcomed));
   }
 
   if (path === '/app/settlements') {

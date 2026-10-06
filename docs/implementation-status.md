@@ -4,7 +4,7 @@ Maintained per CLAUDE.md after every phase. PRD 19 defines the phases; a phase i
 when its PRD gate has real evidence, never because code compiles.
 
 **Source of truth date:** 2026-08-05 (PRD v1.0), amended 2026-08-07 (v1.1 override)
-**Last updated:** 2026-08-09
+**Last updated:** 2026-10-06
 
 `CONDUIT_PRD_v1.1_OVERRIDE.md` arrived during phase 00 and wins wherever it conflicts with v1.0.
 Its adoption is recorded in [ADR-0004](./adr/0004-prd-v1-1-override-adoption.md). The phase
@@ -39,6 +39,58 @@ FUTURE                not built, and named here so nobody assumes it is
 | Independent verifier                                                    | **LIVE** | `/verify/:id`, 18 checks          |
 | Evidence explorer                                                       | **LIVE** | `/app/evidence`, 4 packages       |
 | Disposition center and the six order types                              | **LIVE** | `/app/dispositions`               |
+
+### Brand
+
+| Capability                                    | State                    | Evidence                                        |
+| --------------------------------------------- | ------------------------ | ----------------------------------------------- |
+| Identity and asset kit, generated and checked | **IMPLEMENTED + TESTED** | `brand/`, ADR-0023, `apps/web/qa/brand.spec.ts` |
+
+The kit is approved and wired into the console: the lockup, the favicon set, the web manifest,
+Open Graph and Twitter tags, and canonical links. Unit and browser tests cover it. It has not been
+deployed yet.
+
+A review on 2026-10-05 found the items below. The brand caused none of them. Nothing here is
+deployed yet.
+
+Fixed in the repository:
+
+- The landing reads everything on one database connection and still answers 200 when the database
+  cannot be read, without its live figures and without a featured settlement. It used to answer
+  with the error page, and that is the page link-preview crawlers fetch.
+- `apps/web/wrangler.toml` places the Worker near the database, with `region` set to
+  `aws:eu-west-1` under `[placement]`. The pages are slow from distance: opening a connection
+  takes about six round trips, and postgres.js sends statements that take parameters one at a
+  time, so reading concurrently gains nothing. Dropping the second connection took the landing
+  from about 4.0 s to about 3.3 s locally. The placement effect shows only after a deploy. Measure
+  `https://tryconduit.xyz/` and a settlement page then, and record the figures here.
+- The console overview no longer moves after first paint. Layout shift for a first-time visitor
+  fell from 0.10 at 1440 px and 0.29 at 390 px to 0.00. The server holds the space the welcome
+  card will fill, and a visitor who dismissed the card carries a one-bit cookie, `conduit-welcomed`,
+  so it holds none for them. See ADR-0024. A visitor with a remembered wallet still sees the
+  position card arrive late (0.2 to 0.4), as before.
+- Keyboard and assistive technology. The focus ring survives forced-colours mode, the current-page
+  link shows its ring, and focus in the sideways-scrolling sidebar strip is scrolled fully into
+  view. Every page has one `main` landmark and a skip link, the 404 and error pages have an `h1`,
+  the settlements table has no empty header, and the dimmed landing steps meet 4.5:1.
+- The browser script and the Playwright specs are type-checked by the gate and by the `typecheck`
+  script. They carried three type errors that nothing could see.
+- The specs that sign and store an intent are skipped unless `CONDUIT_ALLOW_DB_WRITES=1`, so a
+  plain Playwright run or the gate writes nothing to the shared database.
+
+Still open, and needs the owner:
+
+- The database holds 434 test intents from earlier spec runs (396 from 2026-08-09 and 38 from
+  2026-10-05). All were signed by the specs' throwaway wallet and none has a settlement. Run
+  `node scripts/purge-test-intents.mjs` for a dry run, then add `--apply` to back them up under
+  `~/.conduit/backups/` and delete them.
+- Plain http is served on `tryconduit.xyz` and `www` with a 200. The zone needs Always Use HTTPS.
+  The Worker cannot do it, because `wrangler dev` hands it `http://tryconduit.xyz` for every local
+  request, so a redirect there would send every local visit to production.
+- Cloudflare Web Analytics injects a script at the edge, and `script-src 'self'` blocks it on every
+  page view. Turn off the automatic setup in the dashboard and leave the policy alone. Adding
+  `Cache-Control: no-transform` to the HTML would stop the injection, and it also turns off
+  Cloudflare's compression of the page, so it is not used.
 
 ### Protocol
 

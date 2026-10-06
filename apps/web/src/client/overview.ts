@@ -79,21 +79,13 @@ function badge(text: string, solid: boolean): HTMLElement {
 // ── Disconnected ────────────────────────────────────────────────────────────
 
 function anonymous(host: HTMLElement): void {
-  const card = el('div', 'card');
-  card.append(el('div', 't-caption-upper', 'Your position'));
-  card.append(
-    el(
-      'p',
-      'muted',
-      'Connect a wallet and this page leads with your settlements, your balances on both chains, ' +
-        'and what each one is waiting for. Nothing below needs a wallet — every settlement here ' +
-        'can be read and independently verified without one.',
-    ),
+  const line = el(
+    'p',
+    't-caption muted',
+    'Connect a wallet and this page leads with your own settlements. Nothing below needs one.',
   );
-  const row = el('div', 'row');
-  row.append(anchor('/app/verifier', 'Verify a settlement', 'btn btn-outline btn-sm'));
-  card.append(row);
-  host.replaceChildren(card);
+  line.style.marginTop = 'var(--spacing-12)';
+  host.replaceChildren(line);
 }
 
 // ── Connected ───────────────────────────────────────────────────────────────
@@ -234,8 +226,11 @@ async function loadSettlements(address: string): Promise<readonly ParticipantSet
  * and it must never show the previous account's settlements for even one frame.
  */
 export function mountOverview(): void {
-  const host = document.querySelector<HTMLElement>('[data-overview]');
-  if (host === null) return;
+  const found = document.querySelector<HTMLElement>('[data-overview]');
+  if (found === null) return;
+  // The functions below are declarations, which are hoisted, so the null check above does not
+  // reach into them. A non-null alias does.
+  const host: HTMLElement = found;
 
   let loadedFor: string | undefined;
   let listed: HTMLElement | undefined;

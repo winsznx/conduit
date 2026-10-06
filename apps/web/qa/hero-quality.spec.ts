@@ -45,7 +45,7 @@ test('the lossy hero variants are visually identical to the lossless one', async
       const context = canvas.getContext('2d');
       if (context === null) throw new Error('no 2d context');
       // The page's canvas tone, so the comparison is what a reader sees.
-      context.fillStyle = '#f5f5f5';
+      context.fillStyle = '#ffffff';
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(image, 0, 0);
       return context.getImageData(0, 0, canvas.width, canvas.height).data;

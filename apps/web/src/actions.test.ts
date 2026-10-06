@@ -654,4 +654,35 @@ describe('history', () => {
     expect(done).toContain('ASSET_PREPARED finalized and consumed');
     expect(done).not.toContain('COMMIT issued');
   });
+
+  it('does not call a committed settlement unsigned because the store kept no signatures', () => {
+    const facts = history(
+      snapshot({
+        signatures: { payer: false, seller: false },
+        settlement: settlementRecord({
+          state: 'SETTLED',
+          decision: 'COMMIT',
+          cashPrepared: true,
+          assetPrepared: true,
+          cashOutcome: 'RELEASED',
+          assetOutcome: 'RELEASED',
+        }),
+      }),
+    );
+    const signed = facts.find((fact) => fact.label === 'Both parties signed');
+    expect(signed?.done).toBe(true);
+    expect(signed?.detail).not.toContain('not signed');
+    const fresh = facts.find((fact) => fact.label === 'Fresh compliance at commit time');
+    expect(fresh?.done).toBe(true);
+    expect(fresh?.detail).not.toContain('not asked yet');
+  });
+
+  it('still reports a genuinely missing signature before COMMIT', () => {
+    const facts = history(
+      snapshot({ signatures: { payer: true, seller: false }, settlement: undefined }),
+    );
+    const signed = facts.find((fact) => fact.label === 'Both parties signed');
+    expect(signed?.done).toBe(false);
+    expect(signed?.detail).toContain('seller not signed');
+  });
 });
