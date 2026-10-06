@@ -1,9 +1,14 @@
-# Conduit
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/source/conduit-lockup-horizontal-reversed.svg">
+    <img src="brand/source/conduit-lockup-horizontal.svg" alt="Conduit" width="260">
+  </picture>
+</h1>
 
 Cross-chain delivery-versus-payment for Cleanverse-native assets. Both assets
 stay on their issuance chains; what crosses is authenticated settlement state.
 
-**Live:** <https://conduit.timjosh507.workers.dev>
+**Live:** <https://tryconduit.xyz>
 
 ---
 
@@ -123,15 +128,17 @@ flowchart LR
   classDef step fill:#f5f5f5,stroke:#737373,stroke-width:2px,color:#0a0a0a
   classDef gate fill:#0a0a0a,stroke:#0a0a0a,stroke-width:3px,color:#ffffff
   classDef stop fill:#ffffff,stroke:#e7000b,stroke-width:3px,color:#0a0a0a
+  classDef held fill:#ffffff,stroke:#0a0a0a,stroke-width:3px,stroke-dasharray:6 4,color:#0a0a0a
   classDef mark fill:#ffffff,stroke:#0a0a0a,stroke-width:3px,color:#0a0a0a
   class A,C,E,G step
   class B gate
-  class D,F stop
+  class D stop
+  class F held
   class H mark
 ```
 
 That is not a design sketch. It is settlement
-[`0xc113ad33…`](https://conduit.timjosh507.workers.dev/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0),
+[`0xc113ad33…`](https://tryconduit.xyz/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0),
 live on testnet, with every transaction in
 [the evidence manifest](docs/evidence/MANIFEST.md).
 
@@ -236,13 +243,13 @@ build if a unique key on a bare address appears in the schema
 
 ## Live evidence
 
-| What                                  | Where                                                                                                                                      |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| A participant settling from a browser | [`0xd46775dc…`](https://conduit.timjosh507.workers.dev/app/settlements/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77) |
-| Independently verified                | [SETTLED_FINAL, 18/18](https://conduit.timjosh507.workers.dev/verify/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77)   |
-| Compliance changed after COMMIT       | [`0xc113ad33…`](https://conduit.timjosh507.workers.dev/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0) |
-| Everything, in one document           | [docs/evidence/MANIFEST.md](docs/evidence/MANIFEST.md)                                                                                     |
-| Every transaction, linked             | [docs/onchain.md](docs/onchain.md)                                                                                                         |
+| What                                  | Where                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| A participant settling from a browser | [`0xd46775dc…`](https://tryconduit.xyz/app/settlements/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77) |
+| Independently verified                | [SETTLED_FINAL, 18/18](https://tryconduit.xyz/verify/0xd46775dc9cbcdfdd4f60df1c9de4de15fc609b29f47f1d3d1860e398c33aca77)   |
+| Compliance changed after COMMIT       | [`0xc113ad33…`](https://tryconduit.xyz/app/settlements/0xc113ad335d202d985d527b0a193498ef2ecceb9a129a58c5002943c88601a3b0) |
+| Everything, in one document           | [docs/evidence/MANIFEST.md](docs/evidence/MANIFEST.md)                                                                     |
+| Every transaction, linked             | [docs/onchain.md](docs/onchain.md)                                                                                         |
 
 The console is the product: a participant connects a wallet, is checked against
 Cleanverse live, composes terms, signs an EIP-712 intent, sends a counterparty a
@@ -309,15 +316,17 @@ Also enforced, and tested:
 ## Testing
 
 ```text
-Vitest      762 assertions, 32 files
+Vitest      1282 tests, 44 files
 Foundry     281 tests, 19 suites — 9 fuzz properties at 256 runs each,
                                    26 disposition invariants,
                                    10 exploit regressions
-Playwright   78 browser tests against the deployed surface, plus 1 opt-in live run
-Gate        19/19 steps: toolchain, format, lint, typecheck, unit, contracts
-            build/test/gas/layout, trace corpus, Slither, gitleaks, pnpm audit,
-            Trivy, Checkov, manifests, on-chain verification, on-chain
-            transaction index, end-to-end
+Playwright  395 browser tests against a running console (11 of them store
+            intents and run only with CONDUIT_ALLOW_DB_WRITES=1), plus 1 opt-in
+            live run
+Gate        22 steps: toolchain, format, web bundle, typecheck, lint, unit,
+            contracts build/test/gas/layout, trace corpus, Slither, gitleaks,
+            pnpm audit, Trivy, Checkov, manifests, on-chain verification,
+            hero image, brand kit, on-chain transaction index, end-to-end
 ```
 
 The browser suite drives the whole write flow — reserve, announce, approve,
@@ -325,6 +334,14 @@ escrow, consume the finalized message, ask compliance again, commit, release bot
 legs, report and record — against a scripted chain that advances only by decoding
 the selector the browser actually encoded. An app that skips a call never moves
 the state and the assertion fails.
+
+The eleven that sign an intent also store it in the database the console reads, and
+the local console shares that database with production. They are skipped unless you
+set `CONDUIT_ALLOW_DB_WRITES=1`, so a plain `playwright test` or the gate leaves no
+rows behind. Run them against a console that points at a scratch database where you
+can, and clear what they left with `pnpm test-data:purge`. It is a dry run until you
+add `--apply`, and then it backs the rows up under `~/.conduit/backups/` and deletes only
+unsettled intents signed by the specs' throwaway wallet.
 
 ## Known limitations
 
@@ -374,7 +391,7 @@ message PRD 7.3 does not define, and ADR-0015 forbids inventing one.
 
 ```bash
 pnpm install
-pnpm verify                      # the full 19-step gate
+pnpm verify                      # the full 22-step gate
 pnpm conduit doctor              # environment, both chains, every Cleanverse capability
 pnpm conduit verify <settlementId>
 pnpm evidence:check              # what the site serves still matches docs/evidence
@@ -390,7 +407,7 @@ strict.
 | [docs/submission.md](docs/submission.md)                               | the submission package, and the rubric mapping |
 | [docs/evidence/MANIFEST.md](docs/evidence/MANIFEST.md)                 | every transaction, message and check           |
 | [docs/implementation-status.md](docs/implementation-status.md)         | what is LIVE, tested, blocked or future        |
-| [docs/adr/](docs/adr/)                                                 | 22 decisions, including the ones we got wrong  |
+| [docs/adr/](docs/adr/)                                                 | 24 decisions, including the ones we got wrong  |
 | [docs/onchain.md](docs/onchain.md)                                     | 57 transactions, resolved and linked           |
 | [docs/threat-model/](docs/threat-model/)                               | 48 threats bound to 13 invariants              |
 | [docs/evidence/observed-latency.md](docs/evidence/observed-latency.md) | 12 finality samples, never averaged            |

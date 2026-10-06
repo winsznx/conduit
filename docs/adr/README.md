@@ -45,6 +45,8 @@ policy, and RuleV2 semantics. The effective order is:
 | [0020](./0020-the-disposition-kernel-rests-orders-before-it-executes-them.md)    | The Disposition Kernel rests orders before it executes them             | Accepted |
 | [0021](./0021-the-web-surface-holds-a-compliance-key-and-nothing-else.md)        | The web surface holds a compliance key, and nothing else                | Accepted |
 | [0022](./0022-one-participant-session-owns-identity-and-nothing-owns-a-chain.md) | One participant session owns identity, and nothing owns a chain         | Accepted |
+| [0023](./0023-the-brand-is-two-modules-and-one-point.md)                         | The brand is two modules and one point                                  | Accepted |
+| [0024](./0024-a-one-bit-cookie-lets-the-server-hold-the-right-space.md)          | A one-bit cookie lets the server hold the right space                   | Accepted |
 
 ## Rules
 
