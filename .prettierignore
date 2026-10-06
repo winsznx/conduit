@@ -23,6 +23,12 @@ docs/onchain.md
 # the next regeneration a diff, which is noise rather than information.
 apps/web/assets/hero.json
 
+# `brand/manifest.json` is written by `pnpm brand:build` and read by `pnpm brand:check`.
+# `scripts/brand/type.json` is written by `scripts/brand/author-type.py` and read by the
+# build. Reformatting either makes the next regeneration a diff.
+brand/manifest.json
+scripts/brand/type.json
+
 # Run artifacts are records, written by the scripts that produced the runs. A
 # formatter has no business rewriting the bytes of a thing whose whole purpose
 # is to be the record of what happened.

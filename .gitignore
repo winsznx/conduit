@@ -43,6 +43,9 @@ test-results/
 docs/evidence/artifacts/
 .scratch/
 
+# Private working material: the brand-design skill and similar notes. Never committed.
+/internal/
+
 # Cloudflare Workers local secrets. `wrangler dev` reads these and `wrangler
 # secret put` writes them; either way the file holds live values and the moment
 # it exists is the moment it can be staged. Ignored before it is created.
@@ -62,3 +65,7 @@ test-results/
 apps/web/src/client.bundle.js.txt
 apps/web/src/client-manifest.ts
 apps/web/src/image-manifest.ts
+apps/web/src/brand-manifest.ts
+
+# A working document for recording the demo. It is not part of the repository.
+/DEMO_SCRIPT.md
