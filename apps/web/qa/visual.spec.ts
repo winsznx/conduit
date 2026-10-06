@@ -38,7 +38,7 @@ const VIEWPORTS: readonly { width: number; height: number; label: string }[] = [
 ];
 
 /** The two palette values the audit compares against directly. */
-const CANVAS = 'rgb(245, 245, 245)';
+const CANVAS = 'rgb(255, 255, 255)';
 const EMBER = 'rgb(231, 0, 11)';
 
 /** The radius scale design.md permits, plus 0 and the pill cap. */
@@ -95,6 +95,35 @@ async function auditPage(page: Page, name: string): Promise<void> {
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow, `${name}: the page body must not scroll horizontally`).toBeLessThanOrEqual(1);
+
+  // ── Cards are separated ──────────────────────────────────────────────────
+  // Two cards with nothing between them read as one broken box. The Deployments
+  // page once put its intro card outside the stack that spaced the cards below it,
+  // so the first two touched while every other pair had a gap. This looks at the
+  // layout that rendered, not at the markup, so it catches the same mistake made
+  // any other way.
+  const touching = await page.evaluate(() => {
+    const label = (element: Element): string =>
+      element.textContent.trim().replace(/\s+/g, ' ').slice(0, 36);
+    const cards = Array.from(document.querySelectorAll('.card')).filter(
+      (card) => card instanceof HTMLElement && card.offsetParent !== null,
+    );
+    const offenders: string[] = [];
+    for (const above of cards) {
+      for (const below of cards) {
+        if (above === below || above.contains(below) || below.contains(above)) continue;
+        const a = above.getBoundingClientRect();
+        const b = below.getBoundingClientRect();
+        const gap = b.top - a.bottom;
+        const shared = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        if (gap > -4 && gap < 8 && shared > Math.min(a.width, b.width) * 0.5) {
+          offenders.push(`${label(above)} -> ${label(below)} (${String(Math.round(gap))}px)`);
+        }
+      }
+    }
+    return offenders.slice(0, 6);
+  });
+  expect(touching, `${name}: cards must have space between them`).toEqual([]);
 
   // ── Body text is never smaller than the scale allows ─────────────────────
   const tooSmall = await page.evaluate(() => {
